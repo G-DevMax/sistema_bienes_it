@@ -16,6 +16,7 @@ class items extends Model
         'descripcion',
         'codigo_patrimonial',
         'stock',
+        'estado_id',
     ];
 
     protected function casts(): array
@@ -36,5 +37,11 @@ class items extends Model
     public function movimientos()
     {
         return $this->hasMany(movimientos::class);
+    }
+
+    // relacion muchos a uno con la tabla estado
+    public function estado()
+    {
+        return $this->belongsTo(estados::class);
     }
 }

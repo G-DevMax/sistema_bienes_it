@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\categorias;
+use App\Models\items;
+use App\Models\estados;
 
 class ItemsController extends Controller
 {
@@ -11,7 +15,10 @@ class ItemsController extends Controller
      */
     public function index()
     {
-        return view("items.index");
+        $categorias = categorias::all();
+        $items = items::paginate(10);
+
+        return view("items.index", compact('items', 'categorias'));
     }
 
     /**
@@ -19,7 +26,10 @@ class ItemsController extends Controller
      */
     public function create()
     {
-        return view("items.create");
+        $categorias = categorias::all();
+        $estados = estados::all();
+
+        return view("items.create", compact('categorias', 'estados'));
     }
 
     /**
@@ -43,7 +53,11 @@ class ItemsController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        $categorias = categorias::all();
+        $estados = estados::all();
+        $item = items::find($id);
+
+        return view("items.edit", compact("id", "categorias", "estados", "item"));
     }
 
     /**

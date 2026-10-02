@@ -19,6 +19,14 @@ class CategoriasSeeder extends Seeder
         $categoria->save();
 
         $categoria = new categorias();
+        $categoria->nombre = "Notebook";
+        $categoria->save();
+
+        $categoria = new categorias();
+        $categoria->nombre = "Impresora";
+        $categoria->save();
+
+        $categoria = new categorias();
         $categoria->nombre = 'Periferico';
         $categoria->save();
 

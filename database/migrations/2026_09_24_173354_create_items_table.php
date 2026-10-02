@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('descripcion', 300);
             $table->string('codigo_patrimonial', 60)->unique()->nullable();
             $table->integer('stock')->default(1);
+            // columna para la clave foránea del estado (FK)
+            $table->foreignId('estado_id')->constrained('estado')->onUpdate('cascade')->onDelete('restrict')->default(4);
             $table->timestamps();
         });
     }
