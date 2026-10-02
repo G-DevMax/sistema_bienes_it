@@ -11,4 +11,7 @@ Route::get('/dashboard', function () {
 });
 
 use App\Http\Controllers\ItemsController;
+use App\Http\Controllers\UsuariosController;
+
 Route::resource('items', ItemsController::class);
+Route::resource('usuarios', UsuariosController::class);

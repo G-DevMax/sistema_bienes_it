@@ -46,7 +46,7 @@
                         @forelse ($items as $item)
                             <tr class="hover:bg-white/5 transition-colors group">
                                 <td class="px-6 py-4 font-medium text-white/50">
-                                    #{{ str_pad($item->id, 4, '0', STR_PAD_LEFT) }}
+                                    #{{ $item->id }}
                                 </td>
                                 <td class="px-6 py-4 text-white font-medium">
                                     {{ $item->descripcion }}
