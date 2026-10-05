@@ -33,7 +33,14 @@ class UsuariosController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $nuevo_usuario = new User();
+        $nuevo_usuario->name = $request->name;
+        $nuevo_usuario->email = $request->email;
+        $nuevo_usuario->password = $request->password;
+        $nuevo_usuario->rol_id = $request->rol_id;
+        $nuevo_usuario->save();
+
+        return redirect()->route('usuarios.index')->with('success', 'Usuario creado exitosamente');
     }
 
     /**
