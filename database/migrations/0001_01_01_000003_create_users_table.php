@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->tinyInteger('estado_user')->default(1); // 1 para activo, 0 para inactivo
             // Columna para la clave foránea del rol (FK)
             $table->foreignId('rol_id')->constrained('roles')->onUpdate('cascade')->onDelete('restrict');
             $table->rememberToken();

@@ -22,6 +22,11 @@
             </a>
         </div>
 
+        <!-- Mensaje de alerta dinamico -->
+        <div>
+            @include('layouts.alerts')
+        </div>
+
         <!-- Tabla -->
         <div
             class="bg-[#293462]/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
@@ -33,6 +38,7 @@
                             <th class="px-6 py-4 font-semibold text-sm">Nombre</th>
                             <th class="px-6 py-4 font-semibold text-sm">Correo Electrónico</th>
                             <th class="px-6 py-4 font-semibold text-sm">Rol</th>
+                            <th class="px-6 py-4 font-semibold text-sm">Estado</th>
                             <th class="px-6 py-4 font-semibold text-sm text-right">Acciones</th>
                         </tr>
                     </thead>
@@ -46,6 +52,12 @@
                                     <span
                                         class="px-3 py-1 rounded-full text-xs font-medium bg-[#FEDB39]/20 text-[#FEDB39] border border-[#FEDB39]/30">
                                         {{ $usuario->rol->nombre ?? 'Desconocido' }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span
+                                        class="px-3 py-1 rounded-full text-xs font-medium bg-[#FEDB39]/20 text-[#FEDB39] border border-[#FEDB39]/30">
+                                        {{ $usuario->estado_user == 1 ? 'Activo' : 'Inactivo' }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
@@ -71,7 +83,7 @@
                                             <button type="submit"
                                                 class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
                                                 title="Eliminar"
-                                                onclick="return confirm('¿Estás seguro de eliminar este usuario?')">
+                                                onclick="return confirm('¿Estás seguro de desactivar este usuario?')">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

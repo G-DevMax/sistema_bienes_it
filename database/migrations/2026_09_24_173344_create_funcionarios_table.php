@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nombre', 120);
             // Columna para la clave foránea de la dependencia (FK)
             $table->foreignId('dependencia_id')->constrained('dependencias')->onUpdate('cascade')->onDelete('restrict');
+            $table->tinyInteger('estado_funcionario')->default(1); // 1 para activo, 0 para inactivo
             $table->timestamps();
         });
     }

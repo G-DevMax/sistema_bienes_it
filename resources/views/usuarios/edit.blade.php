@@ -86,6 +86,18 @@
                             @endif
                         </select>
                     </div>
+                    <!-- Estado del Usuario (activo o desactivado) -->
+                    <div>
+                        <label for="estado_user" class="block mb-2 text-sm font-medium text-white/90">
+                            Estado del Usuario
+                        </label>
+                        <select id="estado_user" name="estado_user"
+                            class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#FEDB39] focus:ring-2 focus:ring-[#FEDB39]/30 transition-all appearance-none"
+                            required>
+                            <option value="1" {{ $usuario->estado_user == 1 ? 'selected' : '' }}>Activo</option>
+                            <option value="0" {{ $usuario->estado_user == 0 ? 'selected' : '' }}>Desactivado</option>
+                        </select>
+                    </div>
                 </div> <!-- Fin del grid -->
 
                 <!-- Botones -->

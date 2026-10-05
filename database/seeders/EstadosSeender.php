@@ -19,11 +19,15 @@ class EstadosSeender extends Seeder
         $estado->save();
 
         $estado = new estados();
+        $estado->estado = "Transferido";
+        $estado->save();
+
+        $estado = new estados();
         $estado->estado = "Prestado";
         $estado->save();
 
         $estado = new estados();
-        $estado->estado = "Dado de Baja";
+        $estado->estado = "Inservible";
         $estado->save();
 
         $estado = new estados();

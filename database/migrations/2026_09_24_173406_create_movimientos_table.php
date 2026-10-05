@@ -16,6 +16,7 @@ return new class extends Migration
             // columnas fk
             $table->foreignId('item_id')->constrained('items')->onUpdate('cascade')->onDelete('restrict');
             $table->foreignId('funcionario_id')->constrained('funcionarios')->onUpdate('cascade')->onDelete('restrict');
+            $table->foreignId('user_id')->constrained('users')->onUpdate('cascade')->onDelete('restrict'); // se registra siempre la persona que autorizo/creo el movimiento
             $table->string('tipo_movimiento', 60);
             $table->dateTime('fecha_movimiento');
             $table->dateTime('fecha_devuelto')->nullable(); // puede ser null porque solo se utiliza cuando el movimiento es un prestamo
