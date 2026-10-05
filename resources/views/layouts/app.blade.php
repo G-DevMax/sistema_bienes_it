@@ -32,6 +32,12 @@
             <a href="/usuarios" class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
                 Usuarios
             </a>
+            <a href="/funcionarios" class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                Funcionarios
+            </a>
+            <a href="/dependencias" class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                Dependencias
+            </a>
         </div>
     </nav>
 
