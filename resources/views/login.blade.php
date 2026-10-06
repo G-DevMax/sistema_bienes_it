@@ -36,4 +36,10 @@
             </form>
         </div>
     </div>
+    <div class="text-center mt-4">
+        <button
+            class="w-full px-6 py-3 bg-gradient-to-r from-[#D61C4E] to-[#b81742] hover:opacity-90 text-white font-semibold rounded-xl shadow-lg shadow-[#D61C4E]/30 hover:shadow-[#D61C4E]/50 hover:-translate-y-0.5 transition-all">
+            <a href="/">Volver al Menú Principal</a>
+        </button>
+    </div>
 @endsection
