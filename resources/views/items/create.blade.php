@@ -31,7 +31,8 @@
                     <!-- Nombre -->
                     <div class="col-span-1 md:col-span-2">
                         <label for="nombre" class="block mb-2 text-sm font-medium text-white/90">Nombre /
-                            Descripción</label>
+                            Descripción
+                        </label>
                         <input type="text" id="nombre" name="nombre"
                             class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-[#1CD6CE] focus:ring-2 focus:ring-[#1CD6CE]/30 transition-all"
                             placeholder="Ej. Laptop ThinkPad T14" required>
@@ -57,7 +58,7 @@
                             class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#1CD6CE] focus:ring-2 focus:ring-[#1CD6CE]/30 transition-all appearance-none"
                             required>
                             @foreach ($estados as $estado)
-                                @if ($estado->id === 1 || $estado->id === 4)
+                                @if ($estado->id === 1 || $estado->id === 5)
                                     <option value="{{ $estado->id }}">{{ $estado->estado }}</option>
                                 @endif
                             @endforeach

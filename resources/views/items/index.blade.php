@@ -26,6 +26,11 @@
             </a>
         </div>
 
+        <!-- Mensaje de alertas -->
+        <div>
+            @include('layouts.alerts')
+        </div>
+
         <!-- Contenedor de la Tabla -->
         <div
             class="bg-[#293462]/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.3)]">
@@ -64,27 +69,49 @@
                                     {{ $item->stock }}
                                 </td>
                                 <td class="px-6 py-4 text-white">
-                                    @if ($item->estado_id == 1)
-                                        <span
-                                            class="px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white border border-green-500">
-                                            Disponible
-                                        </span>
-                                    @elseif ($item->estado_id == 2)
-                                        <span
-                                            class="px-3 py-1 rounded-full text-xs font-medium bg-yellow-500 text-white border border-yellow-500">
-                                            Prestado
-                                        </span>
-                                    @elseif ($item->estado_id == 3)
-                                        <span
-                                            class="px-3 py-1 rounded-full text-xs font-medium bg-red-500 text-white border border-red-500">
-                                            Dado de Baja
-                                        </span>
-                                    @else
-                                        <span
-                                            class="px-3 py-1 rounded-full text-xs font-medium bg-gray-500 text-white border border-red-500">
-                                            No Aplica
-                                        </span>
-                                    @endif
+                                    @switch($item->estado_id)
+                                        @case(1)
+                                            <span
+                                                class="px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white border border-green-500">
+                                                Disponible
+                                            </span>
+                                        @break
+
+                                        @case(2)
+                                            <span
+                                                class="px-3 py-1 rounded-full text-xs font-medium bg-purple-500 text-white border border-purple-500">
+                                                Transferido
+                                            </span>
+                                        @break
+
+                                        @case(3)
+                                            <span
+                                                class="px-3 py-1 rounded-full text-xs font-medium bg-yellow-500 text-white border border-yellow-500">
+                                                Prestado
+                                            </span>
+                                        @break
+
+                                        @case(4)
+                                            <span
+                                                class="px-3 py-1 rounded-full text-xs font-medium bg-red-500 text-white border border-red-500">
+                                                Inservible
+                                            </span>
+                                        @break
+
+                                        @case(5)
+                                            <span
+                                                class="px-3 py-1 rounded-full text-xs font-medium bg-gray-500 text-white border border-red-500">
+                                                No Aplica
+                                            </span>
+                                        @break
+
+                                        @default
+                                            <span
+                                                class="px-3 py-1 rounded-full text-xs font-medium bg-gray-500 text-white border border-red-500">
+                                                Estado Desconocido
+                                            </span>
+                                        @break
+                                    @endswitch
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div
@@ -102,50 +129,56 @@
                                             </button>
                                         </a>
 
-                                        <button
-                                            class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
-                                            title="Eliminar">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                        <form action="{{ route('items.destroy', $item->id) }}" method="POST">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
+                                                title="Dar de baja"
+                                                onclick="return confirm('¿Estás seguro de dar de baja este item?')">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-12 text-center text-white/50">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <svg class="w-12 h-12 mb-4 text-white/30" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
                                                 </path>
                                             </svg>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-white/50">
-                                    <div class="flex flex-col items-center justify-center">
-                                        <svg class="w-12 h-12 mb-4 text-white/30" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
-                                            </path>
-                                        </svg>
-                                        <p class="text-lg">No hay items registrados</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                            <p class="text-lg">No hay items registrados</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-            <!-- Paginación -->
-            <div class="px-6 py-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <span class="text-sm text-white/60">Mostrando <span class="text-white font-bold">1</span> a <span
-                        class="text-white font-bold">3</span> de <span class="text-white font-bold">3</span>
-                    resultados</span>
-                <div class="flex gap-1">
-                    <button
-                        class="px-3 py-1 rounded-md bg-white/5 text-white/40 cursor-not-allowed text-sm">Anterior</button>
-                    <button class="px-3 py-1 rounded-md bg-[#1CD6CE] text-[#293462] font-bold text-sm">1</button>
-                    <button
-                        class="px-3 py-1 rounded-md bg-white/5 text-white/40 cursor-not-allowed text-sm">Siguiente</button>
+                <!-- Paginación -->
+                <div class="px-6 py-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <span class="text-sm text-white/60">Mostrando <span class="text-white font-bold">1</span> a <span
+                            class="text-white font-bold">3</span> de <span class="text-white font-bold">3</span>
+                        resultados</span>
+                    <div class="flex gap-1">
+                        <button
+                            class="px-3 py-1 rounded-md bg-white/5 text-white/40 cursor-not-allowed text-sm">Anterior</button>
+                        <button class="px-3 py-1 rounded-md bg-[#1CD6CE] text-[#293462] font-bold text-sm">1</button>
+                        <button
+                            class="px-3 py-1 rounded-md bg-white/5 text-white/40 cursor-not-allowed text-sm">Siguiente</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-@endsection
+    @endsection

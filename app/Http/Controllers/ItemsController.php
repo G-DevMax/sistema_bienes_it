@@ -37,7 +37,17 @@ class ItemsController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $nuevo_item = new items();
+
+        $nuevo_item->categoria_id = $request->categoria;
+        $nuevo_item->descripcion = $request->nombre;
+        $nuevo_item->codigo_patrimonial = $request->codigo;
+        $nuevo_item->stock = $request->stock;
+        $nuevo_item->estado_id = $request->estado;
+
+        $nuevo_item->save();
+
+        return redirect()->route('items.index')->with('success', "Item creado correctamente");
     }
 
     /**
@@ -65,7 +75,17 @@ class ItemsController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $item_actualizado = items::find($id);
+
+        $item_actualizado->categoria_id = $request->categoria;
+        $item_actualizado->descripcion = $request->nombre;
+        $item_actualizado->codigo_patrimonial = $request->codigo_patrimonial;
+        $item_actualizado->stock = $request->stock;
+        $item_actualizado->estado_id = $request->estado;
+
+        $item_actualizado->save();
+
+        return redirect()->route('items.index')->with('success', "Item actualizado correctamente");
     }
 
     /**
@@ -73,6 +93,10 @@ class ItemsController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $item_bajado = items::find($id);
+        $item_bajado->estado_id = 4;
+        $item_bajado->save();
+
+        return redirect()->route('items.index')->with('success', "Item dado de baja correctamente");
     }
 }

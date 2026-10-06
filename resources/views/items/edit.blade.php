@@ -20,6 +20,10 @@
                 <p class="text-white/70 mt-1">Actualiza los datos del item registrado</p>
             </div>
         </div>
+        <!-- mensaje de alerta -->
+        <div>
+            @include('layouts.alerts')
+        </div>
 
         <!-- Formulario -->
         <div
