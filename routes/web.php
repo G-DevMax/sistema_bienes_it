@@ -27,9 +27,14 @@ Route::middleware('auth')->group(function () {
         return view('/login');
     })->name('/login');
 
+    Route::post('items/{item}/ingresar-stock', [ItemsController::class, 'ingresarStock'])->name('items.ingresar-stock');
     Route::resource('items', ItemsController::class);
     Route::resource('usuarios', UsuariosController::class);
     Route::resource('funcionarios', FuncionariosController::class);
     Route::resource('dependencias', DependenciasController::class);
-    Route::resource('movimientos', MovimientosController::class);
+    // los movimientos no se editan ni eliminan: se corrigen con devoluciones, bajas o anulaciones
+    Route::resource('movimientos', MovimientosController::class)->only(['index', 'create', 'store', 'show']);
+    Route::post('movimientos/{movimiento}/devolver', [MovimientosController::class, 'devolver'])->name('movimientos.devolver');
+    Route::post('movimientos/{movimiento}/baja', [MovimientosController::class, 'bajaEntrega'])->name('movimientos.baja');
+    Route::post('movimientos/{movimiento}/anular', [MovimientosController::class, 'anular'])->name('movimientos.anular');
 });

@@ -4,27 +4,15 @@
 
 @section('content')
 @php
-    // Mock data para previsualización
-    if (!isset($movimientos)) {
-        $movimientos = [
-            (object) [
-                'id' => 1,
-                'item' => (object) ['descripcion' => 'Notebook Dell Latitud 5480'],
-                'funcionario' => (object) ['nombre' => 'Juan Perez'],
-                'tipo_movimiento' => 'Asignación',
-                'fecha_movimiento' => '2023-10-15 08:30:00',
-                'cantidad' => 1
-            ],
-            (object) [
-                'id' => 2,
-                'item' => (object) ['descripcion' => 'Monitor Samsung 24"'],
-                'funcionario' => (object) ['nombre' => 'Ana Gómez'],
-                'tipo_movimiento' => 'Préstamo',
-                'fecha_movimiento' => '2023-10-18 10:00:00',
-                'cantidad' => 2
-            ],
-        ];
-    }
+    $badgesTipo = [
+        'ingreso' => 'bg-green-500/20 text-green-400 border-green-500/30',
+        'prestamo' => 'bg-[#FEDB39]/20 text-[#FEDB39] border-[#FEDB39]/30',
+        'transferencia' => 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+        'devolucion' => 'bg-[#1CD6CE]/20 text-[#1CD6CE] border-[#1CD6CE]/30',
+        'baja' => 'bg-[#D61C4E]/20 text-[#ff5c86] border-[#D61C4E]/30',
+    ];
+    $filtroTipo = request('tipo');
+    $soloPendientes = request()->boolean('pendientes');
 @endphp
 <div class="w-full max-w-7xl animate-fade-in-up">
     <!-- Encabezado y Acción Principal -->
@@ -33,7 +21,7 @@
             <h1 class="text-3xl font-bold bg-gradient-to-r from-[#1CD6CE] to-[#FEDB39] bg-clip-text text-transparent">
                 Movimientos
             </h1>
-            <p class="text-white/70 mt-1">Controla las asignaciones, préstamos y devoluciones de bienes</p>
+            <p class="text-white/70 mt-1">Controla los préstamos, transferencias, devoluciones y bajas de bienes</p>
         </div>
         <a href="{{ route('movimientos.create') }}"
             class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#1CD6CE] to-[#15b0aa] hover:opacity-90 text-[#293462] font-bold rounded-xl shadow-[0_0_15px_rgba(28,214,206,0.3)] hover:shadow-[0_0_25px_rgba(28,214,206,0.5)] transition-all gap-2 group">
@@ -44,70 +32,117 @@
         </a>
     </div>
 
+    <div>
+        @include('layouts.alerts')
+    </div>
+
+    <!-- Filtros -->
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+        <a href="{{ route('movimientos.index', array_filter(['pendientes' => $soloPendientes ? 1 : null])) }}"
+            class="px-4 py-1.5 rounded-full text-sm border transition-all {{ !$filtroTipo ? 'bg-white/15 border-white/30 text-white' : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5' }}">Todos</a>
+        @foreach (\App\Models\movimientos::ETIQUETAS as $valor => $etiqueta)
+            <a href="{{ route('movimientos.index', array_filter(['tipo' => $valor, 'pendientes' => $soloPendientes ? 1 : null])) }}"
+                class="px-4 py-1.5 rounded-full text-sm border transition-all {{ $filtroTipo === $valor ? 'bg-white/15 border-white/30 text-white' : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5' }}">{{ $etiqueta }}</a>
+        @endforeach
+        <span class="flex-1"></span>
+        <a href="{{ route('movimientos.index', array_filter(['tipo' => $filtroTipo, 'pendientes' => $soloPendientes ? null : 1])) }}"
+            class="px-4 py-1.5 rounded-full text-sm border transition-all flex items-center gap-2 {{ $soloPendientes ? 'bg-[#FEDB39]/20 border-[#FEDB39]/40 text-[#FEDB39]' : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5' }}">
+            <span class="w-2 h-2 rounded-full {{ $soloPendientes ? 'bg-[#FEDB39]' : 'bg-white/30' }}"></span>
+            Solo pendientes de devolución
+        </a>
+    </div>
+
     <!-- Tabla -->
     <div class="bg-[#293462]/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr class="bg-[#1CD6CE]/10 border-b border-white/10 text-[#1CD6CE]">
-                        <th class="px-6 py-4 font-semibold text-sm">ID</th>
-                        <th class="px-6 py-4 font-semibold text-sm">Item</th>
-                        <th class="px-6 py-4 font-semibold text-sm">Funcionario</th>
-                        <th class="px-6 py-4 font-semibold text-sm">Tipo</th>
-                        <th class="px-6 py-4 font-semibold text-sm">Cantidad</th>
-                        <th class="px-6 py-4 font-semibold text-sm">Fecha Movimiento</th>
-                        <th class="px-6 py-4 font-semibold text-sm text-right">Acciones</th>
+                        <th class="px-6 py-4 font-semibold">ID</th>
+                        <th class="px-6 py-4 font-semibold">Item</th>
+                        <th class="px-6 py-4 font-semibold">Funcionario</th>
+                        <th class="px-6 py-4 font-semibold">Tipo</th>
+                        <th class="px-6 py-4 font-semibold">Cantidad</th>
+                        <th class="px-6 py-4 font-semibold">Fecha</th>
+                        <th class="px-6 py-4 font-semibold">Situación</th>
+                        <th class="px-6 py-4 font-semibold text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5 text-white/90">
                     @forelse ($movimientos as $movimiento)
-                        <tr class="hover:bg-white/5 transition-colors group">
-                            <td class="px-6 py-4 font-medium text-white/50">#{{ $movimiento->id }}</td>
-                            <td class="px-6 py-4">{{ $movimiento->item->descripcion ?? 'Desconocido' }}</td>
-                            <td class="px-6 py-4">{{ $movimiento->funcionario->nombre ?? 'Desconocido' }}</td>
+                        @php
+                            $anulado = $movimiento->estaAnulado();
+                            $pendiente = $movimiento->cantidadPendiente();
+                        @endphp
+                        <tr class="hover:bg-white/5 transition-colors group {{ $anulado ? 'opacity-50' : '' }}">
+                            <td class="px-6 py-4 font-medium text-white/50">
+                                #{{ $movimiento->id }}
+                                @if ($movimiento->movimiento_origen_id)
+                                    <span class="block text-xs text-white/40">de #{{ $movimiento->movimiento_origen_id }}</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-medium 
-                                    {{ $movimiento->tipo_movimiento == 'Asignación' ? 'bg-[#1CD6CE]/20 text-[#1CD6CE] border border-[#1CD6CE]/30' : '' }}
-                                    {{ $movimiento->tipo_movimiento == 'Préstamo' ? 'bg-[#FEDB39]/20 text-[#FEDB39] border border-[#FEDB39]/30' : '' }}
-                                    {{ $movimiento->tipo_movimiento == 'Devolución' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : '' }}
-                                    {{ $movimiento->tipo_movimiento == 'Baja' ? 'bg-[#D61C4E]/20 text-[#D61C4E] border border-[#D61C4E]/30' : '' }}
-                                ">
-                                    {{ $movimiento->tipo_movimiento }}
+                                <span class="{{ $anulado ? 'line-through' : '' }}">{{ $movimiento->item->descripcion ?? 'Desconocido' }}</span>
+                                <span class="block text-xs text-white/50 font-mono">{{ $movimiento->item?->codigoMostrar() }}</span>
+                            </td>
+                            <td class="px-6 py-4">{{ $movimiento->funcionario->nombre ?? '— Informática —' }}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium border {{ $badgesTipo[$movimiento->tipo_movimiento] ?? 'bg-white/10 border-white/20' }}">
+                                    {{ $movimiento->etiquetaTipo() }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4">{{ $movimiento->cantidad }}</td>
-                            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($movimiento->fecha_movimiento)->format('d/m/Y H:i') }}</td>
+                            <td class="px-6 py-4 font-semibold">{{ $movimiento->cantidad }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {{ $movimiento->fecha_movimiento->format('d/m/Y H:i') }}
+                                @if ($movimiento->fecha_devolucion_prevista)
+                                    <span class="block text-xs text-white/50">Devolver: {{ $movimiento->fecha_devolucion_prevista->format('d/m/Y') }}</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if ($anulado)
+                                    <span class="px-2 py-0.5 rounded-md text-xs bg-white/10 text-white/60 border border-white/20">Anulado</span>
+                                @elseif ($movimiento->esEntrega())
+                                    @if ($pendiente === 0)
+                                        <span class="px-2 py-0.5 rounded-md text-xs bg-green-500/15 text-green-400 border border-green-500/30">Cerrado</span>
+                                    @elseif ($movimiento->estaVencido())
+                                        <span class="px-2 py-0.5 rounded-md text-xs bg-[#D61C4E]/20 text-[#ff5c86] border border-[#D61C4E]/40 animate-pulse">Vencido · {{ $pendiente }} pend.</span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded-md text-xs bg-[#FEDB39]/15 text-[#FEDB39] border border-[#FEDB39]/30">{{ $pendiente }} pendiente(s)</span>
+                                    @endif
+                                @else
+                                    <span class="text-white/40 text-xs">Registrado</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a href="{{ route('movimientos.edit', $movimiento->id) }}">
-                                        <button class="p-2 text-white/60 hover:text-[#FEDB39] hover:bg-[#FEDB39]/10 rounded-lg transition-colors" title="Editar">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                        </button>
+                                <div class="flex items-center justify-end gap-2">
+                                    @if (!$anulado && $pendiente > 0)
+                                        <a href="{{ route('movimientos.show', $movimiento->id) }}#devolucion"
+                                            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#1CD6CE]/15 text-[#1CD6CE] border border-[#1CD6CE]/30 hover:bg-[#1CD6CE]/25 transition-colors">
+                                            Devolver
+                                        </a>
+                                    @endif
+                                    <a href="{{ route('movimientos.show', $movimiento->id) }}"
+                                        class="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Ver detalle">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
                                     </a>
-                                    <form action="{{ route('movimientos.destroy', $movimiento->id) }}" method="POST" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors" title="Eliminar" onclick="return confirm('¿Estás seguro de eliminar este movimiento?')">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                            </svg>
-                                        </button>
-                                    </form>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-white/50">
-                                No hay movimientos registrados en el sistema.
+                            <td colspan="8" class="px-6 py-12 text-center text-white/50">
+                                No hay movimientos registrados con estos filtros.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
+
+        @include('layouts.pagination', ['paginator' => $movimientos])
     </div>
 </div>
 @endsection

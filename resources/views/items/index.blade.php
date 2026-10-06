@@ -42,13 +42,14 @@
                             <th scope="col" class="px-6 py-5 text-center">Descripción</th>
                             <th scope="col" class="px-6 py-5 text-center">Categoría</th>
                             <th scope="col" class="px-6 py-5 text-center">Codigo Patrimonial</th>
-                            <th scope="col" class="px-6 py-5 text-center">Stock</th>
+                            <th scope="col" class="px-6 py-5 text-center" title="Disponible en Informática / Total">Stock</th>
                             <th scope="col" class="px-6 py-5 text-center">Estado</th>
                             <th scope="col" class="px-6 py-5 text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-white/5 text-center">
                         @forelse ($items as $item)
+                            @php $r = $resumen[$item->id] ?? ['prestados' => 0, 'transferidos' => 0, 'inservibles' => 0]; @endphp
                             <tr class="hover:bg-white/5 transition-colors group">
                                 <td class="px-6 py-4 font-medium text-white/50">
                                     #{{ $item->id }}
@@ -59,126 +60,132 @@
                                 <td class="px-6 py-4">
                                     <span
                                         class="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white border border-white/20">
-                                        {{ $categorias->find($item->categoria_id)->nombre }}
+                                        {{ $item->categoria->nombre ?? '—' }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-white">
-                                    {{ $item->codigo_patrimonial }}
-                                </td>
-                                <td class="px-6 py-4 text-white font-bold">
-                                    {{ $item->stock }}
+                                    @if ($item->esSerializado())
+                                        <span class="font-mono">{{ $item->codigo_patrimonial }}</span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded-md text-xs bg-white/5 text-white/50 border border-white/10">No aplica</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-white">
-                                    @switch($item->estado_id)
-                                        @case(1)
-                                            <span
-                                                class="px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white border border-green-500">
-                                                Disponible
-                                            </span>
-                                        @break
-
-                                        @case(2)
-                                            <span
-                                                class="px-3 py-1 rounded-full text-xs font-medium bg-purple-500 text-white border border-purple-500">
-                                                Transferido
-                                            </span>
-                                        @break
-
-                                        @case(3)
-                                            <span
-                                                class="px-3 py-1 rounded-full text-xs font-medium bg-yellow-500 text-white border border-yellow-500">
-                                                Prestado
-                                            </span>
-                                        @break
-
-                                        @case(4)
-                                            <span
-                                                class="px-3 py-1 rounded-full text-xs font-medium bg-red-500 text-white border border-red-500">
-                                                Inservible
-                                            </span>
-                                        @break
-
-                                        @case(5)
-                                            <span
-                                                class="px-3 py-1 rounded-full text-xs font-medium bg-gray-500 text-white border border-red-500">
-                                                No Aplica
-                                            </span>
-                                        @break
-
-                                        @default
-                                            <span
-                                                class="px-3 py-1 rounded-full text-xs font-medium bg-gray-500 text-white border border-red-500">
-                                                Estado Desconocido
-                                            </span>
-                                        @break
-                                    @endswitch
+                                    <span class="font-bold text-lg {{ $item->stock_disponible > 0 ? 'text-[#1CD6CE]' : 'text-[#D61C4E]' }}">{{ $item->stock_disponible }}</span>
+                                    <span class="text-white/40">/ {{ $item->stock_total }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-white">
+                                    @if ($item->esSerializado())
+                                        @php
+                                            $badge = match ($item->estado_id) {
+                                                1 => 'bg-green-500/20 text-green-400 border-green-500/40',
+                                                2 => 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+                                                3 => 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+                                                4 => 'bg-red-500/20 text-red-400 border-red-500/40',
+                                                default => 'bg-gray-500/20 text-gray-300 border-gray-500/40',
+                                            };
+                                        @endphp
+                                        <span class="px-3 py-1 rounded-full text-xs font-medium border {{ $badge }}">
+                                            {{ $item->estado->estado ?? 'Estado Desconocido' }}
+                                        </span>
+                                    @else
+                                        {{-- items genericos: desglose por estado --}}
+                                        <div class="flex flex-wrap justify-center gap-1 text-xs">
+                                            <span class="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30" title="Disponibles">{{ $item->stock_disponible }} disp.</span>
+                                            @if ($r['prestados'] > 0)
+                                                <span class="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30" title="Prestados">{{ $r['prestados'] }} prest.</span>
+                                            @endif
+                                            @if ($r['transferidos'] > 0)
+                                                <span class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30" title="Transferidos">{{ $r['transferidos'] }} transf.</span>
+                                            @endif
+                                            @if ($r['inservibles'] > 0)
+                                                <span class="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30" title="Dados de baja">{{ $r['inservibles'] }} baja</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div
-                                        class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <a href="{{ route('items.edit', $item->id) }}">
-                                            <button
-                                                class="p-2 text-white/60 hover:text-[#FEDB39] hover:bg-[#FEDB39]/10 rounded-lg transition-colors"
-                                                title="Editar">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
+                                        class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                        @if ($item->stock_disponible > 0)
+                                            <a href="{{ route('movimientos.create', ['item_id' => $item->id]) }}"
+                                                class="p-2 text-white/60 hover:text-[#1CD6CE] hover:bg-[#1CD6CE]/10 rounded-lg transition-colors"
+                                                title="Prestar / Transferir">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
-                                                    </path>
+                                                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                                                 </svg>
-                                            </button>
+                                            </a>
+                                        @endif
+
+                                        @unless ($item->esSerializado())
+                                            {{-- ingreso de stock para items genericos --}}
+                                            <details class="relative">
+                                                <summary class="list-none p-2 text-white/60 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors cursor-pointer" title="Ingresar stock">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                    </svg>
+                                                </summary>
+                                                <form action="{{ route('items.ingresar-stock', $item->id) }}" method="POST"
+                                                    class="absolute right-0 top-full mt-2 z-20 w-64 p-4 bg-[#1f2850] border border-white/15 rounded-xl shadow-2xl text-left space-y-3">
+                                                    @csrf
+                                                    <p class="text-xs text-white/60">Ingresar unidades de <b class="text-white">{{ $item->descripcion }}</b></p>
+                                                    <input type="number" name="cantidad" min="1" value="1" required
+                                                        class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white focus:outline-none focus:border-[#1CD6CE]">
+                                                    <input type="text" name="observaciones" placeholder="Observación (opcional)"
+                                                        class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#1CD6CE]">
+                                                    <button type="submit" class="w-full py-2 rounded-lg bg-[#1CD6CE] text-[#293462] font-bold hover:opacity-90">Ingresar</button>
+                                                </form>
+                                            </details>
+                                        @endunless
+
+                                        <a href="{{ route('items.edit', $item->id) }}"
+                                            class="p-2 text-white/60 hover:text-[#FEDB39] hover:bg-[#FEDB39]/10 rounded-lg transition-colors"
+                                            title="Editar">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                </path>
+                                            </svg>
                                         </a>
 
-                                        <form action="{{ route('items.destroy', $item->id) }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
+                                        @if ($item->stock_disponible > 0)
+                                            <a href="{{ route('movimientos.create', ['tipo' => 'baja', 'item_id' => $item->id]) }}"
                                                 class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
-                                                title="Dar de baja"
-                                                onclick="return confirm('¿Estás seguro de dar de baja este item?')">
+                                                title="Dar de baja">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
                                                     </path>
                                                 </svg>
-                                            </button>
-                                        </form>
+                                            </a>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="6" class="px-6 py-12 text-center text-white/50">
-                                        <div class="flex flex-col items-center justify-center">
-                                            <svg class="w-12 h-12 mb-4 text-white/30" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
-                                                </path>
-                                            </svg>
-                                            <p class="text-lg">No hay items registrados</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Paginación -->
-                <div class="px-6 py-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <span class="text-sm text-white/60">Mostrando <span class="text-white font-bold">1</span> a <span
-                            class="text-white font-bold">3</span> de <span class="text-white font-bold">3</span>
-                        resultados</span>
-                    <div class="flex gap-1">
-                        <button
-                            class="px-3 py-1 rounded-md bg-white/5 text-white/40 cursor-not-allowed text-sm">Anterior</button>
-                        <button class="px-3 py-1 rounded-md bg-[#1CD6CE] text-[#293462] font-bold text-sm">1</button>
-                        <button
-                            class="px-3 py-1 rounded-md bg-white/5 text-white/40 cursor-not-allowed text-sm">Siguiente</button>
-                    </div>
-                </div>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-white/50">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <svg class="w-12 h-12 mb-4 text-white/30" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+                                            </path>
+                                        </svg>
+                                        <p class="text-lg">No hay items registrados</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
+
+            <!-- Paginación -->
+            @include('layouts.pagination', ['paginator' => $items])
         </div>
-    @endsection
+    </div>
+@endsection

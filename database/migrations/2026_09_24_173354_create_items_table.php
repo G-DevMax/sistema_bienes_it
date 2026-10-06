@@ -16,10 +16,15 @@ return new class extends Migration
             // columna para la clave foránea de la categoría (FK)
             $table->foreignId('categoria_id')->constrained('categorias')->onUpdate('cascade')->onDelete('restrict');
             $table->string('descripcion', 300);
+            // NULL = "No aplica" (item generico, ej. cables). Con valor = item serializado/unico (stock siempre 1)
             $table->string('codigo_patrimonial', 60)->unique()->nullable();
-            $table->integer('stock')->default(1);
+            // cantidad total que posee Informatica (incluye lo prestado/transferido, excluye lo dado de baja)
+            $table->unsignedInteger('stock_total')->default(1);
+            // cantidad fisicamente disponible en Informatica en este momento
+            $table->unsignedInteger('stock_disponible')->default(1);
             // columna para la clave foránea del estado (FK)
-            $table->foreignId('estado_id')->constrained('estado')->onUpdate('cascade')->onDelete('restrict')->default(4);
+            // serializados: Disponible/Transferido/Prestado/Inservible. Genericos: No Aplica (se muestra desglose)
+            $table->foreignId('estado_id')->default(1)->constrained('estado')->onUpdate('cascade')->onDelete('restrict');
             $table->timestamps();
         });
     }

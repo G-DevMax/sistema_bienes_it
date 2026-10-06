@@ -36,26 +36,22 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <!-- Nombre -->
                     <div class="col-span-1 md:col-span-2">
-                        <label for="nombre" class="block mb-2 text-sm font-medium text-white/90">
+                        <label for="descripcion" class="block mb-2 text-sm font-medium text-white/90">
                             Nombre
                         </label>
-                        <input type="text" id="nombre" name="nombre" value="{{ $item->descripcion }}"
+                        <input type="text" id="descripcion" name="descripcion" value="{{ old('descripcion', $item->descripcion) }}"
                             class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#FEDB39] focus:ring-2 focus:ring-[#FEDB39]/30 transition-all"
                             required>
                     </div>
 
                     <!-- Categoría -->
                     <div>
-                        <label for="categoria" class="block mb-2 text-sm font-medium text-white/90">Categoría</label>
-                        <select id="categoria" name="categoria"
+                        <label for="categoria_id" class="block mb-2 text-sm font-medium text-white/90">Categoría</label>
+                        <select id="categoria_id" name="categoria_id"
                             class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#FEDB39] focus:ring-2 focus:ring-[#FEDB39]/30 transition-all appearance-none"
                             required>
                             @foreach ($categorias as $categoria)
-                                @if ($categoria->id === $item->categoria_id)
-                                    <option value="{{ $categoria->id }}" selected>{{ $categoria->nombre }}</option>
-                                @else
-                                    <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                                @endif
+                                <option value="{{ $categoria->id }}" {{ old('categoria_id', $item->categoria_id) == $categoria->id ? 'selected' : '' }}>{{ $categoria->nombre }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -64,36 +60,32 @@
                     <div>
                         <label for="codigo_patrimonial" class="block mb-2 text-sm font-medium text-white/90">Codigo
                             Patrimonial</label>
-                        <input type="text" id="codigo_patrimonial" name="codigo_patrimonial"
-                            value="{{ $item->codigo_patrimonial }}"
-                            class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#FEDB39] focus:ring-2 focus:ring-[#FEDB39]/30 transition-all"
-                            required>
+                        @if ($item->esSerializado())
+                            <input type="text" id="codigo_patrimonial" name="codigo_patrimonial"
+                                value="{{ old('codigo_patrimonial', $item->codigo_patrimonial) }}"
+                                class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#FEDB39] focus:ring-2 focus:ring-[#FEDB39]/30 transition-all"
+                                required>
+                        @else
+                            <input type="text" id="codigo_patrimonial" value="No aplica" disabled
+                                class="w-full px-4 py-3 bg-[#293462]/50 border border-white/10 rounded-xl text-white/50 cursor-not-allowed">
+                        @endif
                     </div>
 
-                    <!-- Stock -->
-                    <div>
-                        <label for="stock" class="block mb-2 text-sm font-medium text-white/90">Stock</label>
-                        <input type="number" id="stock" name="stock" value="{{ $item->stock }}"
-                            class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#FEDB39] focus:ring-2 focus:ring-[#FEDB39]/30 transition-all"
-                            required>
-                    </div>
-
-                    <!-- Estado -->
-                    <div>
-                        <label for="estado" class="block mb-2 text-sm font-medium text-white/90">Estado</label>
-                        <select id="estado" name="estado"
-                            class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#FEDB39] focus:ring-2 focus:ring-[#FEDB39]/30 transition-all appearance-none"
-                            required>
-                            @foreach ($estados as $estado)
-                                @if ($estado->id === 1 || $estado->id === 4)
-                                    @if ($estado->id === $item->estado_id)
-                                        <option value="{{ $estado->id }}" selected>{{ $estado->estado }}</option>
-                                    @else
-                                        <option value="{{ $estado->id }}">{{ $estado->estado }}</option>
-                                    @endif
-                                @endif
-                            @endforeach
-                        </select>
+                    <!-- Stock y estado (solo lectura) -->
+                    <div class="col-span-1 md:col-span-2 p-4 rounded-xl border border-white/10 bg-white/5 flex flex-wrap items-center gap-6">
+                        <div>
+                            <span class="block text-xs text-white/50">Stock disponible / total</span>
+                            <span class="text-lg font-bold text-[#1CD6CE]">{{ $item->stock_disponible }}</span>
+                            <span class="text-white/50">/ {{ $item->stock_total }}</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs text-white/50">Estado</span>
+                            <span class="text-white">{{ $item->estado->estado ?? '—' }}</span>
+                        </div>
+                        <p class="text-xs text-white/50 flex-1 min-w-[220px]">
+                            El stock y el estado se actualizan automáticamente con los movimientos
+                            (préstamos, transferencias, devoluciones, bajas e ingresos).
+                        </p>
                     </div>
                 </div>
 

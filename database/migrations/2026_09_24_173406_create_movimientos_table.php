@@ -15,14 +15,25 @@ return new class extends Migration
             $table->id();
             // columnas fk
             $table->foreignId('item_id')->constrained('items')->onUpdate('cascade')->onDelete('restrict');
-            $table->foreignId('funcionario_id')->constrained('funcionarios')->onUpdate('cascade')->onDelete('restrict');
+            // puede ser null en ingresos y bajas realizadas directamente desde Informatica
+            $table->foreignId('funcionario_id')->nullable()->constrained('funcionarios')->onUpdate('cascade')->onDelete('restrict');
             $table->foreignId('user_id')->constrained('users')->onUpdate('cascade')->onDelete('restrict'); // se registra siempre la persona que autorizo/creo el movimiento
-            $table->string('tipo_movimiento', 60);
+            // ingreso | prestamo | transferencia | devolucion | baja
+            $table->string('tipo_movimiento', 20);
+            // devoluciones y bajas de un item prestado/transferido apuntan al movimiento original
+            $table->foreignId('movimiento_origen_id')->nullable()->constrained('movimientos')->onUpdate('cascade')->onDelete('restrict');
             $table->dateTime('fecha_movimiento');
-            $table->dateTime('fecha_devuelto')->nullable(); // puede ser null porque solo se utiliza cuando el movimiento es un prestamo
-            $table->integer('cantidad')->default(1);
-            $table->string('motivo', 60)->nullable(); // puede ser null porque solo se utiliza cuando el movimiento es una baja
+            $table->date('fecha_devolucion_prevista')->nullable(); // obligatoria solo en prestamos
+            $table->unsignedInteger('cantidad')->default(1);
+            $table->string('motivo', 255)->nullable(); // obligatorio en bajas
+            $table->text('observaciones')->nullable(); // obligatoria en bajas de items prestados/transferidos (responsabilidad)
+            // anulacion (los movimientos nunca se eliminan)
+            $table->dateTime('anulado_at')->nullable();
+            $table->foreignId('anulado_por')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('restrict');
+            $table->string('motivo_anulacion', 255)->nullable();
             $table->timestamps();
+
+            $table->index(['item_id', 'tipo_movimiento']);
         });
     }
 

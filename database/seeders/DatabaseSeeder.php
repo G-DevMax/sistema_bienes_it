@@ -21,8 +21,8 @@ class DatabaseSeeder extends Seeder
             DependenciasSeeder::class,
             CategoriasSeeder::class,
             FuncionariosSeeder::class,
+            UserSeeder::class, // antes de items: el ingreso inicial registra al usuario
             ItemSeender::class,
-            UserSeeder::class,
         ]);
     }
 }

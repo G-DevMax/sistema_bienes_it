@@ -3,22 +3,28 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use App\Models\categorias;
 use App\Models\items;
-use App\Models\estados;
+use App\Services\MovimientoService;
 
 class ItemsController extends Controller
 {
+    public function __construct(private MovimientoService $movimientoService)
+    {
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $categorias = categorias::all();
-        $items = items::paginate(10);
+        $items = items::with(['categoria', 'estado'])->orderBy('descripcion')->paginate(10);
+        // desglose de prestados / transferidos / inservibles por item (una consulta para toda la pagina)
+        $resumen = $this->movimientoService->resumenPorItem($items->getCollection()->pluck('id'));
 
-        return view("items.index", compact('items', 'categorias'));
+        return view("items.index", compact('items', 'resumen'));
     }
 
     /**
@@ -27,9 +33,8 @@ class ItemsController extends Controller
     public function create()
     {
         $categorias = categorias::all();
-        $estados = estados::all();
 
-        return view("items.create", compact('categorias', 'estados'));
+        return view("items.create", compact('categorias'));
     }
 
     /**
@@ -37,15 +42,22 @@ class ItemsController extends Controller
      */
     public function store(Request $request)
     {
-        $nuevo_item = new items();
+        $datos = $request->validate([
+            'descripcion' => ['required', 'string', 'max:300'],
+            'categoria_id' => ['required', 'exists:categorias,id'],
+            'tiene_codigo' => ['nullable', 'boolean'],
+            'codigo_patrimonial' => ['required_if:tiene_codigo,1', 'nullable', 'string', 'max:60', 'unique:items,codigo_patrimonial'],
+            'stock' => ['required_unless:tiene_codigo,1', 'nullable', 'integer', 'min:1'],
+        ], [
+            'codigo_patrimonial.required_if' => 'Ingresá el código patrimonial o desmarcá la opción "Tiene código patrimonial".',
+            'codigo_patrimonial.unique' => 'Ya existe un item con ese código patrimonial.',
+        ]);
 
-        $nuevo_item->categoria_id = $request->categoria;
-        $nuevo_item->descripcion = $request->nombre;
-        $nuevo_item->codigo_patrimonial = $request->codigo;
-        $nuevo_item->stock = $request->stock;
-        $nuevo_item->estado_id = $request->estado;
+        if (!$request->boolean('tiene_codigo')) {
+            $datos['codigo_patrimonial'] = null;
+        }
 
-        $nuevo_item->save();
+        $this->movimientoService->crearItem($datos, Auth::id());
 
         return redirect()->route('items.index')->with('success', "Item creado correctamente");
     }
@@ -55,7 +67,7 @@ class ItemsController extends Controller
      */
     public function show(string $id)
     {
-        //
+        return redirect()->route('items.index');
     }
 
     /**
@@ -64,39 +76,53 @@ class ItemsController extends Controller
     public function edit(string $id)
     {
         $categorias = categorias::all();
-        $estados = estados::all();
-        $item = items::find($id);
+        $item = items::findOrFail($id);
 
-        return view("items.edit", compact("id", "categorias", "estados", "item"));
+        return view("items.edit", compact("categorias", "item"));
     }
 
     /**
      * Update the specified resource in storage.
+     * El stock y el estado NO se editan aqui: solo cambian mediante movimientos.
      */
     public function update(Request $request, string $id)
     {
-        $item_actualizado = items::find($id);
+        $item = items::findOrFail($id);
 
-        $item_actualizado->categoria_id = $request->categoria;
-        $item_actualizado->descripcion = $request->nombre;
-        $item_actualizado->codigo_patrimonial = $request->codigo_patrimonial;
-        $item_actualizado->stock = $request->stock;
-        $item_actualizado->estado_id = $request->estado;
+        $reglas = [
+            'descripcion' => ['required', 'string', 'max:300'],
+            'categoria_id' => ['required', 'exists:categorias,id'],
+        ];
+        if ($item->esSerializado()) {
+            $reglas['codigo_patrimonial'] = ['required', 'string', 'max:60', Rule::unique('items', 'codigo_patrimonial')->ignore($item->id)];
+        }
 
-        $item_actualizado->save();
+        $datos = $request->validate($reglas);
+        $item->update($datos);
 
         return redirect()->route('items.index')->with('success', "Item actualizado correctamente");
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Las bajas se registran como movimiento para mantener la trazabilidad.
      */
     public function destroy(string $id)
     {
-        $item_bajado = items::find($id);
-        $item_bajado->estado_id = 4;
-        $item_bajado->save();
+        return redirect()->route('movimientos.create', ['tipo' => 'baja', 'item_id' => $id]);
+    }
 
-        return redirect()->route('items.index')->with('success', "Item dado de baja correctamente");
+    /**
+     * Ingreso de unidades adicionales para items genericos.
+     */
+    public function ingresarStock(Request $request, string $id)
+    {
+        $datos = $request->validate([
+            'cantidad' => ['required', 'integer', 'min:1'],
+            'observaciones' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $this->movimientoService->ingresarStock((int) $id, (int) $datos['cantidad'], Auth::id(), $datos['observaciones'] ?? null);
+
+        return redirect()->route('items.index')->with('success', "Se ingresaron {$datos['cantidad']} unidad(es) al stock");
     }
 }
