@@ -14,6 +14,7 @@ class funcionarios extends Model
     protected $fillable = [
         'nombre',
         'dependencia_id',
+        'estado_funcionario',
     ];
 
     protected function casts(): array
