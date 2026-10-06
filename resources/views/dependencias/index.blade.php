@@ -24,6 +24,10 @@
                 Nueva Dependencia
             </a>
         </div>
+        <!-- mensaje dinamico -->
+        <div>
+            @include('layouts.alerts')
+        </div>
 
         <!-- Tabla -->
         <div
@@ -31,7 +35,7 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-[#1CD6CE]/10 border-b border-white/10 text-[#1CD6CE]">
+                        <tr class="bg-[#1CD6CE]/10 border-b border-white/10 text-white">
                             <th class="px-6 py-4 font-semibold text-sm">ID</th>
                             <th class="px-6 py-4 font-semibold text-sm">Nombre de la Dependencia</th>
                             <th class="px-6 py-4 font-semibold text-sm text-right">Acciones</th>
