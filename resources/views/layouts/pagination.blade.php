@@ -14,7 +14,7 @@
 
         @foreach ($paginator->getUrlRange(1, $paginator->lastPage()) as $pagina => $url)
             @if ($pagina == $paginator->currentPage())
-                <span class="px-3 py-1 rounded-md bg-[#1CD6CE] text-[#293462] font-bold text-sm">{{ $pagina }}</span>
+                <span class="px-3 py-1 rounded-md bg-blue-600 text-white font-bold text-sm">{{ $pagina }}</span>
             @else
                 <a href="{{ $url }}" class="px-3 py-1 rounded-md bg-white/10 text-white hover:bg-white/20 text-sm">{{ $pagina }}</a>
             @endif

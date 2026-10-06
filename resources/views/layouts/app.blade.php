@@ -12,19 +12,19 @@
 </head>
 
 <body
-    class="bg-[#293462] text-white min-h-screen flex flex-col font-sans antialiased selection:bg-[#1CD6CE]/30 selection:text-white">
+    class="bg-slate-950 text-white min-h-screen flex flex-col font-sans antialiased selection:bg-blue-600/30 selection:text-white">
     <!-- Fondo decorativo con degradados -->
     <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div class="absolute -top-[40%] -left-[10%] w-[70%] h-[70%] rounded-full bg-[#1CD6CE]/15 blur-[120px]"></div>
-        <div class="absolute top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-[#D61C4E]/15 blur-[120px]"></div>
+        <div class="absolute -top-[40%] -left-[10%] w-[70%] h-[70%] rounded-full bg-blue-600/20 blur-[120px]"></div>
+        <div class="absolute top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-indigo-600/20 blur-[120px]"></div>
     </div>
 
     <!-- Navbar -->
     @if (auth()->check())
         <nav
-            class="sticky top-0 z-50 backdrop-blur-xl bg-[#293462]/80 border-b border-white/10 px-6 py-4 flex justify-between items-center shadow-lg">
+            class="sticky top-0 z-50 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex justify-between items-center shadow-lg">
             <a href="/"
-                class="text-2xl font-bold bg-gradient-to-r from-[#1CD6CE] to-[#FEDB39] bg-clip-text text-transparent hover:opacity-80 transition-opacity">
+                class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
                 Sistema Bienes IT (FC11)
             </a>
             <div class="flex items-center space-x-2 sm:space-x-4">

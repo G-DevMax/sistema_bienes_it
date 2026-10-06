@@ -11,7 +11,7 @@
         'ingreso' => 'bg-green-500/20 text-green-400 border-green-500/30',
         'prestamo' => 'bg-[#FEDB39]/20 text-[#FEDB39] border-[#FEDB39]/30',
         'transferencia' => 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-        'devolucion' => 'bg-[#1CD6CE]/20 text-[#1CD6CE] border-[#1CD6CE]/30',
+        'devolucion' => 'bg-blue-600/20 text-[#1CD6CE] border-[#1CD6CE]/30',
         'baja' => 'bg-[#D61C4E]/20 text-[#ff5c86] border-[#D61C4E]/30',
     ];
 @endphp
@@ -63,7 +63,7 @@
                 <p class="text-sm text-white/60 mt-1">
                     Anulado el {{ $movimiento->anulado_at->format('d/m/Y H:i') }} por {{ $movimiento->anuladoPor->name ?? 'Sistema' }}.
                 </p>
-                <p class="text-sm text-white/80 mt-2 bg-[#293462]/50 p-3 rounded-lg">Motivo: {{ $movimiento->motivo_anulacion }}</p>
+                <p class="text-sm text-white/80 mt-2 bg-white/5 p-3 rounded-lg">Motivo: {{ $movimiento->motivo_anulacion }}</p>
             </div>
         </div>
     @endif
@@ -72,13 +72,13 @@
         <!-- Detalles del Movimiento (Columna izquierda) -->
         <div class="md:col-span-2 space-y-6">
             <!-- Info principal -->
-            <div class="bg-[#293462]/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-lg">
+            <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-lg">
                 <h3 class="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">Información General</h3>
                 <div class="grid grid-cols-2 gap-y-4 gap-x-6">
                     <div>
                         <span class="block text-xs font-medium text-white/50 mb-1">Item</span>
                         <div class="font-medium text-white">
-                            <a href="{{ route('items.edit', $movimiento->item_id) }}" class="hover:text-[#1CD6CE] transition-colors">
+                            <a href="{{ route('items.edit', $movimiento->item_id) }}" class="hover:text-blue-400 transition-colors">
                                 {{ $movimiento->item->descripcion }}
                             </a>
                             <span class="block text-sm text-white/50 font-mono">{{ $movimiento->item->codigoMostrar() }}</span>
@@ -137,7 +137,7 @@
 
             <!-- Hijos (devoluciones/bajas derivadas de esta entrega) -->
             @if ($movimiento->esEntrega() && $movimiento->hijos->isNotEmpty())
-                <div class="bg-[#293462]/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-lg">
+                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-lg">
                     <h3 class="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">Historial de esta entrega</h3>
                     <div class="space-y-3">
                         @foreach ($movimiento->hijos as $hijo)
@@ -170,7 +170,7 @@
         <!-- Acciones sobre entregas pendientes (Columna derecha) -->
         <div class="md:col-span-1">
             @if ($movimiento->esEntrega() && !$anulado)
-                <div class="bg-[#293462]/60 backdrop-blur-xl border border-[#1CD6CE]/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(28,214,206,0.1)] sticky top-24">
+                <div class="bg-white/5 backdrop-blur-xl border border-[#1CD6CE]/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(28,214,206,0.1)] sticky top-24">
                     <h3 class="text-lg font-bold text-white mb-2">Situación Actual</h3>
                     
                     <div class="mb-6">
@@ -190,8 +190,8 @@
                         <div class="space-y-4 pt-4 border-t border-white/10" id="devolucion">
                             <!-- Accion: Devolver -->
                             <details class="group/accion">
-                                <summary class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#1CD6CE]/50 hover:bg-[#1CD6CE]/10 transition-colors cursor-pointer list-none">
-                                    <div class="p-2 rounded-lg bg-[#1CD6CE]/20 text-[#1CD6CE]">
+                                <summary class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#1CD6CE]/50 hover:bg-blue-400/10 transition-colors cursor-pointer list-none">
+                                    <div class="p-2 rounded-lg bg-blue-600/20 text-[#1CD6CE]">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
                                     </div>
                                     <div class="flex-1">
@@ -207,20 +207,20 @@
                                             <div>
                                                 <label class="block text-xs font-medium text-white/70 mb-1">Cantidad a devolver</label>
                                                 <input type="number" name="cantidad" min="1" max="{{ $pendiente }}" value="{{ $pendiente }}" required
-                                                    class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white focus:outline-none focus:border-[#1CD6CE]"
+                                                    class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400"
                                                     {{ $movimiento->item->esSerializado() ? 'readonly' : '' }}>
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-white/70 mb-1">Fecha de devolución</label>
                                                 <input type="datetime-local" name="fecha_movimiento" value="{{ now()->format('Y-m-d\TH:i') }}" required
-                                                    class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white focus:outline-none focus:border-[#1CD6CE]">
+                                                    class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-white/70 mb-1">Observaciones (Opcional)</label>
                                                 <input type="text" name="observaciones" placeholder="Ej. Devuelve 1 cargador roto"
-                                                    class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#1CD6CE]">
+                                                    class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
                                             </div>
-                                            <button type="submit" class="w-full py-2.5 rounded-lg bg-[#1CD6CE] text-[#293462] font-bold hover:opacity-90 transition-opacity mt-2">
+                                            <button type="submit" class="w-full py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:opacity-90 transition-opacity mt-2">
                                                 Confirmar Devolución
                                             </button>
                                         </div>
@@ -248,24 +248,24 @@
                                                 <div class="flex-1">
                                                     <label class="block text-xs font-medium text-white/70 mb-1">Cantidad</label>
                                                     <input type="number" name="cantidad" min="1" max="{{ $pendiente }}" value="{{ $pendiente }}" required
-                                                        class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white focus:outline-none focus:border-[#D61C4E]"
+                                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400"
                                                         {{ $movimiento->item->esSerializado() ? 'readonly' : '' }}>
                                                 </div>
                                                 <div class="flex-1">
                                                     <label class="block text-xs font-medium text-white/70 mb-1">Fecha</label>
                                                     <input type="date" name="fecha_movimiento" value="{{ now()->format('Y-m-d') }}" required
-                                                        class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white focus:outline-none focus:border-[#D61C4E]">
+                                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
                                                 </div>
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-white/70 mb-1">Motivo Corto</label>
                                                 <input type="text" name="motivo" placeholder="Ej. Robo, Extravío..." required
-                                                    class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#D61C4E]">
+                                                    class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-[#ff5c86] mb-1">Nota de Responsabilidad (Req.)</label>
                                                 <textarea name="observaciones" rows="2" placeholder="Detallar cómo se perdió y la responsabilidad del funcionario..." required minlength="10"
-                                                    class="w-full px-3 py-2 bg-[#293462] border border-[#D61C4E]/40 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#D61C4E]"></textarea>
+                                                    class="w-full px-3 py-2 bg-white/5 border border-[#D61C4E]/40 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400"></textarea>
                                             </div>
                                             <button type="submit" onclick="return confirm('¿Confirmás la baja definitiva de estas unidades?')"
                                                 class="w-full py-2.5 rounded-lg bg-[#D61C4E] text-white font-bold hover:bg-[#b81742] transition-colors mt-2">
@@ -284,8 +284,8 @@
 </div>
 
 <!-- Modal para anular -->
-<dialog id="modal-anular" class="bg-transparent backdrop:bg-[#293462]/80 backdrop:backdrop-blur-sm p-0 m-auto w-full max-w-md rounded-2xl shadow-2xl border border-white/20">
-    <div class="bg-[#1f2850] p-6 text-white w-full">
+<dialog id="modal-anular" class="bg-transparent backdrop:bg-white/5 backdrop:backdrop-blur-sm p-0 m-auto w-full max-w-md rounded-2xl shadow-2xl border border-white/20">
+    <div class="bg-slate-900 p-6 text-white w-full">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-xl font-bold text-[#ff5c86]">Anular Movimiento</h3>
             <button onclick="document.getElementById('modal-anular').close()" class="p-1 text-white/50 hover:text-white rounded-lg">
@@ -300,7 +300,7 @@
             <div class="mb-4">
                 <label class="block mb-2 text-sm font-medium">Motivo de anulación</label>
                 <input type="text" name="motivo_anulacion" required placeholder="Ej. Error de tipeo, asignación incorrecta"
-                    class="w-full px-4 py-3 bg-[#293462] border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-[#ff5c86]">
+                    class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-[#ff5c86]">
             </div>
             <div class="flex gap-3 justify-end mt-6">
                 <button type="button" onclick="document.getElementById('modal-anular').close()"
@@ -308,7 +308,7 @@
                     Cancelar
                 </button>
                 <button type="submit"
-                    class="px-5 py-2.5 rounded-xl bg-[#D61C4E] hover:bg-[#b81742] text-white transition-colors font-bold shadow-[0_0_15px_rgba(214,28,78,0.3)]">
+                    class="px-5 py-2.5 rounded-xl bg-[#D61C4E] hover:bg-[#b81742] text-white transition-colors font-bold shadow-blue-500/30">
                     Confirmar Anulación
                 </button>
             </div>

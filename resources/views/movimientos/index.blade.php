@@ -8,7 +8,7 @@
         'ingreso' => 'bg-green-500/20 text-green-400 border-green-500/30',
         'prestamo' => 'bg-[#FEDB39]/20 text-[#FEDB39] border-[#FEDB39]/30',
         'transferencia' => 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-        'devolucion' => 'bg-[#1CD6CE]/20 text-[#1CD6CE] border-[#1CD6CE]/30',
+        'devolucion' => 'bg-blue-600/20 text-[#1CD6CE] border-[#1CD6CE]/30',
         'baja' => 'bg-[#D61C4E]/20 text-[#ff5c86] border-[#D61C4E]/30',
     ];
     $filtroTipo = request('tipo');
@@ -18,13 +18,13 @@
     <!-- Encabezado y Acción Principal -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-            <h1 class="text-3xl font-bold bg-gradient-to-r from-[#1CD6CE] to-[#FEDB39] bg-clip-text text-transparent">
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
                 Movimientos
             </h1>
             <p class="text-white/70 mt-1">Controla los préstamos, transferencias, devoluciones y bajas de bienes</p>
         </div>
         <a href="{{ route('movimientos.create') }}"
-            class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#1CD6CE] to-[#15b0aa] hover:opacity-90 text-[#293462] font-bold rounded-xl shadow-[0_0_15px_rgba(28,214,206,0.3)] hover:shadow-[0_0_25px_rgba(28,214,206,0.5)] transition-all gap-2 group">
+            class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] transition-all gap-2 group">
             <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -53,11 +53,11 @@
     </div>
 
     <!-- Tabla -->
-    <div class="bg-[#293462]/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
+    <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="bg-[#1CD6CE]/10 border-b border-white/10 text-[#1CD6CE]">
+                    <tr class="bg-blue-600/10 border-b border-white/10 text-[#1CD6CE]">
                         <th class="px-6 py-4 font-semibold">ID</th>
                         <th class="px-6 py-4 font-semibold">Item</th>
                         <th class="px-6 py-4 font-semibold">Funcionario</th>
@@ -117,7 +117,7 @@
                                 <div class="flex items-center justify-end gap-2">
                                     @if (!$anulado && $pendiente > 0)
                                         <a href="{{ route('movimientos.show', $movimiento->id) }}#devolucion"
-                                            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#1CD6CE]/15 text-[#1CD6CE] border border-[#1CD6CE]/30 hover:bg-[#1CD6CE]/25 transition-colors">
+                                            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600/20 text-[#1CD6CE] border border-[#1CD6CE]/30 hover:bg-blue-600/25 transition-colors">
                                             Devolver
                                         </a>
                                     @endif

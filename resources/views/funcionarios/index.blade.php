@@ -7,13 +7,13 @@
         <!-- Encabezado y Acción Principal -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-[#1CD6CE] to-[#FEDB39] bg-clip-text text-transparent">
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
                     Funcionarios
                 </h1>
                 <p class="text-white/70 mt-1">Administra al personal y su respectiva dependencia</p>
             </div>
             <a href="{{ route('funcionarios.create') }}"
-                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#1CD6CE] to-[#15b0aa] hover:opacity-90 text-[#293462] font-bold rounded-xl shadow-[0_0_15px_rgba(28,214,206,0.3)] hover:shadow-[0_0_25px_rgba(28,214,206,0.5)] transition-all gap-2 group">
+                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] transition-all gap-2 group">
                 <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor"
                     viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -28,11 +28,11 @@
 
         <!-- Tabla -->
         <div
-            class="bg-[#293462]/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
+            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-[#1CD6CE]/10 border-b border-white/10 text-white">
+                        <tr class="bg-blue-600/10 border-b border-white/10 text-white">
                             <th class="px-6 py-4 font-semibold text-sm">ID</th>
                             <th class="px-6 py-4 font-semibold text-sm">Nombre del Funcionario</th>
                             <th class="px-6 py-4 font-semibold text-sm">Dependencia</th>
@@ -48,7 +48,7 @@
                                 <!-- dependencia del funcionario -->
                                 <td class="px-6 py-4">
                                     <span
-                                        class="px-3 py-1 rounded-full text-xs font-medium bg-[#1CD6CE]/20 text-white border border-[#1CD6CE]/30">
+                                        class="px-3 py-1 rounded-full text-xs font-medium bg-blue-600/20 text-white border border-[#1CD6CE]/30">
                                         {{ $funcionario->dependencia->nombre ?? 'Sin Asignar' }}
                                     </span>
                                 </td>
@@ -65,7 +65,7 @@
                                         class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <a href="{{ route('funcionarios.edit', $funcionario->id) }}">
                                             <button
-                                                class="p-2 text-white/60 hover:text-[#FEDB39] hover:bg-[#FEDB39]/10 rounded-lg transition-colors"
+                                                class="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                                                 title="Editar">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">

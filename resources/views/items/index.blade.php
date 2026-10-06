@@ -7,14 +7,14 @@
         <!-- Encabezado de la página -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 w-full">
             <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-[#1CD6CE] to-[#FEDB39] bg-clip-text text-transparent">
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
                     Inventario de Items
                 </h1>
                 <p class="text-white/70 mt-1">Gestiona el inventario de bienes del Departamento de IT</p>
             </div>
             <a href="{{ route('items.create') }}">
                 <button
-                    class="bg-gradient-to-r from-[#1CD6CE] to-[#15b0aa] hover:opacity-90 text-[#293462] px-5 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(28,214,206,0.3)] hover:shadow-[0_0_25px_rgba(28,214,206,0.5)] transition-all flex items-center gap-2">
+                    class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] transition-all flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                         xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -33,7 +33,7 @@
 
         <!-- Contenedor de la Tabla -->
         <div
-            class="bg-[#293462]/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.3)]">
+            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.3)]">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-white/80 whitespace-nowrap">
                     <thead class="bg-white/5 text-white uppercase text-xs font-semibold border-b border-white/10">
@@ -109,7 +109,7 @@
                                         class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                         @if ($item->stock_disponible > 0)
                                             <a href="{{ route('movimientos.create', ['item_id' => $item->id]) }}"
-                                                class="p-2 text-white/60 hover:text-[#1CD6CE] hover:bg-[#1CD6CE]/10 rounded-lg transition-colors"
+                                                class="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                                                 title="Prestar / Transferir">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -127,20 +127,20 @@
                                                     </svg>
                                                 </summary>
                                                 <form action="{{ route('items.ingresar-stock', $item->id) }}" method="POST"
-                                                    class="absolute right-0 top-full mt-2 z-20 w-64 p-4 bg-[#1f2850] border border-white/15 rounded-xl shadow-2xl text-left space-y-3">
+                                                    class="absolute right-0 top-full mt-2 z-20 w-64 p-4 bg-slate-900 border border-white/15 rounded-xl shadow-2xl text-left space-y-3">
                                                     @csrf
                                                     <p class="text-xs text-white/60">Ingresar unidades de <b class="text-white">{{ $item->descripcion }}</b></p>
                                                     <input type="number" name="cantidad" min="1" value="1" required
-                                                        class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white focus:outline-none focus:border-[#1CD6CE]">
+                                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
                                                     <input type="text" name="observaciones" placeholder="Observación (opcional)"
-                                                        class="w-full px-3 py-2 bg-[#293462] border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#1CD6CE]">
-                                                    <button type="submit" class="w-full py-2 rounded-lg bg-[#1CD6CE] text-[#293462] font-bold hover:opacity-90">Ingresar</button>
+                                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
+                                                    <button type="submit" class="w-full py-2 rounded-lg bg-blue-600 text-white font-bold hover:opacity-90">Ingresar</button>
                                                 </form>
                                             </details>
                                         @endunless
 
                                         <a href="{{ route('items.edit', $item->id) }}"
-                                            class="p-2 text-white/60 hover:text-[#FEDB39] hover:bg-[#FEDB39]/10 rounded-lg transition-colors"
+                                            class="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                                             title="Editar">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
