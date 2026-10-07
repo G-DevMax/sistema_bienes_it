@@ -25,8 +25,7 @@
         <div class="mb-4">
             @include('layouts.alerts')
         </div>
-        <div
-            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
             <form action="{{ route('items.store') }}" method="POST">
                 @csrf
 
@@ -47,32 +46,40 @@
                         <select id="categoria_id" name="categoria_id"
                             class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
                             required>
-                            <option value="" disabled {{ old('categoria_id') ? '' : 'selected' }}>Selecciona una categoría</option>
+                            <option value="" disabled {{ old('categoria_id') ? '' : 'selected' }}>Selecciona una
+                                categoría</option>
                             @foreach ($categorias as $categoria)
-                                <option value="{{ $categoria->id }}" {{ old('categoria_id') == $categoria->id ? 'selected' : '' }}>{{ $categoria->nombre }}</option>
+                                <option value="{{ $categoria->id }}"
+                                    {{ old('categoria_id') == $categoria->id ? 'selected' : '' }}>{{ $categoria->nombre }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
 
                     <!-- Tipo de item -->
                     <div class="col-span-1 md:col-span-2">
-                        <label for="tiene_codigo" class="flex items-start gap-3 p-4 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:border-[#1CD6CE]/40 transition-colors">
+                        <label for="tiene_codigo"
+                            class="flex items-start gap-3 p-4 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:border-[#1CD6CE]/40 transition-colors">
                             <input type="hidden" name="tiene_codigo" value="0">
                             <input type="checkbox" id="tiene_codigo" name="tiene_codigo" value="1"
-                                class="mt-1 w-5 h-5 accent-[#1CD6CE]" {{ old('tiene_codigo', '1') == '1' ? 'checked' : '' }}>
+                                class="mt-1 w-5 h-5 accent-[#1CD6CE]"
+                                {{ old('tiene_codigo', '1') == '1' ? 'checked' : '' }}>
                             <span>
                                 <span class="block font-medium text-white">Tiene código patrimonial</span>
                                 <span class="block text-xs text-white/60 mt-0.5">
                                     Marcado: item único (ej. notebook), el stock es siempre 1.
-                                    Desmarcado: item genérico (ej. cables HDMI), se controla por cantidad y el código figura como "No aplica".
+                                    Desmarcado: item genérico (ej. cables HDMI), se controla por cantidad y el código figura
+                                    como "No aplica".
                                 </span>
                             </span>
                         </label>
                     </div>
 
                     <div id="campo_codigo">
-                        <label for="codigo_patrimonial" class="block mb-2 text-sm font-medium text-white/90">Código Patrimonial</label>
-                        <input type="text" id="codigo_patrimonial" name="codigo_patrimonial" value="{{ old('codigo_patrimonial') }}"
+                        <label for="codigo_patrimonial" class="block mb-2 text-sm font-medium text-white/90">Código
+                            Patrimonial</label>
+                        <input type="text" id="codigo_patrimonial" name="codigo_patrimonial"
+                            value="{{ old('codigo_patrimonial') }}"
                             class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all"
                             placeholder="Ej. 12001.23.04.0001">
                     </div>
@@ -112,11 +119,12 @@
 
     <script>
         // serializado => codigo obligatorio y stock fijo en 1; generico => sin codigo y stock libre
-        (function () {
+        (function() {
             const check = document.getElementById('tiene_codigo');
             const campoCodigo = document.getElementById('campo_codigo');
             const codigo = document.getElementById('codigo_patrimonial');
             const stock = document.getElementById('stock');
+
 
             function actualizar() {
                 const serializado = check.checked;
