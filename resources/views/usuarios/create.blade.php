@@ -59,7 +59,7 @@
                         <select id="rol_id" name="rol_id"
                             class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
                             required>
-                            <option disabled selected>Selecciona un rol</option>
+                            <option value="" disabled selected>Selecciona un rol</option>
                             @foreach ($roles as $rol)
                                 <option value="{{ $rol->id }}">{{ $rol->nombre }}</option>
                             @endforeach
