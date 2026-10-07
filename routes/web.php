@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('categorias', CategoriasController::class);
     // los movimientos no se editan ni eliminan: se corrigen con devoluciones, bajas o anulaciones
     Route::resource('movimientos', MovimientosController::class)->only(['index', 'create', 'store', 'show']);
+    Route::get('movimientos/{movimiento}/planilla', [MovimientosController::class, 'exportarPlanilla'])->name('movimientos.planilla');
     Route::post('movimientos/{movimiento}/devolver', [MovimientosController::class, 'devolver'])->name('movimientos.devolver');
     Route::post('movimientos/{movimiento}/baja', [MovimientosController::class, 'bajaEntrega'])->name('movimientos.baja');
     Route::post('movimientos/{movimiento}/anular', [MovimientosController::class, 'anular'])->name('movimientos.anular');

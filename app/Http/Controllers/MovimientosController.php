@@ -10,6 +10,8 @@ use App\Models\funcionarios;
 use App\Models\items;
 use App\Models\movimientos;
 use App\Services\MovimientoService;
+use App\Services\PlanillaMovimientoService;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class MovimientosController extends Controller
 {
@@ -102,6 +104,25 @@ class MovimientosController extends Controller
         ])->findOrFail($id);
 
         return view('movimientos.show', compact('movimiento'));
+    }
+
+    // descarga la planilla FC 11 (Excel) con los datos del movimiento
+    public function exportarPlanilla(string $id, PlanillaMovimientoService $planilla)
+    {
+        $movimiento = movimientos::findOrFail($id);
+
+        if ($movimiento->estaAnulado()) {
+            return redirect()->route('movimientos.show', $id)->with('error', 'No se puede imprimir la planilla de un movimiento anulado.');
+        }
+
+        $spreadsheet = $planilla->generar($movimiento);
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+            $spreadsheet->disconnectWorksheets();
+        }, $planilla->nombreArchivo($movimiento), [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     // devolucion (total o parcial) de un prestamo/transferencia
