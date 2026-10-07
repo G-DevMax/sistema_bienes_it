@@ -38,6 +38,7 @@
                         <tr class="bg-blue-600/10 border-b border-white/10 text-white">
                             <th class="px-6 py-4 font-semibold text-sm">ID</th>
                             <th class="px-6 py-4 font-semibold text-sm">Nombre de la Dependencia</th>
+                            <th class="px-6 py-4 font-semibold text-sm">Funcionarios Vinculados</th>
                             <th class="px-6 py-4 font-semibold text-sm text-right">Acciones</th>
                         </tr>
                     </thead>
@@ -45,7 +46,13 @@
                         @forelse ($dependencias as $dependencia)
                             <tr class="hover:bg-white/5 transition-colors group">
                                 <td class="px-6 py-4 font-medium text-white/50">#{{ $dependencia->id }}</td>
-                                <td class="px-6 py-4">{{ $dependencia->nombre }}</td>
+                                <td class="px-6 py-4 font-medium">{{ $dependencia->nombre }}</td>
+                                <td class="px-6 py-4">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium {{ ($dependencia->funcionarios_count ?? 0) > 0 ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20' : 'bg-white/5 text-white/40 border border-white/10' }}">
+                                        {{ $dependencia->funcionarios_count ?? 0 }} {{ ($dependencia->funcionarios_count ?? 0) === 1 ? 'funcionario' : 'funcionarios' }}
+                                    </span>
+                                </td>
                                 <td class="px-6 py-4 text-right">
                                     <div
                                         class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -82,7 +89,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="px-6 py-12 text-center text-white/50">
+                                <td colspan="4" class="px-6 py-12 text-center text-white/50">
                                     No hay dependencias registradas en el sistema.
                                 </td>
                             </tr>
@@ -90,6 +97,18 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Paginación -->
+            @if ($dependencias->hasPages())
+                @include('layouts.pagination', ['paginator' => $dependencias])
+            @endif
+        </div>
+
+        <div class="w-full max-w-6xl animate-fade-in-up flex justify-center items-center">
+            <!-- Acciones secundarias -->
+            <x-botones_secundarios href="{{ route('funcionarios.index') }}">
+                Ir a Funcionarios
+            </x-botones_secundarios>
         </div>
     </div>
 @endsection

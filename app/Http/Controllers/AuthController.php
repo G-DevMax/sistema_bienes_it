@@ -17,12 +17,14 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         // validacion de los datos enviados por el formulario
-        $credenciales = $request->validate(
-            [
-                'email' => ['required', 'email'],
-                'password' => ['required', 'string']
-            ]
-        );
+        $credenciales = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ], [
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Debe ingresar un correo electrónico válido.',
+            'password.required' => 'La contraseña es obligatoria.',
+        ]);
 
         $remember = $request->boolean('remember');
 

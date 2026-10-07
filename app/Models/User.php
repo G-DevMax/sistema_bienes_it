@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'rol_id',
         'password',
+        'estado_user',
     ];
 
     // relacion muchos a uno con la tabla roles

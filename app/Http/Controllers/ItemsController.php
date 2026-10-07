@@ -49,8 +49,16 @@ class ItemsController extends Controller
             'codigo_patrimonial' => ['required_if:tiene_codigo,1', 'nullable', 'string', 'max:60', 'unique:items,codigo_patrimonial'],
             'stock' => ['required_unless:tiene_codigo,1', 'nullable', 'integer', 'min:1'],
         ], [
+            'descripcion.required' => 'La descripción del item es obligatoria.',
+            'descripcion.max' => 'La descripción no puede superar los 300 caracteres.',
+            'categoria_id.required' => 'Debe seleccionar una categoría.',
+            'categoria_id.exists' => 'La categoría seleccionada no es válida.',
             'codigo_patrimonial.required_if' => 'Ingresá el código patrimonial o desmarcá la opción "Tiene código patrimonial".',
             'codigo_patrimonial.unique' => 'Ya existe un item con ese código patrimonial.',
+            'codigo_patrimonial.max' => 'El código patrimonial no puede superar los 60 caracteres.',
+            'stock.required_unless' => 'El stock inicial es obligatorio para items genéricos.',
+            'stock.integer' => 'El stock debe ser un número entero.',
+            'stock.min' => 'El stock inicial debe ser al menos :min.',
         ]);
 
         if (!$request->boolean('tiene_codigo')) {
@@ -59,7 +67,7 @@ class ItemsController extends Controller
 
         $this->movimientoService->crearItem($datos, Auth::id());
 
-        return redirect()->route('items.index')->with('success', "Item creado correctamente");
+        return redirect()->route('items.index')->with('success', "Item creado correctamente.");
     }
 
     /**
@@ -75,7 +83,7 @@ class ItemsController extends Controller
      */
     public function edit(string $id)
     {
-        $categorias = categorias::all();
+        $categorias = categorias::orderBy('nombre', 'ASC')->get();
         $item = items::findOrFail($id);
 
         return view("items.edit", compact("categorias", "item"));
@@ -97,10 +105,20 @@ class ItemsController extends Controller
             $reglas['codigo_patrimonial'] = ['required', 'string', 'max:60', Rule::unique('items', 'codigo_patrimonial')->ignore($item->id)];
         }
 
-        $datos = $request->validate($reglas);
+        $mensajes = [
+            'descripcion.required' => 'La descripción del item es obligatoria.',
+            'descripcion.max' => 'La descripción no puede superar los 300 caracteres.',
+            'categoria_id.required' => 'Debe seleccionar una categoría.',
+            'categoria_id.exists' => 'La categoría seleccionada no es válida.',
+            'codigo_patrimonial.required' => 'El código patrimonial es obligatorio para items serializados.',
+            'codigo_patrimonial.unique' => 'Ya existe un item con ese código patrimonial.',
+            'codigo_patrimonial.max' => 'El código patrimonial no puede superar los 60 caracteres.',
+        ];
+
+        $datos = $request->validate($reglas, $mensajes);
         $item->update($datos);
 
-        return redirect()->route('items.index')->with('success', "Item actualizado correctamente");
+        return redirect()->route('items.index')->with('success', "Item actualizado correctamente.");
     }
 
     /**
@@ -119,6 +137,11 @@ class ItemsController extends Controller
         $datos = $request->validate([
             'cantidad' => ['required', 'integer', 'min:1'],
             'observaciones' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'cantidad.required' => 'Debe indicar la cantidad de unidades a ingresar.',
+            'cantidad.integer' => 'La cantidad debe ser un número entero.',
+            'cantidad.min' => 'La cantidad a ingresar debe ser al menos :min.',
+            'observaciones.max' => 'Las observaciones no pueden superar los 1000 caracteres.',
         ]);
 
         $this->movimientoService->ingresarStock((int) $id, (int) $datos['cantidad'], Auth::id(), $datos['observaciones'] ?? null);

@@ -26,6 +26,6 @@ class dependencias extends Model
     // relacion uno a muchos con la tabla funcionarios
     public function funcionarios()
     {
-        return $this->hasMany(funcionarios::class);
+        return $this->hasMany(funcionarios::class, 'dependencia_id');
     }
 }

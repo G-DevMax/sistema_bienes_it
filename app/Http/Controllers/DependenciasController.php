@@ -10,14 +10,14 @@ class DependenciasController extends Controller
 {
     public function index()
     {
-        $dependencias = dependencias::orderby('nombre', 'ASC')->paginate(10);
+        $dependencias = dependencias::withCount('funcionarios')->orderBy('nombre', 'ASC')->paginate(10);
 
         return view('dependencias.index', compact('dependencias'));
     }
 
     public function show(string $id)
     {
-        return view('dependencias.show', compact('id'));
+        return redirect()->route('dependencias.index');
     }
 
     public function create()
@@ -27,36 +27,52 @@ class DependenciasController extends Controller
 
     public function store(Request $request)
     {
-        $nueva_dependencia = dependencias::create($request->all());
-        $nueva_dependencia->save();
+        $request->validate([
+            'nombre' => 'required|string|max:120|unique:dependencias,nombre',
+        ], [
+            'nombre.required' => 'El nombre de la dependencia es obligatorio.',
+            'nombre.unique' => 'Ya existe una dependencia con este nombre.',
+            'nombre.max' => 'El nombre no puede superar los 120 caracteres.',
+        ]);
 
-        return redirect()->route('dependencias.index')->with('success', 'Dependencia creada exitosamente');
+        dependencias::create($request->only('nombre'));
+
+        return redirect()->route('dependencias.index')->with('success', 'Dependencia creada exitosamente.');
     }
 
     public function edit(string $id)
     {
-        $dependencia = dependencias::find($id);
+        $dependencia = dependencias::findOrFail($id);
         return view('dependencias.edit', compact('dependencia'));
     }
 
     public function update(Request $request, string $id)
     {
-        $dependencia = dependencias::find($id);
-        $dependencia->update($request->all());
-        $dependencia->save();
+        $dependencia = dependencias::findOrFail($id);
 
-        return redirect()->route('dependencias.index')->with('success', 'Dependencia actualizada exitosamente');
+        $request->validate([
+            'nombre' => 'required|string|max:120|unique:dependencias,nombre,' . $dependencia->id,
+        ], [
+            'nombre.required' => 'El nombre de la dependencia es obligatorio.',
+            'nombre.unique' => 'Ya existe una dependencia con este nombre.',
+            'nombre.max' => 'El nombre no puede superar los 120 caracteres.',
+        ]);
+
+        $dependencia->update($request->only('nombre'));
+
+        return redirect()->route('dependencias.index')->with('success', 'Dependencia actualizada exitosamente.');
     }
 
     public function destroy(string $id)
     {
         if (funcionarios::where('dependencia_id', $id)->exists()) {
-            return redirect()->route('dependencias.index')->with('error', 'No se puede eliminar la dependencia porque tiene funcionarios asignados');
+            return redirect()->route('dependencias.index')->with('error', 'No se puede eliminar la dependencia porque tiene funcionarios asignados.');
         }
 
-        $dependencia = dependencias::find($id);
+        $dependencia = dependencias::findOrFail($id);
         $dependencia->delete();
 
-        return redirect()->route('dependencias.index')->with('success', 'Dependencia eliminada exitosamente');
+        return redirect()->route('dependencias.index')->with('success', 'Dependencia eliminada exitosamente.');
     }
 }
+

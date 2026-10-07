@@ -69,17 +69,29 @@ class MovimientosController extends Controller
             'motivo' => [Rule::requiredIf($tipo === movimientos::BAJA), 'nullable', 'string', 'max:255'],
             'observaciones' => ['nullable', 'string', 'max:2000'],
         ], [
-            'funcionario_id.required' => 'Seleccioná el funcionario que recibe el item.',
+            'tipo_movimiento.required' => 'Debe seleccionar el tipo de movimiento.',
+            'tipo_movimiento.in' => 'El tipo de movimiento seleccionado no es válido.',
+            'item_id.required' => 'Debe seleccionar un bien o item.',
+            'item_id.exists' => 'El item seleccionado no es válido.',
+            'funcionario_id.required' => 'Seleccione el funcionario que recibe el item.',
+            'funcionario_id.exists' => 'El funcionario seleccionado no es válido.',
+            'cantidad.required' => 'Debe indicar la cantidad.',
+            'cantidad.integer' => 'La cantidad debe ser un número entero.',
+            'cantidad.min' => 'La cantidad debe ser al menos :min.',
+            'fecha_movimiento.required' => 'La fecha de movimiento es obligatoria.',
+            'fecha_movimiento.date' => 'La fecha de movimiento debe ser una fecha válida.',
             'fecha_devolucion_prevista.required' => 'Los préstamos requieren una fecha prevista de devolución.',
             'fecha_devolucion_prevista.after_or_equal' => 'La fecha prevista de devolución no puede ser anterior a la fecha del préstamo.',
-            'motivo.required' => 'Indicá el motivo de la baja.',
+            'motivo.required' => 'Indique el motivo de la baja.',
+            'motivo.max' => 'El motivo no puede superar los 255 caracteres.',
+            'observaciones.max' => 'Las observaciones no pueden superar los 2000 caracteres.',
         ]);
 
         $mov = $tipo === movimientos::BAJA
             ? $this->movimientoService->registrarBaja($datos, Auth::id())
             : $this->movimientoService->registrarEntrega($datos, Auth::id());
 
-        return redirect()->route('movimientos.show', $mov->id)->with('success', 'Movimiento registrado correctamente');
+        return redirect()->route('movimientos.show', $mov->id)->with('success', 'Movimiento registrado correctamente.');
     }
 
     public function show(string $id)
@@ -99,11 +111,18 @@ class MovimientosController extends Controller
             'cantidad' => ['required', 'integer', 'min:1'],
             'fecha_movimiento' => ['required', 'date'],
             'observaciones' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'cantidad.required' => 'Debe indicar la cantidad a devolver.',
+            'cantidad.integer' => 'La cantidad debe ser un número entero.',
+            'cantidad.min' => 'La cantidad a devolver debe ser al menos :min.',
+            'fecha_movimiento.required' => 'La fecha de devolución es obligatoria.',
+            'fecha_movimiento.date' => 'La fecha de devolución debe ser una fecha válida.',
+            'observaciones.max' => 'Las observaciones no pueden superar los 2000 caracteres.',
         ]);
 
         $this->movimientoService->registrarDevolucion((int) $id, $datos, Auth::id());
 
-        return redirect()->route('movimientos.show', $id)->with('success', 'Devolución registrada; el stock fue actualizado');
+        return redirect()->route('movimientos.show', $id)->with('success', 'Devolución registrada; el stock fue actualizado.');
     }
 
     // baja de unidades que estan en manos del funcionario
@@ -115,13 +134,21 @@ class MovimientosController extends Controller
             'motivo' => ['required', 'string', 'max:255'],
             'observaciones' => ['required', 'string', 'min:10', 'max:2000'],
         ], [
-            'observaciones.required' => 'Explicá qué ocurrió y quién es responsable de la pérdida o daño.',
+            'cantidad.required' => 'Debe indicar la cantidad a dar de baja.',
+            'cantidad.integer' => 'La cantidad debe ser un número entero.',
+            'cantidad.min' => 'La cantidad debe ser al menos :min.',
+            'fecha_movimiento.required' => 'La fecha de baja es obligatoria.',
+            'fecha_movimiento.date' => 'La fecha debe ser una fecha válida.',
+            'motivo.required' => 'Indique el motivo de la baja.',
+            'motivo.max' => 'El motivo no puede superar los 255 caracteres.',
+            'observaciones.required' => 'Explique qué ocurrió y quién es responsable de la pérdida o daño.',
             'observaciones.min' => 'La nota de responsabilidad debe ser más descriptiva (mínimo 10 caracteres).',
+            'observaciones.max' => 'Las observaciones no pueden superar los 2000 caracteres.',
         ]);
 
         $this->movimientoService->registrarBajaDesdeEntrega((int) $id, $datos, Auth::id());
 
-        return redirect()->route('movimientos.show', $id)->with('success', 'Baja registrada con nota de responsabilidad');
+        return redirect()->route('movimientos.show', $id)->with('success', 'Baja registrada con nota de responsabilidad.');
     }
 
     public function anular(Request $request, string $id)
@@ -129,11 +156,12 @@ class MovimientosController extends Controller
         $datos = $request->validate([
             'motivo_anulacion' => ['required', 'string', 'max:255'],
         ], [
-            'motivo_anulacion.required' => 'Indicá el motivo de la anulación.',
+            'motivo_anulacion.required' => 'Indique el motivo de la anulación.',
+            'motivo_anulacion.max' => 'El motivo de anulación no puede superar los 255 caracteres.',
         ]);
 
         $this->movimientoService->anular((int) $id, $datos['motivo_anulacion'], Auth::id());
 
-        return redirect()->route('movimientos.show', $id)->with('success', 'Movimiento anulado y stock revertido');
+        return redirect()->route('movimientos.show', $id)->with('success', 'Movimiento anulado y stock revertido.');
     }
 }
