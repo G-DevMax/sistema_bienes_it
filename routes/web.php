@@ -25,8 +25,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', function () {
-        return view('/login');
-    })->name('/login');
+        return view('/menu_bientes');
+    })->name('menu_bientes');
 
     Route::post('items/{item}/ingresar-stock', [ItemsController::class, 'ingresarStock'])->name('items.ingresar-stock');
     Route::resource('items', ItemsController::class);
