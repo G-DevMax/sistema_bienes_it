@@ -42,7 +42,8 @@
                             <th scope="col" class="px-6 py-5 text-center">Descripción</th>
                             <th scope="col" class="px-6 py-5 text-center">Categoría</th>
                             <th scope="col" class="px-6 py-5 text-center">Codigo Patrimonial</th>
-                            <th scope="col" class="px-6 py-5 text-center" title="Disponible en Informática / Total">Stock</th>
+                            <th scope="col" class="px-6 py-5 text-center" title="Disponible en Informática / Total">Stock
+                            </th>
                             <th scope="col" class="px-6 py-5 text-center">Estado</th>
                             <th scope="col" class="px-6 py-5 text-right">Acciones</th>
                         </tr>
@@ -67,11 +68,14 @@
                                     @if ($item->esSerializado())
                                         <span class="font-mono">{{ $item->codigo_patrimonial }}</span>
                                     @else
-                                        <span class="px-2 py-0.5 rounded-md text-xs bg-white/5 text-white/50 border border-white/10">No aplica</span>
+                                        <span
+                                            class="px-2 py-0.5 rounded-md text-xs bg-white/5 text-white/50 border border-white/10">No
+                                            aplica</span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-white">
-                                    <span class="font-bold text-lg {{ $item->stock_disponible > 0 ? 'text-[#1CD6CE]' : 'text-[#D61C4E]' }}">{{ $item->stock_disponible }}</span>
+                                    <span
+                                        class="font-bold text-lg {{ $item->stock_disponible > 0 ? 'text-[#1CD6CE]' : 'text-[#D61C4E]' }}">{{ $item->stock_disponible }}</span>
                                     <span class="text-white/40">/ {{ $item->stock_total }}</span>
                                 </td>
                                 <td class="px-6 py-4 text-white">
@@ -91,15 +95,23 @@
                                     @else
                                         {{-- items genericos: desglose por estado --}}
                                         <div class="flex flex-wrap justify-center gap-1 text-xs">
-                                            <span class="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30" title="Disponibles">{{ $item->stock_disponible }} disp.</span>
+                                            <span
+                                                class="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30"
+                                                title="Disponibles">{{ $item->stock_disponible }} disp.</span>
                                             @if ($r['prestados'] > 0)
-                                                <span class="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30" title="Prestados">{{ $r['prestados'] }} prest.</span>
+                                                <span
+                                                    class="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
+                                                    title="Prestados">{{ $r['prestados'] }} prest.</span>
                                             @endif
                                             @if ($r['transferidos'] > 0)
-                                                <span class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30" title="Transferidos">{{ $r['transferidos'] }} transf.</span>
+                                                <span
+                                                    class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                                    title="Transferidos">{{ $r['transferidos'] }} transf.</span>
                                             @endif
                                             @if ($r['inservibles'] > 0)
-                                                <span class="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30" title="Dados de baja">{{ $r['inservibles'] }} baja</span>
+                                                <span
+                                                    class="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30"
+                                                    title="Dados de baja">{{ $r['inservibles'] }} baja</span>
                                             @endif
                                         </div>
                                     @endif
@@ -111,7 +123,8 @@
                                             <a href="{{ route('movimientos.create', ['item_id' => $item->id]) }}"
                                                 class="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                                                 title="Prestar / Transferir">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                                                 </svg>
@@ -121,20 +134,27 @@
                                         @unless ($item->esSerializado())
                                             {{-- ingreso de stock para items genericos --}}
                                             <details class="relative">
-                                                <summary class="list-none p-2 text-white/60 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors cursor-pointer" title="Ingresar stock">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                <summary
+                                                    class="list-none p-2 text-white/60 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors cursor-pointer"
+                                                    title="Ingresar stock">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M12 4v16m8-8H4"></path>
                                                     </svg>
                                                 </summary>
                                                 <form action="{{ route('items.ingresar-stock', $item->id) }}" method="POST"
                                                     class="absolute right-0 top-full mt-2 z-20 w-64 p-4 bg-slate-900 border border-white/15 rounded-xl shadow-2xl text-left space-y-3">
                                                     @csrf
-                                                    <p class="text-xs text-white/60">Ingresar unidades de <b class="text-white">{{ $item->descripcion }}</b></p>
+                                                    <p class="text-xs text-white/60">Ingresar unidades de <b
+                                                            class="text-white">{{ $item->descripcion }}</b></p>
                                                     <input type="number" name="cantidad" min="1" value="1" required
                                                         class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
-                                                    <input type="text" name="observaciones" placeholder="Observación (opcional)"
+                                                    <input type="text" name="observaciones"
+                                                        placeholder="Observación (opcional)"
                                                         class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
-                                                    <button type="submit" class="w-full py-2 rounded-lg bg-blue-600 text-white font-bold hover:opacity-90">Ingresar</button>
+                                                    <button type="submit"
+                                                        class="w-full py-2 rounded-lg bg-blue-600 text-white font-bold hover:opacity-90">Ingresar</button>
                                                 </form>
                                             </details>
                                         @endunless
@@ -142,8 +162,7 @@
                                         <a href="{{ route('items.edit', $item->id) }}"
                                             class="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                                             title="Editar">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
                                                 </path>
@@ -186,6 +205,12 @@
 
             <!-- Paginación -->
             @include('layouts.pagination', ['paginator' => $items])
+        </div>
+        <div class="w-full max-w-6xl animate-fade-in-up flex justify-center items-center">
+            <!-- Acciones secundarias -->
+            <x-botones_secundarios href="{{ route('categorias.index') }}">
+                Ir a Categorias
+            </x-botones_secundarios>
         </div>
     </div>
 @endsection

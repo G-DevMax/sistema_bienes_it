@@ -16,6 +16,11 @@ class categorias extends Model
         'nombre',
     ];
 
+    public function items()
+    {
+        return $this->hasMany(items::class, 'categoria_id');
+    }
+
     protected function casts(): array
     {
         return [

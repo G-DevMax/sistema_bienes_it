@@ -105,5 +105,10 @@
                 </table>
             </div>
         </div>
-    </div>
-@endsection
+        <div class="w-full max-w-6xl animate-fade-in-up flex justify-center items-center">
+            <!-- Acciones secundarias -->
+            <x-botones_secundarios href="{{ route('dependencias.index') }}">
+                Ir a Dependencias
+            </x-botones_secundarios>
+        </div>
+    @endsection

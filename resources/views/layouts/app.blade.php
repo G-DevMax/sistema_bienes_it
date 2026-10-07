@@ -44,10 +44,6 @@
                     class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
                     Funcionarios
                 </a>
-                <a href="{{ route('dependencias.index') }}"
-                    class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                    Dependencias
-                </a>
 
                 <form action="{{ route('logout') }}" method="POST" class="inline">
                     @csrf
