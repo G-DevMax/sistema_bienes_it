@@ -42,7 +42,7 @@ class PlanillaMovimientoService
 
     public function generar(movimientos $movimiento): Spreadsheet
     {
-        $movimiento->loadMissing(['item', 'funcionario.dependencia', 'origen.funcionario.dependencia']);
+        $movimiento->loadMissing(['item', 'funcionario.dependencia', 'origen.funcionario.dependencia', 'hijos']);
 
         $reader = IOFactory::createReader('Xls');
         $reader->setLoadSheetsOnly(self::HOJA_PLANTILLA);
@@ -94,9 +94,14 @@ class PlanillaMovimientoService
             $hoja->setCellValue('D' . $fila, $nota);
         }
 
-        // pie: fecha de devolucion prevista (prestamos)
-        if ($movimiento->tipo_movimiento === movimientos::PRESTAMO && $movimiento->fecha_devolucion_prevista) {
-            $hoja->setCellValue('B56', 'FECHA DEVOLUCIÓN: ' . $movimiento->fecha_devolucion_prevista->format('d/m/Y'));
+        // pie: fecha de devolucion (real, no la prevista)
+        if ($movimiento->tipo_movimiento === movimientos::DEVOLUCION) {
+            $hoja->setCellValue('B56', 'FECHA DEVOLUCIÓN: ' . $movimiento->fecha_movimiento->format('d/m/Y'));
+        } elseif ($movimiento->tipo_movimiento === movimientos::PRESTAMO) {
+            $ultimaDevolucion = $movimiento->hijos->where('tipo_movimiento', movimientos::DEVOLUCION)->sortByDesc('fecha_movimiento')->first();
+            if ($ultimaDevolucion) {
+                $hoja->setCellValue('B56', 'FECHA DEVOLUCIÓN: ' . $ultimaDevolucion->fecha_movimiento->format('d/m/Y'));
+            }
         }
 
         $spreadsheet->setActiveSheetIndex(0);
