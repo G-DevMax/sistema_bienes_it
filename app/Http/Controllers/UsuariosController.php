@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\rol;
+use Illuminate\Support\Facades\Auth;
 
 class UsuariosController extends Controller
 {
@@ -128,7 +129,7 @@ class UsuariosController extends Controller
     {
         $usuario_eliminar = User::findOrFail($id);
 
-        if (auth()->id() == $usuario_eliminar->id) {
+        if (Auth::id() == $usuario_eliminar->id) {
             return redirect()->route('usuarios.index')->with('error', 'No puedes desactivar tu propia cuenta de usuario en sesión.');
         }
 
@@ -138,4 +139,3 @@ class UsuariosController extends Controller
         return redirect()->route('usuarios.index')->with('success', 'Usuario desactivado exitosamente.');
     }
 }
-
