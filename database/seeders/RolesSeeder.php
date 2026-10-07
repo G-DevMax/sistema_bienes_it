@@ -15,15 +15,19 @@ class RolesSeeder extends Seeder
     {
         // creacion de los roles predeterminados
         $rol = new rol();
-        $rol->nombre = 'Administrador';
+        $rol->nombre = 'Administrador IT';
         $rol->save();
 
         $rol = new rol();
-        $rol->nombre = 'Editor';
+        $rol->nombre = 'Supervisor IT';
         $rol->save();
 
         $rol = new rol();
-        $rol->nombre = 'Lector';
+        $rol->nombre = 'Director/Jefe de Área';
+        $rol->save();
+
+        $rol = new rol();
+        $rol->nombre = 'Funcionario';
         $rol->save();
     }
 }
