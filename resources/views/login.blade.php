@@ -5,11 +5,13 @@
 @section('content')
     <div class="w-full max-w-md animate-fade-in-up">
         <div class="text-center mb-8">
-            <h1
-                class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent mb-2">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent mb-2">
                 Sistema de Bienes IT</h1>
             <p class="text-white/70 text-lg">Ingresa tus credenciales para acceder al sistema</p>
         </div>
+
+        <!-- Mensaje dinamico -->
+        @include('layouts.alerts')
 
         <div
             class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(59,130,246,0.1)]">

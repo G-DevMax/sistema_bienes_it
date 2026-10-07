@@ -37,8 +37,7 @@ class AuthController extends Controller
         // si las credenciales son incorrectas, redirige al usuario a la ruta /login con errores
         return back()->withErrors(
             [
-                'email' => 'Las credenciales no coinciden',
-                'password' => 'Las credenciales no coinciden'
+                'error' => 'Las credenciales no coinciden'
             ]
         );
     }
