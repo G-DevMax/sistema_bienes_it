@@ -44,10 +44,9 @@
                     <div class="col-span-1 md:col-span-2">
                         <label for="categoria_id" class="block mb-2 text-sm font-medium text-white/90">Categoría</label>
                         <select id="categoria_id" name="categoria_id"
-                            class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
+                            class="searchable-select w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
                             required>
-                            <option value="" disabled {{ old('categoria_id') ? '' : 'selected' }}>Selecciona una
-                                categoría</option>
+                            <option value="" disabled {{ old('categoria_id') ? '' : 'selected' }}>Selecciona una categoría</option>
                             @foreach ($categorias as $categoria)
                                 <option value="{{ $categoria->id }}"
                                     {{ old('categoria_id') == $categoria->id ? 'selected' : '' }}>{{ $categoria->nombre }}

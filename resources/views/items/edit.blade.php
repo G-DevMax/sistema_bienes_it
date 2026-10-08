@@ -26,8 +26,7 @@
         </div>
 
         <!-- Formulario -->
-        <div
-            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
             <!-- Reemplazar el route de action cuando el $item esté listo en backend -->
             <form action="{{ route('items.update', $item->id ?? 1) }}" method="POST">
                 @csrf
@@ -39,7 +38,8 @@
                         <label for="descripcion" class="block mb-2 text-sm font-medium text-white/90">
                             Nombre
                         </label>
-                        <input type="text" id="descripcion" name="descripcion" value="{{ old('descripcion', $item->descripcion) }}"
+                        <input type="text" id="descripcion" name="descripcion"
+                            value="{{ old('descripcion', $item->descripcion) }}"
                             class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all"
                             required>
                     </div>
@@ -48,10 +48,12 @@
                     <div>
                         <label for="categoria_id" class="block mb-2 text-sm font-medium text-white/90">Categoría</label>
                         <select id="categoria_id" name="categoria_id"
-                            class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
+                            class="searchable-select w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
                             required>
                             @foreach ($categorias as $categoria)
-                                <option value="{{ $categoria->id }}" {{ old('categoria_id', $item->categoria_id) == $categoria->id ? 'selected' : '' }}>{{ $categoria->nombre }}</option>
+                                <option value="{{ $categoria->id }}"
+                                    {{ old('categoria_id', $item->categoria_id) == $categoria->id ? 'selected' : '' }}>
+                                    {{ $categoria->nombre }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -72,7 +74,8 @@
                     </div>
 
                     <!-- Stock y estado (solo lectura) -->
-                    <div class="col-span-1 md:col-span-2 p-4 rounded-xl border border-white/10 bg-white/5 flex flex-wrap items-center gap-6">
+                    <div
+                        class="col-span-1 md:col-span-2 p-4 rounded-xl border border-white/10 bg-white/5 flex flex-wrap items-center gap-6">
                         <div>
                             <span class="block text-xs text-white/50">Stock disponible / total</span>
                             <span class="text-lg font-bold text-[#1CD6CE]">{{ $item->stock_disponible }}</span>

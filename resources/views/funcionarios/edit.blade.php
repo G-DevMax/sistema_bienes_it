@@ -38,7 +38,7 @@
                     <div class="col-span-1 md:col-span-2">
                         <label for="dependencia_id" class="block mb-2 text-sm font-medium text-white/90">Dependencia</label>
                         <select id="dependencia_id" name="dependencia_id"
-                            class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
+                            class="searchable-select w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
                             required>
                             @foreach ($dependencias as $dep)
                                 <option value="{{ $dep->id }}"

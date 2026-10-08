@@ -22,8 +22,7 @@
         </div>
 
         <!-- Formulario -->
-        <div
-            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
             <form action="{{ route('usuarios.store') }}" method="POST">
                 @csrf
 
@@ -57,7 +56,7 @@
                     <div>
                         <label for="rol_id" class="block mb-2 text-sm font-medium text-white/90">Rol del Usuario</label>
                         <select id="rol_id" name="rol_id"
-                            class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
+                            class="searchable-select w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
                             required>
                             <option value="" disabled selected>Selecciona un rol</option>
                             @foreach ($roles as $rol)

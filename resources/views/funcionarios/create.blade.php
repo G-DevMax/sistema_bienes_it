@@ -9,7 +9,8 @@
             <a href="{{ route('funcionarios.index') }}"
                 class="p-2 text-white/50 hover:text-blue-400 hover:bg-blue-400/10 rounded-xl transition-all">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                    </path>
                 </svg>
             </a>
             <div>
@@ -35,10 +36,10 @@
                     <div class="col-span-1 md:col-span-2">
                         <label for="dependencia_id" class="block mb-2 text-sm font-medium text-white/90">Dependencia</label>
                         <select id="dependencia_id" name="dependencia_id"
-                            class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
+                            class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none searchable-select"
                             required>
                             <option value="" disabled selected>Selecciona una dependencia</option>
-                            @if(isset($dependencias))
+                            @if (isset($dependencias))
                                 @foreach ($dependencias as $dep)
                                     <option value="{{ $dep->id }}">{{ $dep->nombre }}</option>
                                 @endforeach
@@ -56,7 +57,8 @@
                         <button type="button"
                             class="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white font-bold rounded-xl shadow-blue-500/30 hover:shadow-[0_0_25px_rgba(214,28,78,0.5)] transition-all flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                             Cancelar
                         </button>
