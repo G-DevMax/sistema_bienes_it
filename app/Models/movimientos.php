@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class movimientos extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\LogsHistory;
 
     // tipos de movimiento
     public const INGRESO = 'ingreso';

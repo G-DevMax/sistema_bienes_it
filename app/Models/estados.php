@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class estados extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\LogsHistory;
 
     // ids de los estados predeterminados (ver EstadosSeender)
     public const DISPONIBLE = 1;

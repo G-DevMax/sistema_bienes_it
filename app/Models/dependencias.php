@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class dependencias extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\LogsHistory;
 
     protected $table = "dependencias";
 

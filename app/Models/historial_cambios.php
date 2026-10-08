@@ -12,9 +12,11 @@ class historial_cambios extends Model
     protected $table = "historial_cambios";
 
     protected $fillable = [
-        'item_id',
         'user_id',
-        'cambio',
+        'entidad',
+        'entidad_id',
+        'accion',
+        'detalle',
         'fecha_cambio',
     ];
 
@@ -25,12 +27,6 @@ class historial_cambios extends Model
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
-    }
-
-    // relacion muchos a uno con la tabla items
-    public function item()
-    {
-        return $this->belongsTo(items::class);
     }
 
     // relacion muchos a uno con la tabla users

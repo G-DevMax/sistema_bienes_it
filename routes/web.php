@@ -40,4 +40,5 @@ Route::middleware('auth')->group(function () {
     Route::post('movimientos/{movimiento}/devolver', [MovimientosController::class, 'devolver'])->name('movimientos.devolver');
     Route::post('movimientos/{movimiento}/baja', [MovimientosController::class, 'bajaEntrega'])->name('movimientos.baja');
     Route::post('movimientos/{movimiento}/anular', [MovimientosController::class, 'anular'])->name('movimientos.anular');
+    Route::get('historial/descargar', [\App\Http\Controllers\HistorialController::class, 'descargar'])->name('historial.descargar');
 });
