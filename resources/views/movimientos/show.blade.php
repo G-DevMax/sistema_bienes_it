@@ -181,14 +181,22 @@
                     <h3 class="text-lg font-bold text-white mb-2">Situación Actual</h3>
                     
                     <div class="mb-6">
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-4xl font-bold {{ $pendiente > 0 ? 'text-[#1CD6CE]' : 'text-green-400' }}">{{ $pendiente }}</span>
-                            <span class="text-sm text-white/60">de {{ $movimiento->cantidad }} pendientes</span>
-                        </div>
                         @if ($pendiente === 0)
-                            <div class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-green-500/20 text-green-400 text-sm font-medium border border-green-500/30">
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-green-500/20 text-green-400 text-sm font-medium border border-green-500/30">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                 Movimiento Cerrado
+                            </div>
+                        @else
+                            <div class="flex items-baseline gap-2">
+                                @if ($movimiento->tipo_movimiento === \App\Models\movimientos::TRANSFERENCIA)
+                                    <span class="text-3xl font-bold text-purple-400">Transferido</span>
+                                    @if ($pendiente < $movimiento->cantidad)
+                                        <span class="text-sm text-white/60">({{ $pendiente }} restantes)</span>
+                                    @endif
+                                @else
+                                    <span class="text-4xl font-bold text-[#1CD6CE]">{{ $pendiente }}</span>
+                                    <span class="text-sm text-white/60">de {{ $movimiento->cantidad }} pendientes</span>
+                                @endif
                             </div>
                         @endif
                     </div>

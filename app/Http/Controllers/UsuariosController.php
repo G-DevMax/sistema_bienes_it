@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Services\LoggerService;
 use App\Models\User;
 use App\Models\rol;
 use Illuminate\Support\Facades\Auth;
@@ -34,7 +35,7 @@ class UsuariosController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $this->validateWithIndexRedirect($request, [
             'name' => 'required|string|max:120',
             'email' => 'required|email|max:150|unique:users,email',
             'password' => 'required|string|min:4',
@@ -49,15 +50,33 @@ class UsuariosController extends Controller
             'password.min' => 'La contraseña debe tener al menos :min caracteres.',
             'rol_id.required' => 'Debe seleccionar un rol para el usuario.',
             'rol_id.exists' => 'El rol seleccionado no es válido.',
-        ]);
+        ], 'usuarios.index');
 
-        $nuevo_usuario = new User();
-        $nuevo_usuario->name = $request->name;
-        $nuevo_usuario->email = $request->email;
-        $nuevo_usuario->password = $request->password;
-        $nuevo_usuario->rol_id = $request->rol_id;
-        $nuevo_usuario->estado_user = 1;
-        $nuevo_usuario->save();
+        try {
+            User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => $request->password,
+                'rol_id' => $request->rol_id,
+                'estado_user' => 1,
+            ]);
+
+            LoggerService::info('Usuario creado', [
+                'name' => $request->name,
+                'email' => $request->email,
+                'rol' => $request->rol_id,
+                'user_id' => Auth::id(), // id del administrador que creó el usuario
+            ]);
+        } catch (\Exception $exception) {
+            LoggerService::error('Error al crear usuario', [
+                'name' => $request->name,
+                'email' => $request->email,
+                'rol' => $request->rol_id,
+                'user_id' => Auth::id(),
+            ], $exception);
+
+            return redirect()->route('usuarios.index')->with('error', 'Error al crear usuario.');
+        }
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario creado exitosamente.');
     }
@@ -88,7 +107,7 @@ class UsuariosController extends Controller
     {
         $usuario_editado = User::findOrFail($id);
 
-        $request->validate([
+        $this->validateWithIndexRedirect($request, [
             'name' => 'required|string|max:120',
             'email' => 'required|email|max:150|unique:users,email,' . $usuario_editado->id,
             'password' => 'nullable|string|min:4',
@@ -105,19 +124,37 @@ class UsuariosController extends Controller
             'rol_id.exists' => 'El rol seleccionado no es válido.',
             'estado_user.required' => 'Debe definir el estado del usuario.',
             'estado_user.in' => 'El estado seleccionado no es válido.',
-        ]);
+        ], 'usuarios.index');
 
-        $usuario_editado->name = $request->name;
-        $usuario_editado->email = $request->email;
+        try {
+            $usuario_editado->name = $request->name;
+            $usuario_editado->email = $request->email;
 
-        // Si se envió una nueva contraseña, se actualiza
-        if ($request->filled('password')) {
-            $usuario_editado->password = $request->password;
+            // Si se envió una nueva contraseña, se actualiza
+            if ($request->filled('password')) {
+                $usuario_editado->password = $request->password;
+            }
+
+            $usuario_editado->estado_user = $request->estado_user;
+            $usuario_editado->rol_id = $request->rol_id;
+            $usuario_editado->save();
+
+            LoggerService::info('Usuario actualizado', [
+                'name' => $request->name,
+                'email' => $request->email,
+                'rol' => $request->rol_id,
+                'user_id' => Auth::id(),
+            ]);
+        } catch (\Exception $exception) {
+            LoggerService::error('Error al actualizar usuario', [
+                'name' => $request->name,
+                'email' => $request->email,
+                'rol' => $request->rol_id,
+                'user_id' => Auth::id(),
+            ], $exception);
+
+            return redirect()->route('usuarios.index')->with('error', 'Error al actualizar usuario.');
         }
-
-        $usuario_editado->estado_user = $request->estado_user;
-        $usuario_editado->rol_id = $request->rol_id;
-        $usuario_editado->save();
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado exitosamente.');
     }
@@ -130,11 +167,35 @@ class UsuariosController extends Controller
         $usuario_eliminar = User::findOrFail($id);
 
         if (Auth::id() == $usuario_eliminar->id) {
+            LoggerService::warning('Usuario intentó desactivar su propia cuenta', [
+                'name' => $usuario_eliminar->name,
+                'email' => $usuario_eliminar->email,
+                'rol' => $usuario_eliminar->rol_id,
+                'user_id' => Auth::id(),
+            ]);
             return redirect()->route('usuarios.index')->with('error', 'No puedes desactivar tu propia cuenta de usuario en sesión.');
         }
 
-        $usuario_eliminar->estado_user = 0;
-        $usuario_eliminar->save();
+        try {
+            $usuario_eliminar->estado_user = 0;
+            $usuario_eliminar->save();
+
+            LoggerService::info('Usuario desactivado', [
+                'name' => $usuario_eliminar->name,
+                'email' => $usuario_eliminar->email,
+                'rol' => $usuario_eliminar->rol_id,
+                'user_id' => Auth::id(),
+            ]);
+        } catch (\Exception $exception) {
+            LoggerService::error('Error al desactivar usuario', [
+                'name' => $usuario_eliminar->name,
+                'email' => $usuario_eliminar->email,
+                'rol' => $usuario_eliminar->rol_id,
+                'user_id' => Auth::id(),
+            ], $exception);
+
+            return redirect()->route('usuarios.index')->with('error', 'Error al desactivar usuario.');
+        }
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario desactivado exitosamente.');
     }

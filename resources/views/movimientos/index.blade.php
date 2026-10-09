@@ -104,6 +104,8 @@
                                 @elseif ($movimiento->esEntrega())
                                     @if ($pendiente === 0)
                                         <span class="px-2 py-0.5 rounded-md text-xs bg-green-500/15 text-green-400 border border-green-500/30">Cerrado</span>
+                                    @elseif ($movimiento->tipo_movimiento === \App\Models\movimientos::TRANSFERENCIA)
+                                        <span class="px-2 py-0.5 rounded-md text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30">Transferido</span>
                                     @elseif ($movimiento->estaVencido())
                                         <span class="px-2 py-0.5 rounded-md text-xs bg-[#D61C4E]/20 text-[#ff5c86] border border-[#D61C4E]/40 animate-pulse">Vencido · {{ $pendiente }} pend.</span>
                                     @else

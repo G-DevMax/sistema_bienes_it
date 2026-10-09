@@ -61,22 +61,49 @@
                 </fieldset>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <!-- Item -->
-                    <div class="col-span-1 md:col-span-2">
-                        <label for="item_id" class="block mb-2 text-sm font-medium text-white/90">Bien / Item</label>
-                        <select id="item_id" name="item_id" class="searchable-select {{ $input }} appearance-none" required>
-                            <option value="" disabled {{ $itemActual ? '' : 'selected' }}>Selecciona un bien</option>
-                            @foreach ($items as $item)
-                                <option value="{{ $item->id }}" data-serial="{{ $item->esSerializado() ? 1 : 0 }}"
-                                    data-disponible="{{ $item->stock_disponible }}"
-                                    {{ (string) $itemActual === (string) $item->id ? 'selected' : '' }}>
-                                    {{ $item->descripcion }} —
-                                    {{ $item->esSerializado() ? 'Cód. ' . $item->codigo_patrimonial : 'Disponibles: ' . $item->stock_disponible }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <p id="item-ayuda" class="mt-2 text-xs text-white/50">Solo se listan items con unidades disponibles
-                            en Informática.</p>
+                    <!-- Item(s) y Cantidad(es) dinámicos -->
+                    <div class="col-span-1 md:col-span-2" id="items-container">
+                        <div class="item-row grid grid-cols-1 md:grid-cols-[1fr_120px_auto] gap-4 mb-4 items-end">
+                            <div class="w-full">
+                                <label class="block mb-2 text-sm font-medium text-white/90">Bien / Item</label>
+                                <select name="item_id[]" class="searchable-select {{ $input }} appearance-none item-select" required>
+                                    <option value="" disabled {{ $itemActual ? '' : 'selected' }}>Selecciona un bien</option>
+                                    @foreach ($items as $item)
+                                        <option value="{{ $item->id }}" data-serial="{{ $item->esSerializado() ? 1 : 0 }}"
+                                            data-disponible="{{ $item->stock_disponible }}"
+                                            {{ (string) $itemActual === (string) $item->id ? 'selected' : '' }}>
+                                            {{ $item->descripcion }} —
+                                            {{ $item->esSerializado() ? 'Cód. ' . $item->codigo_patrimonial : 'Disponibles: ' . $item->stock_disponible }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="w-full">
+                                <label class="block mb-2 text-sm font-medium text-white/90">Cantidad</label>
+                                <input type="number" name="cantidad[]" value="{{ old('cantidad.0', 1) }}"
+                                    min="1" class="{{ $input }} cantidad-input" required>
+                            </div>
+                            <div class="w-full h-[48px] flex items-center justify-center btn-remove-container hidden">
+                                <button type="button" class="p-2 text-red-400 hover:bg-red-400/20 rounded-xl transition-all" onclick="quitarFila(this)">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-xs text-white/50 item-ayuda">Solo se listan items con unidades disponibles en Informática.</p>
+
+                        <!-- Error de items duplicados (validación en el cliente al enviar) -->
+                        <div id="error-items-duplicados" role="alert"
+                            class="hidden mt-4 flex items-start gap-3 p-4 rounded-xl border border-red-400/40 bg-red-500/10 text-red-300 text-sm animate-fade-in-up">
+                            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>
+                            <span data-mensaje></span>
+                        </div>
+                        
+                        <div class="mt-4" data-campo="agregar-item">
+                            <button type="button" id="btn-add-item" class="text-sm font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Añadir otro ítem al movimiento
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Funcionario -->
@@ -93,12 +120,7 @@
                         </select>
                     </div>
 
-                    <!-- Cantidad -->
-                    <div>
-                        <label for="cantidad" class="block mb-2 text-sm font-medium text-white/90">Cantidad</label>
-                        <input type="number" id="cantidad" name="cantidad" value="{{ old('cantidad', 1) }}"
-                            min="1" class="{{ $input }}" required>
-                    </div>
+
 
                     <!-- Fecha de Movimiento -->
                     <div>
@@ -160,6 +182,31 @@
         </div>
     </div>
 
+    <!-- Plantilla limpia (sin TomSelect) para nuevas filas de items -->
+    <template id="item-row-template">
+        <div class="item-row grid grid-cols-1 md:grid-cols-[1fr_120px_auto] gap-4 mb-4 items-end">
+            <div class="w-full">
+                <label class="block mb-2 text-sm font-medium text-white/90">Bien / Item</label>
+                <select name="item_id[]" class="{{ $input }} appearance-none item-select" required>
+                    <option value="" disabled selected>Selecciona un bien</option>
+                    @foreach ($items as $item)
+                        <option value="{{ $item->id }}" data-serial="{{ $item->esSerializado() ? 1 : 0 }}"
+                            data-disponible="{{ $item->stock_disponible }}">{{ $item->descripcion }} — {{ $item->esSerializado() ? 'Cód. ' . $item->codigo_patrimonial : 'Disponibles: ' . $item->stock_disponible }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="w-full">
+                <label class="block mb-2 text-sm font-medium text-white/90">Cantidad</label>
+                <input type="number" name="cantidad[]" value="1" min="1" class="{{ $input }} cantidad-input" required>
+            </div>
+            <div class="w-full h-[48px] flex items-center justify-center btn-remove-container">
+                <button type="button" class="p-2 text-red-400 hover:bg-red-400/20 rounded-xl transition-all" onclick="quitarFila(this)">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+        </div>
+    </template>
+
     <style>
         /* borde del tipo seleccionado con el color de cada tarjeta */
         input:checked+[data-card] {
@@ -171,17 +218,19 @@
     <script>
         (function() {
             const form = document.getElementById('form-movimiento');
-            const itemSelect = document.getElementById('item_id');
-            const cantidad = document.getElementById('cantidad');
-            const ayuda = document.getElementById('item-ayuda');
-
             // muestra/oculta campos segun tipo; los campos ocultos se deshabilitan para no enviarse
+            // solo se tocan campos reales del formulario (con name); se ignoran los inputs internos
+            // que genera TomSelect (su buscador), que si quedan "required" bloquean el envio
             function mostrarCampo(nombre, visible) {
                 form.querySelectorAll('[data-campo="' + nombre + '"]').forEach(function(el) {
                     el.classList.toggle('hidden', !visible);
-                    el.querySelectorAll('input, select, textarea').forEach(function(c) {
-                        c.disabled = !visible;
+                    el.querySelectorAll('input[name], select[name], textarea[name]').forEach(function(c) {
                         c.required = visible;
+                        if (c.tomselect) {
+                            visible ? c.tomselect.enable() : c.tomselect.disable();
+                        } else {
+                            c.disabled = !visible;
+                        }
                     });
                 });
             }
@@ -196,32 +245,142 @@
                 mostrarCampo('funcionario', tipo !== 'baja');
                 mostrarCampo('prestamo', tipo === 'prestamo');
                 mostrarCampo('baja', tipo === 'baja');
+                // Mostrar boton de agregar item solo para prestamo/transferencia
+                mostrarCampo('agregar-item', tipo !== 'baja');
             }
 
-            // serializado => cantidad fija 1; generico => max = disponibles
-            function actualizarItem() {
-                const opt = itemSelect.selectedOptions[0];
+            function actualizarFilaItem(fila) {
+                const select = fila.querySelector('.item-select');
+                const cantidad = fila.querySelector('.cantidad-input');
+                const btnRemove = fila.querySelector('.btn-remove-container');
+                const ayuda = fila.parentElement.querySelector('.item-ayuda');
+                
+                actualizarVisibilidadBorrar();
+
+                const opt = select.selectedOptions ? select.selectedOptions[0] : null;
                 if (!opt || !opt.value) return;
+                
                 const serial = opt.dataset.serial === '1';
                 const disponible = parseInt(opt.dataset.disponible, 10);
                 cantidad.max = serial ? 1 : disponible;
+                
                 if (serial) {
                     cantidad.value = 1;
                     cantidad.readOnly = true;
-                    ayuda.textContent = 'Item único (con código patrimonial): la cantidad es siempre 1.';
+                    if (ayuda) ayuda.textContent = 'Item único (con código patrimonial): la cantidad es siempre 1.';
                 } else {
                     cantidad.readOnly = false;
                     if (parseInt(cantidad.value, 10) > disponible) cantidad.value = disponible;
-                    ayuda.textContent = 'Disponibles en Informática: ' + disponible + ' unidad(es).';
+                    if (ayuda) ayuda.textContent = 'Disponibles en Informática: ' + disponible + ' unidad(es).';
                 }
+
+            }
+
+            // El boton de borrar solo se muestra si hay mas de una fila
+            function actualizarVisibilidadBorrar() {
+                const filas = document.querySelectorAll('#items-container .item-row');
+                filas.forEach(fila => {
+                    fila.querySelector('.btn-remove-container').classList.toggle('hidden', filas.length <= 1);
+                });
             }
 
             form.querySelectorAll('input[name="tipo_movimiento"]').forEach(function(r) {
                 r.addEventListener('change', actualizarTipo);
             });
-            itemSelect.addEventListener('change', actualizarItem);
+
+            // Initial setup for the first row
+            const firstRow = document.querySelector('.item-row');
+            firstRow.querySelector('.item-select').addEventListener('change', () => actualizarFilaItem(firstRow));
             actualizarTipo();
-            actualizarItem();
+            actualizarFilaItem(firstRow);
+
+            // Agregar nueva fila de item.
+            // IMPORTANTE: no se clona la primera fila porque su <select> ya fue procesado por TomSelect
+            // (queda con las clases 'tomselected ts-hidden-accessible'). TomSelect copia las clases del
+            // select a su wrapper, por lo que el nuevo control quedaba oculto. Se usa una plantilla limpia.
+            const template = document.getElementById('item-row-template');
+            const ultimaFilaAntesDelAyuda = () => document.querySelector('#items-container .item-ayuda');
+
+            document.getElementById('btn-add-item').addEventListener('click', function() {
+                const newRow = template.content.firstElementChild.cloneNode(true);
+                const select = newRow.querySelector('.item-select');
+
+                // Insertar despues de la ultima fila existente (antes del texto de ayuda)
+                ultimaFilaAntesDelAyuda().before(newRow);
+
+                if (window.TomSelect) {
+                    new window.TomSelect(select, {
+                        create: false,
+                        placeholder: 'Selecciona un bien',
+                        sortField: { field: 'text', direction: 'asc' }
+                    });
+                }
+
+                select.addEventListener('change', () => actualizarFilaItem(newRow));
+                actualizarVisibilidadBorrar();
+                if (select.tomselect) select.tomselect.focus();
+            });
+
+            window.quitarFila = function(btn) {
+                const fila = btn.closest('.item-row');
+                const select = fila.querySelector('.item-select');
+                if (select && select.tomselect) select.tomselect.destroy();
+                fila.remove();
+                actualizarVisibilidadBorrar();
+                limpiarErrorDuplicados();
+            };
+
+            // ---- Verificación de items duplicados al enviar ----
+            // Se compara por ID del item: un mismo código patrimonial (o un mismo item genérico)
+            // siempre corresponde al mismo ID, mientras que dos notebooks distintas con igual
+            // descripción pero distinto código NO se consideran repetidas.
+            const errorBox = document.getElementById('error-items-duplicados');
+            const CLASES_ERROR = ['ring-2', 'ring-red-400/70', 'rounded-xl'];
+
+            function controlDe(select) {
+                return select.tomselect ? select.tomselect.wrapper : select;
+            }
+
+            function limpiarErrorDuplicados() {
+                errorBox.classList.add('hidden');
+                document.querySelectorAll('#items-container .item-select').forEach(s => {
+                    controlDe(s).classList.remove(...CLASES_ERROR);
+                });
+            }
+
+            function buscarDuplicados() {
+                const porId = {};
+                document.querySelectorAll('#items-container .item-row .item-select').forEach(select => {
+                    if (!select.value || select.disabled) return;
+                    (porId[select.value] = porId[select.value] || []).push(select);
+                });
+                return Object.values(porId).filter(grupo => grupo.length > 1);
+            }
+
+            form.addEventListener('submit', function(e) {
+                limpiarErrorDuplicados();
+                const duplicados = buscarDuplicados();
+                if (!duplicados.length) return;
+
+                e.preventDefault();
+                const nombres = duplicados.map(grupo => {
+                    const opt = grupo[0].selectedOptions[0];
+                    grupo.forEach(s => controlDe(s).classList.add(...CLASES_ERROR));
+                    return '“' + (opt ? opt.textContent.replace(/\s+/g, ' ').trim() : grupo[0].value) + '”';
+                });
+
+                errorBox.querySelector('[data-mensaje]').innerHTML =
+                    '<strong>No podés añadir el mismo item dos veces en un movimiento.</strong><br>' +
+                    'Repetido(s): ' + nombres.map(n => n.replace(/</g, '&lt;')).join(', ') +
+                    '. Eliminá la fila duplicada o ajustá la cantidad en una sola fila.';
+                errorBox.classList.remove('hidden');
+                errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+
+            // al cambiar cualquier item se limpia el aviso
+            document.getElementById('items-container').addEventListener('change', function(e) {
+                if (e.target.classList.contains('item-select')) limpiarErrorDuplicados();
+            });
         })();
     </script>
 @endsection

@@ -12,17 +12,16 @@ use App\Models\movimientos;
 use App\Services\MovimientoService;
 use App\Services\PlanillaMovimientoService;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Services\LoggerService;
 
 class MovimientosController extends Controller
 {
-    public function __construct(private MovimientoService $movimientoService)
-    {
-    }
+    public function __construct(private MovimientoService $movimientoService) {}
 
     public function index(Request $request)
     {
         $query = movimientos::with(['item', 'funcionario'])
-            ->withSum(['hijos as hijos_activos' => fn ($q) => $q->whereNull('anulado_at')], 'cantidad')
+            ->withSum(['hijos as hijos_activos' => fn($q) => $q->whereNull('anulado_at')], 'cantidad')
             ->orderByDesc('fecha_movimiento')
             ->orderByDesc('id');
 
@@ -30,10 +29,10 @@ class MovimientosController extends Controller
             $query->where('tipo_movimiento', $tipo);
         }
 
-        // solo prestamos/transferencias que aun tienen unidades sin devolver
+        // solo prestamos que aun tienen unidades sin devolver
         if ($request->boolean('pendientes')) {
             $query->whereNull('anulado_at')
-                ->whereIn('tipo_movimiento', [movimientos::PRESTAMO, movimientos::TRANSFERENCIA])
+                ->where('tipo_movimiento', movimientos::PRESTAMO)
                 ->whereRaw('cantidad > (select coalesce(sum(h.cantidad), 0) from movimientos h where h.movimiento_origen_id = movimientos.id and h.anulado_at is null)');
         }
 
@@ -46,7 +45,7 @@ class MovimientosController extends Controller
     {
         // items con al menos una unidad en Informatica
         $items = items::where('stock_disponible', '>', 0)
-            ->where(fn ($q) => $q->whereNull('codigo_patrimonial')->orWhere('estado_id', estados::DISPONIBLE))
+            ->where(fn($q) => $q->whereNull('codigo_patrimonial')->orWhere('estado_id', estados::DISPONIBLE))
             ->orderBy('descripcion')
             ->get();
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
@@ -61,11 +60,13 @@ class MovimientosController extends Controller
     {
         $tipo = $request->input('tipo_movimiento');
 
-        $datos = $request->validate([
+        $datos = $this->validateWithIndexRedirect($request, [
             'tipo_movimiento' => ['required', Rule::in([movimientos::PRESTAMO, movimientos::TRANSFERENCIA, movimientos::BAJA])],
-            'item_id' => ['required', 'exists:items,id'],
+            'item_id' => ['required', 'array', 'min:1'],
+            'item_id.*' => ['required', 'distinct', 'exists:items,id'],
             'funcionario_id' => [Rule::requiredIf($tipo !== movimientos::BAJA), 'nullable', 'exists:funcionarios,id'],
-            'cantidad' => ['required', 'integer', 'min:1'],
+            'cantidad' => ['required', 'array', 'min:1'],
+            'cantidad.*' => ['required', 'integer', 'min:1'],
             'fecha_movimiento' => ['required', 'date'],
             'fecha_devolucion_prevista' => [Rule::requiredIf($tipo === movimientos::PRESTAMO), 'nullable', 'date', 'after_or_equal:' . substr((string) $request->input('fecha_movimiento'), 0, 10)],
             'motivo' => [Rule::requiredIf($tipo === movimientos::BAJA), 'nullable', 'string', 'max:255'],
@@ -73,13 +74,14 @@ class MovimientosController extends Controller
         ], [
             'tipo_movimiento.required' => 'Debe seleccionar el tipo de movimiento.',
             'tipo_movimiento.in' => 'El tipo de movimiento seleccionado no es válido.',
-            'item_id.required' => 'Debe seleccionar un bien o item.',
-            'item_id.exists' => 'El item seleccionado no es válido.',
+            'item_id.required' => 'Debe seleccionar al menos un bien o item.',
+            'item_id.*.exists' => 'El item seleccionado no es válido.',
+            'item_id.*.distinct' => 'No se puede añadir el mismo item dos veces en un movimiento.',
             'funcionario_id.required' => 'Seleccione el funcionario que recibe el item.',
             'funcionario_id.exists' => 'El funcionario seleccionado no es válido.',
             'cantidad.required' => 'Debe indicar la cantidad.',
-            'cantidad.integer' => 'La cantidad debe ser un número entero.',
-            'cantidad.min' => 'La cantidad debe ser al menos :min.',
+            'cantidad.*.integer' => 'La cantidad debe ser un número entero.',
+            'cantidad.*.min' => 'La cantidad debe ser al menos :min.',
             'fecha_movimiento.required' => 'La fecha de movimiento es obligatoria.',
             'fecha_movimiento.date' => 'La fecha de movimiento debe ser una fecha válida.',
             'fecha_devolucion_prevista.required' => 'Los préstamos requieren una fecha prevista de devolución.',
@@ -87,20 +89,67 @@ class MovimientosController extends Controller
             'motivo.required' => 'Indique el motivo de la baja.',
             'motivo.max' => 'El motivo no puede superar los 255 caracteres.',
             'observaciones.max' => 'Las observaciones no pueden superar los 2000 caracteres.',
-        ]);
+        ], 'movimientos.index');
 
-        $mov = $tipo === movimientos::BAJA
-            ? $this->movimientoService->registrarBaja($datos, Auth::id())
-            : $this->movimientoService->registrarEntrega($datos, Auth::id());
+        try {
+            $loteId = \Illuminate\Support\Str::uuid()->toString();
+            $primerMovimientoId = null;
 
-        return redirect()->route('movimientos.show', $mov->id)->with('success', 'Movimiento registrado correctamente.');
+            DB::beginTransaction();
+
+            foreach ($datos['item_id'] as $index => $itemId) {
+                $cantidad = $datos['cantidad'][$index];
+
+                $datosIndividuales = array_merge($datos, [
+                    'item_id' => $itemId,
+                    'cantidad' => $cantidad,
+                ]);
+
+                $mov = $tipo === movimientos::BAJA
+                    ? $this->movimientoService->registrarBaja($datosIndividuales, Auth::id())
+                    : $this->movimientoService->registrarEntrega($datosIndividuales, Auth::id());
+
+                $mov->update(['lote_id' => $loteId]);
+
+                if (!$primerMovimientoId) {
+                    $primerMovimientoId = $mov->id;
+                }
+
+                LoggerService::info('Movimiento registrado', [
+                    'id' => $mov->id,
+                    'lote_id' => $loteId,
+                    'tipo' => $mov->tipo_movimiento,
+                    'item' => $mov->item_id,
+                    'funcionario' => $mov->funcionario_id,
+                    'cantidad' => $mov->cantidad,
+                    'fecha' => $mov->fecha_movimiento,
+                    'user_id' => Auth::id(),
+                ]);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            LoggerService::error('Error al registrar el movimiento', [
+                'tipo' => $request->tipo_movimiento,
+                'user_id' => Auth::id(),
+            ], $e);
+
+            return redirect()->route('movimientos.index')->with('error', 'Error al registrar el movimiento: ' . $e->getMessage());
+        }
+
+        return redirect()->route('movimientos.show', $primerMovimientoId)->with('success', 'Movimiento(s) registrado(s) correctamente.');
     }
 
     public function show(string $id)
     {
         $movimiento = movimientos::with([
-            'item.estado', 'funcionario', 'usuario', 'anuladoPor', 'origen.funcionario',
-            'hijos' => fn ($q) => $q->with(['usuario', 'anuladoPor'])->orderBy('fecha_movimiento'),
+            'item.estado',
+            'funcionario',
+            'usuario',
+            'anuladoPor',
+            'origen.funcionario',
+            'hijos' => fn($q) => $q->with(['usuario', 'anuladoPor'])->orderBy('fecha_movimiento'),
         ])->findOrFail($id);
 
         return view('movimientos.show', compact('movimiento'));
@@ -115,12 +164,16 @@ class MovimientosController extends Controller
             return redirect()->route('movimientos.show', $id)->with('error', 'No se puede imprimir la planilla de un movimiento anulado.');
         }
 
-        $spreadsheet = $planilla->generar($movimiento);
+        $movimientos = $movimiento->lote_id 
+            ? movimientos::where('lote_id', $movimiento->lote_id)->orderBy('id')->get()
+            : collect([$movimiento]);
+
+        $spreadsheet = $planilla->generar($movimientos);
 
         return response()->streamDownload(function () use ($spreadsheet) {
             (new Xlsx($spreadsheet))->save('php://output');
             $spreadsheet->disconnectWorksheets();
-        }, $planilla->nombreArchivo($movimiento), [
+        }, $planilla->nombreArchivo($movimientos), [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
@@ -128,20 +181,40 @@ class MovimientosController extends Controller
     // devolucion (total o parcial) de un prestamo/transferencia
     public function devolver(Request $request, string $id)
     {
-        $datos = $request->validate([
-            'cantidad' => ['required', 'integer', 'min:1'],
-            'fecha_movimiento' => ['required', 'date'],
-            'observaciones' => ['nullable', 'string', 'max:2000'],
-        ], [
-            'cantidad.required' => 'Debe indicar la cantidad a devolver.',
-            'cantidad.integer' => 'La cantidad debe ser un número entero.',
-            'cantidad.min' => 'La cantidad a devolver debe ser al menos :min.',
-            'fecha_movimiento.required' => 'La fecha de devolución es obligatoria.',
-            'fecha_movimiento.date' => 'La fecha de devolución debe ser una fecha válida.',
-            'observaciones.max' => 'Las observaciones no pueden superar los 2000 caracteres.',
-        ]);
+        try {
+            $datos = $request->validate([
+                'cantidad' => ['required', 'integer', 'min:1'],
+                'fecha_movimiento' => ['required', 'date'],
+                'observaciones' => ['nullable', 'string', 'max:2000'],
+            ], [
+                'cantidad.required' => 'Debe indicar la cantidad a devolver.',
+                'cantidad.integer' => 'La cantidad debe ser un número entero.',
+                'cantidad.min' => 'La cantidad a devolver debe ser al menos :min.',
+                'fecha_movimiento.required' => 'La fecha de devolución es obligatoria.',
+                'fecha_movimiento.date' => 'La fecha de devolución debe ser una fecha válida.',
+                'observaciones.max' => 'Las observaciones no pueden superar los 2000 caracteres.',
+            ]);
 
-        $this->movimientoService->registrarDevolucion((int) $id, $datos, Auth::id());
+            $this->movimientoService->registrarDevolucion((int) $id, $datos, Auth::id());
+
+            LoggerService::info('Devolución registrada', [
+                'id' => $id,
+                'cantidad' => $datos['cantidad'],
+                'fecha_movimiento' => $datos['fecha_movimiento'],
+                'observaciones' => $datos['observaciones'],
+                'user_id' => Auth::id(),
+            ]);
+        } catch (\Exception $e) {
+            LoggerService::error('Error al registrar la devolución', [
+                'id' => $id,
+                'cantidad' => $request->cantidad,
+                'fecha_movimiento' => $request->fecha_movimiento,
+                'observaciones' => $request->observaciones,
+                'user_id' => Auth::id(),
+            ], $e);
+
+            return redirect()->route('movimientos.show', $id)->with('error', 'Error al registrar la devolución: ' . $e->getMessage());
+        }
 
         return redirect()->route('movimientos.show', $id)->with('success', 'Devolución registrada; el stock fue actualizado.');
     }
@@ -149,40 +222,79 @@ class MovimientosController extends Controller
     // baja de unidades que estan en manos del funcionario
     public function bajaEntrega(Request $request, string $id)
     {
-        $datos = $request->validate([
-            'cantidad' => ['required', 'integer', 'min:1'],
-            'fecha_movimiento' => ['required', 'date'],
-            'motivo' => ['required', 'string', 'max:255'],
-            'observaciones' => ['required', 'string', 'min:10', 'max:2000'],
-        ], [
-            'cantidad.required' => 'Debe indicar la cantidad a dar de baja.',
-            'cantidad.integer' => 'La cantidad debe ser un número entero.',
-            'cantidad.min' => 'La cantidad debe ser al menos :min.',
-            'fecha_movimiento.required' => 'La fecha de baja es obligatoria.',
-            'fecha_movimiento.date' => 'La fecha debe ser una fecha válida.',
-            'motivo.required' => 'Indique el motivo de la baja.',
-            'motivo.max' => 'El motivo no puede superar los 255 caracteres.',
-            'observaciones.required' => 'Explique qué ocurrió y quién es responsable de la pérdida o daño.',
-            'observaciones.min' => 'La nota de responsabilidad debe ser más descriptiva (mínimo 10 caracteres).',
-            'observaciones.max' => 'Las observaciones no pueden superar los 2000 caracteres.',
-        ]);
+        try {
+            $datos = $request->validate([
+                'cantidad' => ['required', 'integer', 'min:1'],
+                'fecha_movimiento' => ['required', 'date'],
+                'motivo' => ['required', 'string', 'max:255'],
+                'observaciones' => ['required', 'string', 'min:10', 'max:2000'],
+            ], [
+                'cantidad.required' => 'Debe indicar la cantidad a dar de baja.',
+                'cantidad.integer' => 'La cantidad debe ser un número entero.',
+                'cantidad.min' => 'La cantidad debe ser al menos :min.',
+                'fecha_movimiento.required' => 'La fecha de baja es obligatoria.',
+                'fecha_movimiento.date' => 'La fecha debe ser una fecha válida.',
+                'motivo.required' => 'Indique el motivo de la baja.',
+                'motivo.max' => 'El motivo no puede superar los 255 caracteres.',
+                'observaciones.required' => 'Explique qué ocurrió y quién es responsable de la pérdida o daño.',
+                'observaciones.min' => 'La nota de responsabilidad debe ser más descriptiva (mínimo 10 caracteres).',
+                'observaciones.max' => 'Las observaciones no pueden superar los 2000 caracteres.',
+            ]);
 
-        $this->movimientoService->registrarBajaDesdeEntrega((int) $id, $datos, Auth::id());
+            $this->movimientoService->registrarBajaDesdeEntrega((int) $id, $datos, Auth::id());
+
+            LoggerService::info('Baja desde entrega registrada', [
+                'id' => $id,
+                'cantidad' => $datos['cantidad'],
+                'fecha_movimiento' => $datos['fecha_movimiento'],
+                'motivo' => $datos['motivo'],
+                'observaciones' => $datos['observaciones'],
+                'user_id' => Auth::id(),
+            ]);
+        } catch (\Exception $e) {
+            LoggerService::error('Error al registrar la baja desde entrega', [
+                'id' => $id,
+                'cantidad' => $request->cantidad,
+                'fecha_movimiento' => $request->fecha_movimiento,
+                'motivo' => $request->motivo,
+                'observaciones' => $request->observaciones,
+                'user_id' => Auth::id(),
+            ], $e);
+
+            return redirect()->route('movimientos.show', $id)->with('error', 'Error al registrar la baja desde entrega: ' . $e->getMessage());
+        }
 
         return redirect()->route('movimientos.show', $id)->with('success', 'Baja registrada con nota de responsabilidad.');
     }
 
     public function anular(Request $request, string $id)
     {
-        $datos = $request->validate([
-            'motivo_anulacion' => ['required', 'string', 'max:255'],
-        ], [
-            'motivo_anulacion.required' => 'Indique el motivo de la anulación.',
-            'motivo_anulacion.max' => 'El motivo de anulación no puede superar los 255 caracteres.',
-        ]);
+        try {
 
-        $this->movimientoService->anular((int) $id, $datos['motivo_anulacion'], Auth::id());
+            $datos = $request->validate([
+                'motivo_anulacion' => ['required', 'string', 'max:255'],
+            ], [
+                'motivo_anulacion.required' => 'Indique el motivo de la anulación.',
+                'motivo_anulacion.max' => 'El motivo de anulación no puede superar los 255 caracteres.',
+            ]);
 
-        return redirect()->route('movimientos.show', $id)->with('success', 'Movimiento anulado y stock revertido.');
+            $this->movimientoService->anular((int) $id, $datos['motivo_anulacion'], Auth::id());
+
+            LoggerService::info('Movimiento anulado', [
+                'id' => $id,
+                'motivo_anulacion' => $datos['motivo_anulacion'],
+                'user_id' => Auth::id(),
+            ]);
+
+            return redirect()->route('movimientos.show', $id)->with('success', 'Movimiento anulado y stock revertido.');
+        } catch (\Exception $e) {
+            LoggerService::error('Error al anular el movimiento', [
+                'id' => $id,
+                'motivo_anulacion' => $request->motivo_anulacion,
+                'user_id' => Auth::id(),
+            ], $e);
+
+            return redirect()->route('movimientos.show', $id)->with('error', 'Error al anular el movimiento: ' . $e->getMessage());
+        }
     }
 }

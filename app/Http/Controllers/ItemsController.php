@@ -7,13 +7,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use App\Models\categorias;
 use App\Models\items;
+use App\Services\LoggerService;
 use App\Services\MovimientoService;
+use Illuminate\Support\Facades\Log;
 
 class ItemsController extends Controller
 {
-    public function __construct(private MovimientoService $movimientoService)
-    {
-    }
+    public function __construct(private MovimientoService $movimientoService) {}
 
     /**
      * Display a listing of the resource.
@@ -42,7 +42,7 @@ class ItemsController extends Controller
      */
     public function store(Request $request)
     {
-        $datos = $request->validate([
+        $datos = $this->validateWithIndexRedirect($request, [
             'descripcion' => ['required', 'string', 'max:300'],
             'categoria_id' => ['required', 'exists:categorias,id'],
             'tiene_codigo' => ['nullable', 'boolean'],
@@ -59,14 +59,35 @@ class ItemsController extends Controller
             'stock.required_unless' => 'El stock inicial es obligatorio para items genéricos.',
             'stock.integer' => 'El stock debe ser un número entero.',
             'stock.min' => 'El stock inicial debe ser al menos :min.',
-        ]);
+        ], 'items.index');
 
         if (!$request->boolean('tiene_codigo')) {
             $datos['codigo_patrimonial'] = null;
         }
 
-        $this->movimientoService->crearItem($datos, Auth::id());
+        try {
+            LoggerService::info('Crear item', [
+                'descripcion' => $request->descripcion,
+                'categoria_id' => $request->categoria_id,
+                'tiene_codigo' => $request->tiene_codigo,
+                'codigo_patrimonial' => $request->codigo_patrimonial,
+                'stock' => $request->stock,
+                'user_id' => Auth::id(),
+            ]);
 
+            $this->movimientoService->crearItem($datos, Auth::id());
+        } catch (\Exception $e) {
+            LoggerService::error('Error al crear item', [
+                'descripcion' => $request->descripcion,
+                'categoria_id' => $request->categoria_id,
+                'tiene_codigo' => $request->tiene_codigo,
+                'codigo_patrimonial' => $request->codigo_patrimonial,
+                'stock' => $request->stock,
+                'user_id' => Auth::id(),
+            ], $e);
+
+            return redirect()->route('items.index')->with('error', "Error al crear item.");
+        }
         return redirect()->route('items.index')->with('success', "Item creado correctamente.");
     }
 
@@ -115,8 +136,27 @@ class ItemsController extends Controller
             'codigo_patrimonial.max' => 'El código patrimonial no puede superar los 60 caracteres.',
         ];
 
-        $datos = $request->validate($reglas, $mensajes);
-        $item->update($datos);
+        $datos = $this->validateWithIndexRedirect($request, $reglas, $mensajes, 'items.index');
+
+        try {
+            $item->update($datos);
+
+            LoggerService::info('Item actualizado', [
+                'descripcion' => $request->descripcion,
+                'categoria_id' => $request->categoria_id,
+                'codigo_patrimonial' => $request->codigo_patrimonial,
+                'user_id' => Auth::id(),
+            ]);
+        } catch (\Exception $e) {
+            LoggerService::error('Error al actualizar item', [
+                'descripcion' => $request->descripcion,
+                'categoria_id' => $request->categoria_id,
+                'codigo_patrimonial' => $request->codigo_patrimonial,
+                'user_id' => Auth::id(),
+            ], $e);
+
+            return redirect()->route('items.index')->with('error', "Error al actualizar item.");
+        }
 
         return redirect()->route('items.index')->with('success', "Item actualizado correctamente.");
     }
@@ -134,7 +174,7 @@ class ItemsController extends Controller
      */
     public function ingresarStock(Request $request, string $id)
     {
-        $datos = $request->validate([
+        $datos = $this->validateWithIndexRedirect($request, [
             'cantidad' => ['required', 'integer', 'min:1'],
             'observaciones' => ['nullable', 'string', 'max:1000'],
         ], [
@@ -142,9 +182,25 @@ class ItemsController extends Controller
             'cantidad.integer' => 'La cantidad debe ser un número entero.',
             'cantidad.min' => 'La cantidad a ingresar debe ser al menos :min.',
             'observaciones.max' => 'Las observaciones no pueden superar los 1000 caracteres.',
-        ]);
+        ], 'items.index');
 
-        $this->movimientoService->ingresarStock((int) $id, (int) $datos['cantidad'], Auth::id(), $datos['observaciones'] ?? null);
+        try {
+            $this->movimientoService->ingresarStock((int) $id, (int) $datos['cantidad'], Auth::id(), $datos['observaciones'] ?? null);
+
+            LoggerService::info('Stock ingresado', [
+                'cantidad' => $request->cantidad,
+                'observaciones' => $request->observaciones,
+                'user_id' => Auth::id(),
+            ]);
+        } catch (\Exception $e) {
+            LoggerService::error('Error al ingresar stock', [
+                'cantidad' => $request->cantidad,
+                'observaciones' => $request->observaciones,
+                'user_id' => Auth::id(),
+            ], $e);
+
+            return redirect()->route('items.index')->with('error', "Error al ingresar stock.");
+        }
 
         return redirect()->route('items.index')->with('success', "Se ingresaron {$datos['cantidad']} unidad(es) al stock");
     }

@@ -1,6 +1,8 @@
 import './bootstrap';
 import TomSelect from 'tom-select';
 
+window.TomSelect = TomSelect;
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.searchable-select').forEach((el) => {
         // Limpiar espacios en blanco o saltos de línea accidentales en los <option> generados por Blade

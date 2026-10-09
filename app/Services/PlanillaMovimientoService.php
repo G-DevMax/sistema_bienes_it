@@ -35,26 +35,34 @@ class PlanillaMovimientoService
         return resource_path('plantillas/fc11_planilla_movimiento.xls');
     }
 
-    public function nombreArchivo(movimientos $movimiento): string
+    public function nombreArchivo(\Illuminate\Support\Collection $movimientos): string
     {
-        return sprintf('FC11_Movimiento_%04d_%s.xlsx', $movimiento->id, $movimiento->fecha_movimiento->format('dmY'));
+        $movimiento = $movimientos->first();
+        return sprintf('FC11_Movimiento_%s_%s.xlsx', 
+            $movimiento->lote_id ? 'Lote_'.substr($movimiento->lote_id, 0, 8) : sprintf('%04d', $movimiento->id), 
+            $movimiento->fecha_movimiento->format('dmY')
+        );
     }
 
-    public function generar(movimientos $movimiento): Spreadsheet
+    public function generar(\Illuminate\Support\Collection $movimientos): Spreadsheet
     {
-        $movimiento->loadMissing(['item', 'funcionario.dependencia', 'origen.funcionario.dependencia', 'hijos']);
+        $movimientoPrincipal = $movimientos->first();
+        $movimientoPrincipal->loadMissing(['funcionario.dependencia', 'origen.funcionario.dependencia', 'hijos']);
 
         $reader = IOFactory::createReader('Xls');
         $reader->setLoadSheetsOnly(self::HOJA_PLANTILLA);
         $spreadsheet = $reader->load($this->plantillaPath());
         $hoja = $spreadsheet->getSheet(0);
-        $hoja->setTitle($movimiento->fecha_movimiento->format('m-Y'));
+        $hoja->setTitle($movimientoPrincipal->fecha_movimiento->format('m-Y'));
 
         // cabecera: numero, fecha y dependencias
-        $hoja->setCellValue('J5', $movimiento->id);
-        $hoja->setCellValue('I9', Date::PHPToExcel($movimiento->fecha_movimiento));
+        $hoja->setCellValue('J5', $movimientoPrincipal->lote_id ? 'LOTE ' . substr($movimientoPrincipal->lote_id, 0, 6) : $movimientoPrincipal->id);
+        $hoja->getStyle('J5')->getAlignment()
+            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT)
+            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+        $hoja->setCellValue('I9', Date::PHPToExcel($movimientoPrincipal->fecha_movimiento));
 
-        [$remitente, $destinataria] = $this->dependencias($movimiento);
+        [$remitente, $destinataria] = $this->dependencias($movimientoPrincipal);
         $hoja->setCellValue('B12', $remitente);
         $hoja->setCellValue('G12', $destinataria);
 
@@ -65,43 +73,64 @@ class PlanillaMovimientoService
             }
         }
 
-        // detalle del bien movido
-        $item = $movimiento->item;
         $fila = self::FILA_INICIO;
-        $hoja->setCellValueExplicit('B' . $fila, $item->esSerializado() ? $item->codigo_patrimonial : 'S/N', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-        $hoja->setCellValue('C' . $fila, $movimiento->cantidad);
-        $hoja->setCellValue('D' . $fila, $item->descripcion);
-        if ($col = self::COLUMNA_MOTIVO[$movimiento->tipo_movimiento] ?? null) {
-            $hoja->setCellValue($col . $fila, 'X');
+
+        foreach ($movimientos as $movimiento) {
+            $movimiento->loadMissing(['item']);
+            $item = $movimiento->item;
+
+            // detalle del bien movido
+            $hoja->setCellValueExplicit('B' . $fila, $item->esSerializado() ? $item->codigo_patrimonial : 'S/N', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValue('C' . $fila, $movimiento->cantidad);
+            $hoja->setCellValue('D' . $fila, $item->descripcion);
+            if ($col = self::COLUMNA_MOTIVO[$movimiento->tipo_movimiento] ?? null) {
+                $hoja->setCellValue($col . $fila, 'X');
+            }
+            $fila++;
         }
 
-        // lineas complementarias bajo el bien (usuario, motivo, observaciones)
+        // lineas complementarias bajo el bien (usuario, motivo, observaciones) del lote
         $notas = [];
-        if ($movimiento->funcionario) {
-            $notas[] = 'Usuario: ' . $movimiento->funcionario->nombre;
+        if ($movimientoPrincipal->funcionario) {
+            $notas[] = 'Usuario: ' . $movimientoPrincipal->funcionario->nombre;
         }
-        if ($movimiento->motivo) {
-            $notas[] = 'Motivo: ' . $movimiento->motivo;
+        if ($movimientoPrincipal->motivo) {
+            $notas[] = 'Motivo general: ' . $movimientoPrincipal->motivo;
         }
-        if ($movimiento->observaciones) {
-            $notas[] = 'Obs.: ' . $movimiento->observaciones;
+        if ($movimientoPrincipal->observaciones) {
+            $notas[] = 'Obs. general: ' . $movimientoPrincipal->observaciones;
         }
         foreach ($notas as $nota) {
-            $fila++;
-            if ($fila > self::FILA_FIN) {
-                break;
-            }
+            if ($fila > self::FILA_FIN) break;
             $hoja->setCellValue('D' . $fila, $nota);
+            $fila++;
+        }
+
+        // marcar el sobrante con una línea para invalidar los espacios vacíos
+        if ($fila <= self::FILA_FIN) {
+            $hoja->getStyle('B' . $fila . ':N' . self::FILA_FIN)
+                ->getBorders()
+                ->getDiagonal()
+                ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+            $hoja->getStyle('B' . $fila . ':N' . self::FILA_FIN)
+                ->getBorders()
+                ->setDiagonalDirection(\PhpOffice\PhpSpreadsheet\Style\Borders::DIAGONAL_DOWN);
         }
 
         // pie: fecha de devolucion (real, no la prevista)
-        if ($movimiento->tipo_movimiento === movimientos::DEVOLUCION) {
-            $hoja->setCellValue('B56', 'FECHA DEVOLUCIÓN: ' . $movimiento->fecha_movimiento->format('d/m/Y'));
-        } elseif ($movimiento->tipo_movimiento === movimientos::PRESTAMO) {
-            $ultimaDevolucion = $movimiento->hijos->where('tipo_movimiento', movimientos::DEVOLUCION)->sortByDesc('fecha_movimiento')->first();
+        if ($movimientoPrincipal->tipo_movimiento === movimientos::DEVOLUCION) {
+            $hoja->setCellValue('B56', 'FECHA DEVOLUCIÓN: ' . $movimientoPrincipal->fecha_movimiento->format('d/m/Y'));
+        } elseif ($movimientoPrincipal->tipo_movimiento === movimientos::PRESTAMO) {
+            $ultimaDevolucion = $movimientoPrincipal->hijos->where('tipo_movimiento', movimientos::DEVOLUCION)->sortByDesc('fecha_movimiento')->first();
             if ($ultimaDevolucion) {
                 $hoja->setCellValue('B56', 'FECHA DEVOLUCIÓN: ' . $ultimaDevolucion->fecha_movimiento->format('d/m/Y'));
             }
+        } elseif ($movimientoPrincipal->tipo_movimiento === movimientos::TRANSFERENCIA) {
+            // Eliminar el cuadro de devolución y firma para transferencias
+            $hoja->setCellValue('B56', '');
+            $hoja->setCellValue('B57', '');
+            $hoja->setCellValue('B61', '');
+            $hoja->getStyle('A55:N62')->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE);
         }
 
         $spreadsheet->setActiveSheetIndex(0);
