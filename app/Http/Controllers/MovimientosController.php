@@ -13,6 +13,7 @@ use App\Services\MovimientoService;
 use App\Services\PlanillaMovimientoService;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use App\Services\LoggerService;
+use Illuminate\Support\Facades\DB;
 
 class MovimientosController extends Controller
 {
@@ -164,7 +165,7 @@ class MovimientosController extends Controller
             return redirect()->route('movimientos.show', $id)->with('error', 'No se puede imprimir la planilla de un movimiento anulado.');
         }
 
-        $movimientos = $movimiento->lote_id 
+        $movimientos = $movimiento->lote_id
             ? movimientos::where('lote_id', $movimiento->lote_id)->orderBy('id')->get()
             : collect([$movimiento]);
 

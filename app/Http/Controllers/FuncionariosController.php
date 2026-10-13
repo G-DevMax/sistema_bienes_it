@@ -7,6 +7,7 @@ use App\Models\funcionarios;
 use App\Models\dependencias;
 use App\Services\LoggerService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class FuncionariosController extends Controller
 {
@@ -38,7 +39,7 @@ class FuncionariosController extends Controller
 
         try {
             funcionarios::create([
-                'nombre' => $request->nombre,
+                'nombre' => Str::title($request->nombre),
                 'dependencia_id' => $request->dependencia_id,
                 'estado_funcionario' => 1,
             ]);

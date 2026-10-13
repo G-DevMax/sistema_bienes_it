@@ -7,6 +7,7 @@ use App\Services\LoggerService;
 use App\Models\User;
 use App\Models\rol;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class UsuariosController extends Controller
 {
@@ -54,8 +55,8 @@ class UsuariosController extends Controller
 
         try {
             User::create([
-                'name' => $request->name,
-                'email' => $request->email,
+                'name' => Str::title($request->name),
+                'email' => strtolower($request->email),
                 'password' => $request->password,
                 'rol_id' => $request->rol_id,
                 'estado_user' => 1,
@@ -127,8 +128,8 @@ class UsuariosController extends Controller
         ], 'usuarios.index');
 
         try {
-            $usuario_editado->name = $request->name;
-            $usuario_editado->email = $request->email;
+            $usuario_editado->name = Str::title($request->name);
+            $usuario_editado->email = strtolower($request->email);
 
             // Si se envió una nueva contraseña, se actualiza
             if ($request->filled('password')) {

@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('movimientos', function (Blueprint $table) {
             $table->id();
             // columnas fk
+            // id de lote cuando se registran varios items en un solo movimiento
+            $table->uuid('lote_id')->nullable()->index();
             $table->foreignId('item_id')->constrained('items')->onUpdate('cascade')->onDelete('restrict');
             // puede ser null en ingresos y bajas realizadas directamente desde Informatica
             $table->foreignId('funcionario_id')->nullable()->constrained('funcionarios')->onUpdate('cascade')->onDelete('restrict');

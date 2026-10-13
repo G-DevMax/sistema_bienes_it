@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Sistema de Bienes IT')</title>
     <meta name="description" content="Dashboard del Sistema de Bienes IT">
+    <link rel="icon" type="image/png" href="{{ asset('../img/logo_app.png') }}">
+
 
     <!-- Vite / Tailwind CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -36,13 +38,13 @@
                     class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
                     Movimientos
                 </a>
-                <a href="{{ route('usuarios.index') }}"
-                    class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                    Usuarios
-                </a>
                 <a href="{{ route('funcionarios.index') }}"
                     class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
                     Funcionarios
+                </a>
+                <a href="{{ route('usuarios.index') }}"
+                    class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                    Usuarios
                 </a>
 
                 <form action="{{ route('logout') }}" method="POST" class="inline">

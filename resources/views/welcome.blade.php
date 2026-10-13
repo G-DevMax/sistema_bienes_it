@@ -4,7 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sistema Informático del Departamento de IT</title>
+    <title>InfraDesk | v1.0.1</title>
+    <link rel="icon" href="{{ asset('img/logo_app.png') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -72,7 +73,7 @@
 
         <h1
             class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent tracking-tight">
-            InfraDesk | v1.0
+            InfraDesk | v1.0.1
         </h1>
 
         <p class="text-stale-400 text-lg md:text-xl mb-12 max-w-2xl">

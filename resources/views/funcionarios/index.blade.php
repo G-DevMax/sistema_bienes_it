@@ -104,6 +104,9 @@
                     </tbody>
                 </table>
             </div>
+            @if ($funcionarios->hasPages())
+                @include('layouts.pagination', ['paginator' => $funcionarios])
+            @endif
         </div>
         <div class="w-full max-w-6xl animate-fade-in-up flex justify-center items-center">
             <!-- Acciones secundarias -->

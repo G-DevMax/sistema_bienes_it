@@ -7,6 +7,7 @@ use App\Models\funcionarios;
 use Illuminate\Http\Request;
 use App\Services\LoggerService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class DependenciasController extends Controller
 {
@@ -38,7 +39,9 @@ class DependenciasController extends Controller
         ], 'dependencias.index');
 
         try {
-            dependencias::create($request->only('nombre'));
+            dependencias::create([
+                'nombre' => Str::title($request->nombre),
+            ]);
 
             LoggerService::info('Dependencia creada', [
                 'nombre' => $request->nombre,
@@ -75,7 +78,9 @@ class DependenciasController extends Controller
         ], 'dependencias.index');
 
         try {
-            $dependencia->update($request->only('nombre'));
+            $dependencia->update([
+                'nombre' => Str::title($request->nombre),
+            ]);
 
             LoggerService::info('Dependencia actualizada', [
                 'nombre' => $request->nombre,

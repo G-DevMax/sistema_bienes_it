@@ -7,6 +7,7 @@ use App\Models\items;
 use Illuminate\Http\Request;
 use App\Services\LoggerService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class CategoriasController extends Controller
 {
@@ -37,7 +38,9 @@ class CategoriasController extends Controller
         ], 'categorias.index');
 
         try {
-            categorias::create($request->only('nombre'));
+            categorias::create([
+                'nombre' => Str::title($request->nombre),
+            ]);
 
             LoggerService::info('Categoría creada', [
                 'nombre' => $request->nombre,
@@ -75,7 +78,9 @@ class CategoriasController extends Controller
         ], 'categorias.index');
 
         try {
-            $categoria->update($request->only('nombre'));
+            $categoria->update([
+                'nombre' => Str::title($request->nombre),
+            ]);
 
             LoggerService::info('Categoría actualizada', [
                 'nombre' => $request->nombre,
