@@ -18,9 +18,13 @@ class ItemsController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $items = items::with(['categoria', 'estado'])->orderBy('descripcion')->paginate(10);
+        $items = items::with(['categoria', 'estado'])
+            ->buscadorUniversal($request->search)
+            ->orderBy('descripcion')
+            ->paginate(10)
+            ->withQueryString();
         // desglose de prestados / transferidos / inservibles por item (una consulta para toda la pagina)
         $resumen = $this->movimientoService->resumenPorItem($items->getCollection()->pluck('id'));
 

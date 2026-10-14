@@ -2,12 +2,21 @@
 
 namespace App\Models;
 
+use App\Traits\BuscadorUniversal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 
 class funcionarios extends Model
 {
     use HasFactory, \App\Traits\LogsHistory;
+    use BuscadorUniversal;
+
+    // columnas por la cual se aplicara la busqueda
+    protected array $buscador = [
+        'nombre',
+        'dependencia.nombre',
+    ];
 
     protected $table = "funcionarios";
 

@@ -7,7 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class items extends Model
 {
-    use HasFactory, \App\Traits\LogsHistory;
+    use HasFactory, \App\Traits\LogsHistory, \App\Traits\BuscadorUniversal;
+
+    protected array $buscador = [
+        'codigo_patrimonial',
+        'descripcion',
+        'categoria.nombre',
+    ];
 
     protected $table = "items";
 

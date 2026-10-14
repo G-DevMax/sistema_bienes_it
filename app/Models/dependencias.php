@@ -7,9 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class dependencias extends Model
 {
-    use HasFactory, \App\Traits\LogsHistory;
+    use HasFactory, \App\Traits\LogsHistory, \App\Traits\BuscadorUniversal;
 
     protected $table = "dependencias";
+
+    protected array $buscador = [
+        'nombre',
+    ];
 
     protected $fillable = [
         'nombre',

@@ -29,6 +29,10 @@
             @include('layouts.alerts')
         </div>
 
+        <div class="w-full max-w-6xl animate-fade-in-up flex items-center">
+            <x-barra_de_busqueda placeholder="Buscar una dependencia..." />
+        </div>
+
         <!-- Tabla -->
         <div
             class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
@@ -50,7 +54,8 @@
                                 <td class="px-6 py-4">
                                     <span
                                         class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium {{ ($dependencia->funcionarios_count ?? 0) > 0 ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20' : 'bg-white/5 text-white/40 border border-white/10' }}">
-                                        {{ $dependencia->funcionarios_count ?? 0 }} {{ ($dependencia->funcionarios_count ?? 0) === 1 ? 'funcionario' : 'funcionarios' }}
+                                        {{ $dependencia->funcionarios_count ?? 0 }}
+                                        {{ ($dependencia->funcionarios_count ?? 0) === 1 ? 'funcionario' : 'funcionarios' }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">

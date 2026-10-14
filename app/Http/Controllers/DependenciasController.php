@@ -11,9 +11,13 @@ use Illuminate\Support\Str;
 
 class DependenciasController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $dependencias = dependencias::withCount('funcionarios')->orderBy('nombre', 'ASC')->paginate(10);
+        $dependencias = dependencias::buscadorUniversal($request->search)
+            ->withCount('funcionarios')
+            ->orderBy('nombre', 'ASC')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('dependencias.index', compact('dependencias'));
     }

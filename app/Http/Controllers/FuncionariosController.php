@@ -11,9 +11,14 @@ use Illuminate\Support\Str;
 
 class FuncionariosController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $funcionarios = funcionarios::with('dependencia')->orderBy('nombre', 'ASC')->paginate(10);
+        $funcionarios = funcionarios::buscadorUniversal($request->search)
+            ->with('dependencia')
+            ->orderBy('nombre', 'ASC')
+            ->paginate(10)
+            ->withQueryString();
+
         $dependencias = dependencias::orderBy('nombre', 'ASC')->get();
 
         return view('funcionarios.index', compact('funcionarios', 'dependencias'));

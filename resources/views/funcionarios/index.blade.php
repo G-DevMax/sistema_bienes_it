@@ -26,6 +26,11 @@
             @include('layouts.alerts')
         </div>
 
+        <!-- barra de busqueda -->
+        <div class="mb-4">
+            <x-barra_de_busqueda placeholder="Buscar Funcionario por nombre..."></x-barra_de_busqueda>
+        </div>
+
         <!-- Tabla -->
         <div
             class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
