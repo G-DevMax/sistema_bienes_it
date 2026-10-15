@@ -22,6 +22,7 @@ class MovimientosController extends Controller
     public function index(Request $request)
     {
         $query = movimientos::with(['item', 'funcionario'])
+            ->buscadorUniversal($request->search)
             ->withSum(['hijos as hijos_activos' => fn($q) => $q->whereNull('anulado_at')], 'cantidad')
             ->orderByDesc('fecha_movimiento')
             ->orderByDesc('id');

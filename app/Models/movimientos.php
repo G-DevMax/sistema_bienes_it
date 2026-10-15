@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class movimientos extends Model
 {
-    use HasFactory, \App\Traits\LogsHistory;
+    use HasFactory, \App\Traits\LogsHistory, \App\Traits\BuscadorUniversal;
 
     // tipos de movimiento
     public const INGRESO = 'ingreso';
@@ -22,6 +22,13 @@ class movimientos extends Model
         self::TRANSFERENCIA => 'Transferencia',
         self::DEVOLUCION => 'Devolución',
         self::BAJA => 'Baja',
+    ];
+
+    // definicion de columnas para el buscadorUniversal
+    protected array $buscador = [
+        'item.descripcion',
+        'item.codigo_patrimonial',
+        'funcionario.nombre',
     ];
 
     protected $table = "movimientos";
