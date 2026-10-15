@@ -34,6 +34,7 @@ class movimientos extends Model
     protected $table = "movimientos";
 
     protected $fillable = [
+        'lote_id',
         'item_id',
         'funcionario_id',
         'user_id',
