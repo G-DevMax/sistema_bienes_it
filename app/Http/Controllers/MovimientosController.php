@@ -11,6 +11,7 @@ use App\Models\items;
 use App\Models\movimientos;
 use App\Services\MovimientoService;
 use App\Services\PlanillaMovimientoService;
+use App\Services\InformeMovimientoService;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use App\Services\LoggerService;
 use Illuminate\Support\Facades\DB;
@@ -298,5 +299,34 @@ class MovimientosController extends Controller
 
             return redirect()->route('movimientos.show', $id)->with('error', 'Error al anular el movimiento: ' . $e->getMessage());
         }
+    }
+
+    // funcion encargada de descargar en un informe los movimientos de insumos (perifericos/hardware)
+
+    public function generarInforme(Request $request, InformeMovimientoService $informe)
+    {
+        $datos = $request->validate([
+            'fecha_desde' => ['required', 'date'],
+            'fecha_hasta' => ['required', 'date', 'after_or_equal:fecha_desde'],
+            'tipo_movimiento' => ['required', Rule::in(['Prestamo', 'Transferencia'])],
+        ], [
+            'fecha_desde.required' => 'La fecha desde es obligatoria.',
+            'fecha_desde.date' => 'La fecha desde debe ser una fecha válida.',
+            'fecha_hasta.required' => 'La fecha hasta es obligatoria.',
+            'fecha_hasta.date' => 'La fecha hasta debe ser una fecha válida.',
+            'fecha_hasta.after_or_equal' => 'La fecha hasta debe ser mayor o igual a la fecha desde.',
+            'tipo_movimiento.required' => "Debe selecionar el tipo de movimientos a cargar en el informe"
+        ]);
+
+        $movimientos = $informe->obtenerMovimientos($datos['fecha_desde'], $datos['fecha_hasta'], $datos['tipo_movimiento']);
+
+        $spreadsheet = $informe->generar($movimientos);
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+            $spreadsheet->disconnectWorksheets();
+        }, $informe->nombreArchivo($datos['tipo_movimiento'], $datos['fecha_desde'], $datos['fecha_hasta']), [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 }

@@ -35,6 +35,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('dependencias', DependenciasController::class);
     Route::resource('categorias', CategoriasController::class);
     // los movimientos no se editan ni eliminan: se corrigen con devoluciones, bajas o anulaciones
+    // debe ir antes del resource para no chocar con movimientos/{movimiento}
+    Route::get('movimientos/informe', [MovimientosController::class, 'generarInforme'])->name('movimientos.informe');
     Route::resource('movimientos', MovimientosController::class)->only(['index', 'create', 'store', 'show']);
     Route::get('movimientos/{movimiento}/planilla', [MovimientosController::class, 'exportarPlanilla'])->name('movimientos.planilla');
     Route::post('movimientos/{movimiento}/devolver', [MovimientosController::class, 'devolver'])->name('movimientos.devolver');
