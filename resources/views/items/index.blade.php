@@ -38,7 +38,7 @@
         <!-- Contenedor de la Tabla -->
         <div
             class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.3)]">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto min-h-[380px]">
                 <table class="w-full text-left text-sm text-white/80 whitespace-nowrap">
                     <thead class="bg-white/5 text-white uppercase text-xs font-semibold border-b border-white/10">
                         <tr>
@@ -137,7 +137,7 @@
 
                                         @unless ($item->esSerializado())
                                             {{-- ingreso de stock para items genericos --}}
-                                            <details class="relative">
+                                            <details class="relative" name="stock-actions">
                                                 <summary
                                                     class="list-none p-2 text-white/60 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors cursor-pointer"
                                                     title="Ingresar stock">
@@ -148,17 +148,23 @@
                                                     </svg>
                                                 </summary>
                                                 <form action="{{ route('items.ingresar-stock', $item->id) }}" method="POST"
-                                                    class="absolute right-0 top-full mt-2 z-20 w-64 p-4 bg-slate-900 border border-white/15 rounded-xl shadow-2xl text-left space-y-3">
+                                                    class="absolute right-0 {{ $loop->index > 4 && $loop->last ? 'bottom-full mb-2' : 'top-full mt-2' }} z-50 w-72 p-4 bg-slate-900/95 backdrop-blur-xl border border-white/15 rounded-xl shadow-2xl text-left flex flex-col gap-3 whitespace-normal">
                                                     @csrf
-                                                    <p class="text-xs text-white/60">Ingresar unidades de <b
+                                                    <p class="text-xs text-white/70">Ingresar unidades de <b
                                                             class="text-white">{{ $item->descripcion }}</b></p>
-                                                    <input type="number" name="cantidad" min="1" value="1" required
-                                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
-                                                    <input type="text" name="observaciones"
-                                                        placeholder="Observación (opcional)"
-                                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
+                                                    <div class="flex flex-col gap-1">
+                                                        <label class="text-xs font-medium text-white/70">Cantidad</label>
+                                                        <input type="number" name="cantidad" min="1" value="1" required
+                                                            class="w-full px-3 py-1.5 text-sm bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
+                                                    </div>
+                                                    <div class="flex flex-col gap-1">
+                                                        <label class="text-xs font-medium text-white/70">Observaciones</label>
+                                                        <input type="text" name="observaciones"
+                                                            placeholder="Observación (opcional)"
+                                                            class="w-full px-3 py-1.5 text-sm bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
+                                                    </div>
                                                     <button type="submit"
-                                                        class="w-full py-2 rounded-lg bg-blue-600 text-white font-bold hover:opacity-90">Ingresar</button>
+                                                        class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors text-sm shadow-md shadow-blue-600/30">Ingresar</button>
                                                 </form>
                                             </details>
                                         @endunless

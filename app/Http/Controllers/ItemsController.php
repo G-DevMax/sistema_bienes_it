@@ -9,6 +9,7 @@ use App\Models\categorias;
 use App\Models\items;
 use App\Services\LoggerService;
 use App\Services\MovimientoService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class ItemsController extends Controller
@@ -69,6 +70,14 @@ class ItemsController extends Controller
             $datos['codigo_patrimonial'] = null;
         }
 
+        // se crea un candado por usuario para detener la accion durante unos segundos (evita cargar dos veces la misma petición)
+        $lock = Cache::lock('crear_item_usuario_' . Auth::id(), 10);
+
+        if (!$lock->get()) {
+            // si hay un candado, se redirige al usuario a la misma pagina pero con un mensaje de error
+            return redirect()->route('items.index')->with('error', "Ya se está procesando tu solicitud, porfavor espera....");
+        }
+
         try {
             LoggerService::info('Crear item', [
                 'descripcion' => $request->descripcion,
@@ -80,7 +89,9 @@ class ItemsController extends Controller
             ]);
 
             $this->movimientoService->crearItem($datos, Auth::id());
+            $lock->release(); // se libera el candado
         } catch (\Exception $e) {
+            $lock->release();
             LoggerService::error('Error al crear item', [
                 'descripcion' => $request->descripcion,
                 'categoria_id' => $request->categoria_id,
@@ -188,6 +199,14 @@ class ItemsController extends Controller
             'observaciones.max' => 'Las observaciones no pueden superar los 1000 caracteres.',
         ], 'items.index');
 
+        // se crea un candado por usuario para detener la accion durante unos segundos (evita cargar dos veces la misma petición)
+        $lock = Cache::lock('ingresar_stock_usuario_' . Auth::id(), 10);
+
+        if (!$lock->get()) {
+            // si hay un candado, se redirige al usuario a la misma pagina pero con un mensaje de error
+            return redirect()->route('items.index')->with('error', "Ya se está procesando tu solicitud, porfavor espera....");
+        }
+
         try {
             $this->movimientoService->ingresarStock((int) $id, (int) $datos['cantidad'], Auth::id(), $datos['observaciones'] ?? null);
 
@@ -196,7 +215,10 @@ class ItemsController extends Controller
                 'observaciones' => $request->observaciones,
                 'user_id' => Auth::id(),
             ]);
+
+            $lock->release();
         } catch (\Exception $e) {
+            $lock->release();
             LoggerService::error('Error al ingresar stock', [
                 'cantidad' => $request->cantidad,
                 'observaciones' => $request->observaciones,
