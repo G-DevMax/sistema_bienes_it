@@ -208,6 +208,17 @@
                                 <option value="Prestamo">Prestamo</option>
                             </select>
                         </div>
+                        <div>
+                            <label for="funcionario"
+                                class="block text-sm font-medium text-white/90 mb-1">Funcionario</label>
+                            <select name="funcionario" id="funcionario" required data-sort="none"
+                                class="searchable-select w-full px-4 py-2 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none appearance-none">
+                                <option value="todos" selected>Todos los funcionarios</option>
+                                @foreach ($funcionarios as $funcionario)
+                                    <option value="{{ $funcionario->id }}">{{ $funcionario->nombre }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
                     <div class="flex justify-end gap-3">
@@ -216,7 +227,17 @@
                             Cancelar
                         </button>
                         <button type="submit"
-                            onclick="setTimeout(() => document.getElementById('modalInforme').classList.add('hidden'), 500)"
+                            onclick="setTimeout(() => {
+                                document.getElementById('modalInforme').classList.add('hidden');
+                                const f = this.closest('form');
+                                if (f) {
+                                    f.dataset.submitting = 'false';
+                                    const btn = this;
+                                    btn.disabled = false;
+                                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                                    btn.innerText = 'Descargar Informe';
+                                }
+                            }, 1000)"
                             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium shadow-lg shadow-blue-500/20 transition-all">
                             Descargar Informe
                         </button>

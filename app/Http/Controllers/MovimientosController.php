@@ -41,7 +41,10 @@ class MovimientosController extends Controller
 
         $movimientos = $query->paginate(15)->withQueryString();
 
-        return view('movimientos.index', compact('movimientos'));
+        // se trae a todos los funcionarios por orden alfabetico
+        $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
+
+        return view('movimientos.index', compact('movimientos', 'funcionarios'));
     }
 
     public function create(Request $request)
@@ -309,16 +312,21 @@ class MovimientosController extends Controller
             'fecha_desde' => ['required', 'date'],
             'fecha_hasta' => ['required', 'date', 'after_or_equal:fecha_desde'],
             'tipo_movimiento' => ['required', Rule::in(['Prestamo', 'Transferencia'])],
+            'funcionario' => ['required', Rule::when($request->funcionario !== 'todos', ['integer', 'exists:funcionarios,id'])],
         ], [
             'fecha_desde.required' => 'La fecha desde es obligatoria.',
             'fecha_desde.date' => 'La fecha desde debe ser una fecha válida.',
             'fecha_hasta.required' => 'La fecha hasta es obligatoria.',
             'fecha_hasta.date' => 'La fecha hasta debe ser una fecha válida.',
             'fecha_hasta.after_or_equal' => 'La fecha hasta debe ser mayor o igual a la fecha desde.',
-            'tipo_movimiento.required' => "Debe selecionar el tipo de movimientos a cargar en el informe"
+            'tipo_movimiento.required' => 'Debe seleccionar el tipo de movimientos a cargar en el informe.',
+            'tipo_movimiento.in' => 'El tipo de movimiento seleccionado no es válido.',
+            'funcionario.required' => "Debe seleccionar un funcionario o seleccionar 'Todos'",
+            'funcionario.exists' => 'El funcionario seleccionado no es válido.',
+            'funcionario.integer' => 'El funcionario seleccionado no es válido.',
         ]);
 
-        $movimientos = $informe->obtenerMovimientos($datos['fecha_desde'], $datos['fecha_hasta'], $datos['tipo_movimiento']);
+        $movimientos = $informe->obtenerMovimientos($datos['fecha_desde'], $datos['fecha_hasta'], $datos['tipo_movimiento'], $datos['funcionario']);
 
         $spreadsheet = $informe->generar($movimientos);
 

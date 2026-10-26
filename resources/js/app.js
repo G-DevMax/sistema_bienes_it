@@ -16,13 +16,17 @@ document.addEventListener('DOMContentLoaded', () => {
             el.querySelector('option[value=""]')?.textContent ||
             undefined;
 
+        const sortField = el.dataset.sort === 'none'
+            ? [{ field: '$order' }, { field: '$score' }]
+            : {
+                field: "text",
+                direction: "asc"
+            };
+
         new TomSelect(el, {
             create: false,
             placeholder: placeholder,
-            sortField: {
-                field: "text",
-                direction: "asc"
-            }
+            sortField: sortField
         });
     });
 });

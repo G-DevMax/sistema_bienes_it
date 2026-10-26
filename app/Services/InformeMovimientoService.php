@@ -31,7 +31,7 @@ class InformeMovimientoService
     }
 
     // movimientos de insumos vigentes del tipo indicado (prestamo/transferencia) dentro del rango de fechas
-    public function obtenerMovimientos(string $desde, string $hasta, string $tipo): Collection
+    public function obtenerMovimientos(string $desde, string $hasta, string $tipo, string $funcionario): Collection
     {
         // el valor del formulario ("Prestamo"/"Transferencia") coincide con la BD en minusculas
         $tipo = strtolower(trim($tipo));
@@ -42,6 +42,7 @@ class InformeMovimientoService
             ->whereDate('fecha_movimiento', '>=', $desde)
             ->whereDate('fecha_movimiento', '<=', $hasta)
             ->whereHas('item.categoria', fn($q) => $q->whereIn('nombre', self::CATEGORIAS_INSUMO))
+            ->when($funcionario !== 'todos', fn($q) => $q->where('funcionario_id', $funcionario))
             ->orderBy('fecha_movimiento')
             ->orderBy('id')
             ->get();
