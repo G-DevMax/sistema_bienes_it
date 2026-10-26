@@ -22,4 +22,12 @@ class ErrorPagesTest extends TestCase
         $view->assertSee('500');
         $view->assertSee('Error interno del servidor');
     }
+
+    public function test_vista_503_se_renderiza_correctamente(): void
+    {
+        $view = $this->view('errors.503');
+
+        $view->assertSee('503');
+        $view->assertSee('Sistema en Mantenimiento');
+    }
 }
