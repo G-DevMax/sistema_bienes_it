@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Bienes;
 
-use App\Models\categorias;
-use App\Models\items;
+use App\Http\Controllers\Controller;
+use App\Models\Bienes\categorias;
+use App\Models\Bienes\items;
 use Illuminate\Http\Request;
 use App\Services\LoggerService;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ class CategoriasController extends Controller
     public function index()
     {
         $categorias = categorias::withCount('items')->orderBy('nombre', 'ASC')->paginate(10);
-        return view('categorias.index', compact('categorias'));
+        return view('Bienes.categorias.index', compact('categorias'));
     }
 
     public function show(string $id)
@@ -24,7 +25,7 @@ class CategoriasController extends Controller
 
     public function create()
     {
-        return view('categorias.create');
+        return view('Bienes.categorias.create');
     }
 
     public function store(Request $request)
@@ -62,7 +63,7 @@ class CategoriasController extends Controller
     public function edit(string $id)
     {
         $categoria = categorias::findOrFail($id);
-        return view('categorias.edit', compact('categoria'));
+        return view('Bienes.categorias.edit', compact('categoria'));
     }
 
     public function update(Request $request, string $id)

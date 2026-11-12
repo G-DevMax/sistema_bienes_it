@@ -14,18 +14,18 @@ Route::middleware('guest')->group(function () {
 });
 
 // Rutas accesibles solo con sesión activa
-use App\Http\Controllers\ItemsController;
+use App\Http\Controllers\Bienes\ItemsController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\FuncionariosController;
 use App\Http\Controllers\DependenciasController;
-use App\Http\Controllers\CategoriasController;
-use App\Http\Controllers\MovimientosController;
+use App\Http\Controllers\Bienes\CategoriasController;
+use App\Http\Controllers\Bienes\MovimientosController;
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', function () {
-        return view('/menu_bientes');
+        return view('Bienes.menu_bientes');
     })->name('menu_bientes');
 
     Route::post('items/{item}/ingresar-stock', [ItemsController::class, 'ingresarStock'])->name('items.ingresar-stock');

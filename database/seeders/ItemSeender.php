@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Services\MovimientoService;
+use App\Services\Bienes\MovimientoService;
 
 class ItemSeender extends Seeder
 {

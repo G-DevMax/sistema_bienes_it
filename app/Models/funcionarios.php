@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Bienes\movimientos;
 use App\Traits\BuscadorUniversal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

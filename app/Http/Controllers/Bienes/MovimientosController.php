@@ -1,17 +1,18 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Bienes;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
-use App\Models\estados;
+use App\Models\Bienes\estados;
 use App\Models\funcionarios;
-use App\Models\items;
-use App\Models\movimientos;
-use App\Services\MovimientoService;
-use App\Services\PlanillaMovimientoService;
-use App\Services\InformeMovimientoService;
+use App\Models\Bienes\items;
+use App\Models\Bienes\movimientos;
+use App\Services\Bienes\MovimientoService;
+use App\Services\Bienes\PlanillaMovimientoService;
+use App\Services\Bienes\InformeMovimientoService;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use App\Services\LoggerService;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,7 @@ class MovimientosController extends Controller
         // se trae a todos los funcionarios por orden alfabetico
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
 
-        return view('movimientos.index', compact('movimientos', 'funcionarios'));
+        return view('Bienes.movimientos.index', compact('movimientos', 'funcionarios'));
     }
 
     public function create(Request $request)
@@ -59,7 +60,7 @@ class MovimientosController extends Controller
         $tipoSeleccionado = $request->query('tipo', movimientos::PRESTAMO);
         $itemSeleccionado = $request->query('item_id');
 
-        return view('movimientos.create', compact('items', 'funcionarios', 'tipoSeleccionado', 'itemSeleccionado'));
+        return view('Bienes.movimientos.create', compact('items', 'funcionarios', 'tipoSeleccionado', 'itemSeleccionado'));
     }
 
     public function store(Request $request)
@@ -158,7 +159,7 @@ class MovimientosController extends Controller
             'hijos' => fn($q) => $q->with(['usuario', 'anuladoPor'])->orderBy('fecha_movimiento'),
         ])->findOrFail($id);
 
-        return view('movimientos.show', compact('movimiento'));
+        return view('Bienes.movimientos.show', compact('movimiento'));
     }
 
     // descarga la planilla FC 11 (Excel) con los datos del movimiento

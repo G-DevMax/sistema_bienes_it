@@ -44,7 +44,7 @@
         <div class="flex flex-wrap items-center gap-2 mb-4">
             <a href="{{ route('movimientos.index', array_filter(['pendientes' => $soloPendientes ? 1 : null])) }}"
                 class="px-4 py-1.5 rounded-full text-sm border transition-all {{ !$filtroTipo ? 'bg-white/15 border-white/30 text-white' : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5' }}">Todos</a>
-            @foreach (\App\Models\movimientos::ETIQUETAS as $valor => $etiqueta)
+            @foreach (\App\Models\Bienes\movimientos::ETIQUETAS as $valor => $etiqueta)
                 <a href="{{ route('movimientos.index', array_filter(['tipo' => $valor, 'pendientes' => $soloPendientes ? 1 : null])) }}"
                     class="px-4 py-1.5 rounded-full text-sm border transition-all {{ $filtroTipo === $valor ? 'bg-white/15 border-white/30 text-white' : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5' }}">{{ $etiqueta }}</a>
             @endforeach
@@ -116,7 +116,7 @@
                                         @if ($pendiente === 0)
                                             <span
                                                 class="px-2 py-0.5 rounded-md text-xs bg-green-500/15 text-green-400 border border-green-500/30">Cerrado</span>
-                                        @elseif ($movimiento->tipo_movimiento === \App\Models\movimientos::TRANSFERENCIA)
+                                        @elseif ($movimiento->tipo_movimiento === \App\Models\Bienes\movimientos::TRANSFERENCIA)
                                             <span
                                                 class="px-2 py-0.5 rounded-md text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30">Transferido</span>
                                         @elseif ($movimiento->estaVencido())

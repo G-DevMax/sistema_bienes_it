@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Bienes;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
-use App\Models\categorias;
-use App\Models\items;
+use App\Models\Bienes\categorias;
+use App\Models\Bienes\items;
 use App\Services\LoggerService;
-use App\Services\MovimientoService;
+use App\Services\Bienes\MovimientoService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -29,7 +30,7 @@ class ItemsController extends Controller
         // desglose de prestados / transferidos / inservibles por item (una consulta para toda la pagina)
         $resumen = $this->movimientoService->resumenPorItem($items->getCollection()->pluck('id'));
 
-        return view("items.index", compact('items', 'resumen'));
+        return view("Bienes.items.index", compact('items', 'resumen'));
     }
 
     /**
@@ -39,7 +40,7 @@ class ItemsController extends Controller
     {
         $categorias = categorias::all();
 
-        return view("items.create", compact('categorias'));
+        return view("Bienes.items.create", compact('categorias'));
     }
 
     /**
@@ -122,7 +123,7 @@ class ItemsController extends Controller
         $categorias = categorias::orderBy('nombre', 'ASC')->get();
         $item = items::findOrFail($id);
 
-        return view("items.edit", compact("categorias", "item"));
+        return view("Bienes.items.edit", compact("categorias", "item"));
     }
 
     /**

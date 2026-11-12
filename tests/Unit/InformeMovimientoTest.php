@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Models\movimientos;
+use App\Models\Bienes\movimientos;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Tests\TestCase;

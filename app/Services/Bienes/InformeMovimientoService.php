@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Bienes;
 
-use App\Models\movimientos;
+use App\Models\Bienes\movimientos;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use PhpOffice\PhpSpreadsheet\IOFactory;

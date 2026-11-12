@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Bienes;
 
-use App\Models\estados;
-use App\Models\items;
-use App\Models\movimientos;
+use App\Models\Bienes\estados;
+use App\Models\Bienes\items;
+use App\Models\Bienes\movimientos;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;

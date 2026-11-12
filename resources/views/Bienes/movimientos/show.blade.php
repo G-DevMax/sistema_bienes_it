@@ -188,7 +188,7 @@
                             </div>
                         @else
                             <div class="flex items-baseline gap-2">
-                                @if ($movimiento->tipo_movimiento === \App\Models\movimientos::TRANSFERENCIA)
+                                @if ($movimiento->tipo_movimiento === \App\Models\Bienes\movimientos::TRANSFERENCIA)
                                     <span class="text-3xl font-bold text-purple-400">Transferido</span>
                                     @if ($pendiente < $movimiento->cantidad)
                                         <span class="text-sm text-white/60">({{ $pendiente }} restantes)</span>

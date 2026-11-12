@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Bienes;
 
-use App\Models\movimientos;
+use App\Models\Bienes\movimientos;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
