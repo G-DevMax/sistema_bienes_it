@@ -2,23 +2,27 @@
 
 namespace Tests\Unit;
 
+use App\Models\dependencias;
+use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
 use App\Models\Informes\informes;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\Rule;
 use Tests\TestCase;
 
 class InformeTest extends TestCase
 {
-    public function test_buscador_universal_consulta_por_funcionario_y_detalle(): void
+    public function test_buscador_universal_consulta_por_funcionario_y_titulo(): void
     {
         $query = informes::query()->buscadorUniversal('Ethernet');
         $sql = $query->toSql();
 
         $this->assertStringContainsString('funcionarios', $sql);
         $this->assertStringContainsString('nombre', $sql);
-        $this->assertStringContainsString('detalles_problemas', $sql);
-        $this->assertStringContainsString('detalle', $sql);
+        $this->assertStringContainsString('titulo', $sql);
         $this->assertSame(['%Ethernet%', '%Ethernet%'], $query->getBindings());
     }
 
@@ -77,5 +81,70 @@ class InformeTest extends TestCase
             ['observacion' => [Rule::requiredIf(false), 'nullable', 'string']]
         );
         $this->assertFalse($conDetalle->fails());
+    }
+
+    public function test_vistas_informes_se_renderizan_correctamente(): void
+    {
+        View::share('errors', new ViewErrorBag());
+
+        $dependencia = new dependencias(['nombre' => 'Informática']);
+        $funcionario = new funcionarios(['nombre' => 'Juan Pérez']);
+        $funcionario->id = 1;
+        $funcionario->setRelation('dependencia', $dependencia);
+
+        $detalle = new detalles_problemas(['tipo_problema' => 'Red', 'detalle' => 'Sin acceso a red']);
+        $detalle->id = 2;
+
+        $informe = new informes([
+            'titulo' => 'Corte de red',
+            'funcionario_id' => 1,
+            'tipo_problema' => 'Red',
+            'detalle_id' => 2,
+            'observacion' => 'Se reinició el switch.',
+        ]);
+        $informe->id = 10;
+        $informe->created_at = now();
+        $informe->updated_at = now();
+        $informe->setRelation('funcionario', $funcionario);
+        $informe->setRelation('detalle', $detalle);
+
+        $paginador = new LengthAwarePaginator(collect([$informe]), 1, 10, 1);
+
+        $index = $this->view('Informes.index', [
+            'informes' => $paginador,
+            'tiposProblema' => informes::TIPOS_PROBLEMA,
+        ]);
+        $index->assertSee('Crear nuevo informe');
+        $index->assertSee('Corte de red');
+        $index->assertSee('Juan Pérez');
+
+        $create = $this->view('Informes.create', [
+            'funcionarios' => collect([$funcionario]),
+            'tiposProblema' => informes::TIPOS_PROBLEMA,
+            'detalles' => collect([$detalle]),
+            'fechaHora' => now(),
+        ]);
+        $create->assertSee('Registrar Informe');
+        $create->assertSee('type="radio"', false);
+        $create->assertSee('Otro (especificar)');
+
+        $edit = $this->view('Informes.edit', [
+            'informe' => $informe,
+            'funcionarios' => collect([$funcionario]),
+            'tiposProblema' => informes::TIPOS_PROBLEMA,
+            'detalles' => collect([$detalle]),
+            'fechaHora' => $informe->created_at,
+        ]);
+        $edit->assertSee('Editar Informe #10');
+        $edit->assertSee('disabled', false);
+
+        $show = $this->view('Informes.show', [
+            'informe' => $informe,
+        ]);
+        $show->assertSee('Informe #10');
+        $show->assertSee('Se reinició el switch.');
+
+        $detallesIndex = $this->view('Informes.detalles_problemas.index');
+        $detallesIndex->assertSee('Problemas Comunes');
     }
 }

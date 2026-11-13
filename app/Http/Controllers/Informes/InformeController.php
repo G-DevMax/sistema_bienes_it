@@ -15,13 +15,19 @@ class InformeController extends Controller
 {
     public function index(Request $request)
     {
-        $informes = informes::with(['funcionario', 'detalle'])
+        $query = informes::with(['funcionario', 'detalle'])
             ->buscadorUniversal($request->search)
             ->orderByDesc('created_at')
-            ->paginate(10)
-            ->withQueryString();
+            ->orderByDesc('id');
 
-        return view('Informes.index', compact('informes'));
+        if ($tipo = $request->query('tipo')) {
+            $query->where('tipo_problema', $tipo);
+        }
+
+        $informes = $query->paginate(10)->withQueryString();
+        $tiposProblema = informes::TIPOS_PROBLEMA;
+
+        return view('Informes.index', compact('informes', 'tiposProblema'));
     }
 
     public function create()
@@ -63,7 +69,9 @@ class InformeController extends Controller
 
     public function show(string $id)
     {
-        return redirect()->route('informes.index');
+        $informe = informes::with(['funcionario.dependencia', 'detalle'])->findOrFail($id);
+
+        return view('Informes.show', compact('informe'));
     }
 
     public function edit(string $id)

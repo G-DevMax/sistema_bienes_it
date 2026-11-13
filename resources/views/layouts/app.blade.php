@@ -23,29 +23,43 @@
 
     <!-- Navbar -->
     @if (auth()->check())
+        @php
+            $esModuloInformes = request()->routeIs('informes.*', 'detalles-problemas.*');
+        @endphp
         <nav
             class="sticky top-0 z-50 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex justify-between items-center shadow-lg">
             <a href="/"
                 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
-                Sistema Bienes IT (FC11)
+                {{ $esModuloInformes ? 'InfraDesk - Informes IT' : 'InfraDesk - Bienes IT (FC11)' }}
             </a>
             <div class="flex items-center space-x-2 sm:space-x-4">
-                <a href="{{ route('items.index') }}"
-                    class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                    Items
-                </a>
-                <a href="{{ route('movimientos.index') }}"
-                    class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                    Movimientos
-                </a>
-                <a href="{{ route('funcionarios.index') }}"
-                    class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                    Funcionarios
-                </a>
-                <a href="{{ route('usuarios.index') }}"
-                    class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                    Usuarios
-                </a>
+                @if ($esModuloInformes)
+                    <a href="{{ route('informes.index') }}"
+                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                        Informes
+                    </a>
+                    <a href="{{ route('detalles-problemas.index') }}"
+                        class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/15 text-blue-300 border border-blue-400/30 hover:bg-blue-500/25 hover:text-white transition-all">
+                        Registrar Problema Común
+                    </a>
+                @else
+                    <a href="{{ route('items.index') }}"
+                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                        Items
+                    </a>
+                    <a href="{{ route('movimientos.index') }}"
+                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                        Movimientos
+                    </a>
+                    <a href="{{ route('funcionarios.index') }}"
+                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                        Funcionarios
+                    </a>
+                    <a href="{{ route('usuarios.index') }}"
+                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                        Usuarios
+                    </a>
+                @endif
 
                 <form action="{{ route('logout') }}" method="POST" class="inline">
                     @csrf

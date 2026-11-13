@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('dependencias', DependenciasController::class);
     Route::resource('categorias', CategoriasController::class);
     Route::resource('informes', InformeController::class);
+    Route::get('detalles-problemas', fn() => view('Informes.detalles_problemas.index'))->name('detalles-problemas.index');
     // los movimientos no se editan ni eliminan: se corrigen con devoluciones, bajas o anulaciones
     // debe ir antes del resource para no chocar con movimientos/{movimiento}
     Route::get('movimientos/informe', [MovimientosController::class, 'generarInforme'])->name('movimientos.informe');
