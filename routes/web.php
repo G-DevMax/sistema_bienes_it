@@ -20,6 +20,7 @@ use App\Http\Controllers\FuncionariosController;
 use App\Http\Controllers\DependenciasController;
 use App\Http\Controllers\Bienes\CategoriasController;
 use App\Http\Controllers\Bienes\MovimientosController;
+use App\Http\Controllers\Informes\InformeController;
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -34,6 +35,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('funcionarios', FuncionariosController::class);
     Route::resource('dependencias', DependenciasController::class);
     Route::resource('categorias', CategoriasController::class);
+    Route::resource('informes', InformeController::class);
     // los movimientos no se editan ni eliminan: se corrigen con devoluciones, bajas o anulaciones
     // debe ir antes del resource para no chocar con movimientos/{movimiento}
     Route::get('movimientos/informe', [MovimientosController::class, 'generarInforme'])->name('movimientos.informe');
