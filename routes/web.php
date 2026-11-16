@@ -14,14 +14,15 @@ Route::middleware('guest')->group(function () {
 });
 
 // Rutas accesibles solo con sesión activa
-use App\Http\Controllers\Bienes\ItemsController;
-use App\Http\Controllers\UsuariosController;
-use App\Http\Controllers\FuncionariosController;
-use App\Http\Controllers\DependenciasController;
 use App\Http\Controllers\Bienes\CategoriasController;
+use App\Http\Controllers\Bienes\ItemsController;
 use App\Http\Controllers\Bienes\MovimientosController;
+use App\Http\Controllers\DependenciasController;
+use App\Http\Controllers\FuncionariosController;
+use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\Informes\DetalleProblemaController;
 use App\Http\Controllers\Informes\InformeController;
+use App\Http\Controllers\UsuariosController;
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -37,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('dependencias', DependenciasController::class);
     Route::resource('categorias', CategoriasController::class);
     Route::resource('informes', InformeController::class);
+    Route::get('informes/{informe}/pdf', [InformeController::class, 'exportarPdf'])->name('informes.pdf');
     Route::resource('detalles-problemas', DetalleProblemaController::class);
     // los movimientos no se editan ni eliminan: se corrigen con devoluciones, bajas o anulaciones
     // debe ir antes del resource para no chocar con movimientos/{movimiento}
@@ -46,5 +48,5 @@ Route::middleware('auth')->group(function () {
     Route::post('movimientos/{movimiento}/devolver', [MovimientosController::class, 'devolver'])->name('movimientos.devolver');
     Route::post('movimientos/{movimiento}/baja', [MovimientosController::class, 'bajaEntrega'])->name('movimientos.baja');
     Route::post('movimientos/{movimiento}/anular', [MovimientosController::class, 'anular'])->name('movimientos.anular');
-    Route::get('historial/descargar', [\App\Http\Controllers\HistorialController::class, 'descargar'])->name('historial.descargar');
+    Route::get('historial/descargar', [HistorialController::class, 'descargar'])->name('historial.descargar');
 });

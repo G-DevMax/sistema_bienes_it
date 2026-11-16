@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
 use App\Models\Informes\informes;
+use App\Services\Informes\InformePdfService;
 use App\Services\LoggerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -61,7 +62,7 @@ class InformeController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('informes.index')->with('error', 'Error al registrar el informe: ' . $e->getMessage());
+            return redirect()->route('informes.index')->with('error', 'Error al registrar el informe: '.$e->getMessage());
         }
 
         return redirect()->route('informes.index')->with('success', 'Informe registrado exitosamente.');
@@ -72,6 +73,14 @@ class InformeController extends Controller
         $informe = informes::with(['funcionario.dependencia', 'detalle'])->findOrFail($id);
 
         return view('Informes.show', compact('informe'));
+    }
+
+    public function exportarPdf(string $id, InformePdfService $pdfService)
+    {
+        $informe = informes::with(['funcionario.dependencia', 'detalle'])->findOrFail($id);
+        $pdf = $pdfService->generar($informe, Auth::user()?->name);
+
+        return $pdf->stream($pdfService->nombreArchivo($informe));
     }
 
     public function edit(string $id)
@@ -109,7 +118,7 @@ class InformeController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('informes.index')->with('error', 'Error al actualizar el informe: ' . $e->getMessage());
+            return redirect()->route('informes.index')->with('error', 'Error al actualizar el informe: '.$e->getMessage());
         }
 
         return redirect()->route('informes.index')->with('success', 'Informe actualizado exitosamente.');
@@ -131,7 +140,7 @@ class InformeController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('informes.index')->with('error', 'Error al eliminar el informe: ' . $e->getMessage());
+            return redirect()->route('informes.index')->with('error', 'Error al eliminar el informe: '.$e->getMessage());
         }
 
         return redirect()->route('informes.index')->with('success', 'Informe eliminado exitosamente.');

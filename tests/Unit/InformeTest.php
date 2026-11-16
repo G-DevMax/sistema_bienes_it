@@ -6,6 +6,8 @@ use App\Models\dependencias;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
 use App\Models\Informes\informes;
+use App\Services\Informes\InformePdfService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\View;
@@ -38,7 +40,7 @@ class InformeTest extends TestCase
 
     public function test_created_at_no_es_editable_por_asignacion_masiva(): void
     {
-        $modelo = new informes();
+        $modelo = new informes;
 
         $this->assertNotContains('created_at', $modelo->getFillable());
         $this->assertContains('titulo', $modelo->getFillable());
@@ -85,7 +87,7 @@ class InformeTest extends TestCase
 
     public function test_vistas_informes_se_renderizan_correctamente(): void
     {
-        View::share('errors', new ViewErrorBag());
+        View::share('errors', new ViewErrorBag);
 
         $dependencia = new dependencias(['nombre' => 'Informática']);
         $funcionario = new funcionarios(['nombre' => 'Juan Pérez']);
@@ -142,6 +144,8 @@ class InformeTest extends TestCase
             'informe' => $informe,
         ]);
         $show->assertSee('Informe #10');
+        $show->assertSee('Imprimir Informe');
+        $show->assertSee(route('informes.pdf', 10));
         $show->assertSee('Se reinició el switch.');
 
         $detallesIndex = $this->view('Informes.detalles_problemas.index', [
@@ -178,5 +182,53 @@ class InformeTest extends TestCase
         $this->assertStringContainsString('detalle', $sql);
         $this->assertStringContainsString('tipo_problema', $sql);
         $this->assertSame(['%Impresora%', '%Impresora%'], $query->getBindings());
+    }
+
+    public function test_genera_pdf_informe_servicio_tecnico_con_texto_largo(): void
+    {
+        $service = new InformePdfService;
+        $logoMethod = new \ReflectionMethod($service, 'logoBase64');
+        $logoBase64 = $logoMethod->invoke($service);
+
+        $this->assertNotNull($logoBase64);
+        $this->assertStringStartsWith('data:image/png;base64,', $logoBase64);
+
+        $pdfBytes = Pdf::loadView('Informes.pdf', [
+            'numero' => 1,
+            'fecha' => '16/11/2026',
+            'usuario' => 'Nacho Bogarin',
+            'tecnico' => 'Gustavo Martínez',
+            'titulo' => implode(' ', array_fill(0, 40, 'Equipo')),
+            'tipo_problema' => 'Hardware',
+            'detalle' => 'El equipo presenta fallos en su fuente de poder',
+            'observacion' => "Se realizó el cambio de fuente de poder.\nEl usuario mandó la petición por correo.",
+            'logoBase64' => $logoBase64,
+        ])->setPaper('a4', 'portrait')->output();
+
+        $this->assertStringStartsWith('%PDF-', $pdfBytes);
+    }
+
+    public function test_genera_pdf_informe_servicio_tecnico_con_texto_largo(): void
+    {
+        $service = new InformePdfService();
+        $logoMethod = new \ReflectionMethod($service, 'logoBase64');
+        $logoBase64 = $logoMethod->invoke($service);
+
+        $this->assertNotNull($logoBase64);
+        $this->assertStringStartsWith('data:image/png;base64,', $logoBase64);
+
+        $pdfBytes = Pdf::loadView('Informes.pdf', [
+            'numero' => 1,
+            'fecha' => '16/11/2026',
+            'usuario' => 'Nacho Bogarin',
+            'tecnico' => 'Gustavo Martínez',
+            'titulo' => implode(' ', array_fill(0, 40, 'Equipo')),
+            'tipo_problema' => 'Hardware',
+            'detalle' => 'El equipo presenta fallos en su fuente de poder',
+            'observacion' => "Se realizó el cambio de fuente de poder.\nEl usuario mandó la petición por correo.",
+            'logoBase64' => $logoBase64,
+        ])->setPaper('a4', 'portrait')->output();
+
+        $this->assertStringStartsWith('%PDF-', $pdfBytes);
     }
 }
