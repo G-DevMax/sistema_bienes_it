@@ -144,7 +144,39 @@ class InformeTest extends TestCase
         $show->assertSee('Informe #10');
         $show->assertSee('Se reinició el switch.');
 
-        $detallesIndex = $this->view('Informes.detalles_problemas.index');
+        $detallesIndex = $this->view('Informes.detalles_problemas.index', [
+            'detalles' => new LengthAwarePaginator(collect([$detalle]), 1, 10, 1),
+            'tiposProblema' => informes::TIPOS_PROBLEMA,
+        ]);
         $detallesIndex->assertSee('Problemas Comunes');
+        $detallesIndex->assertSee('Sin acceso a red');
+
+        $detallesCreate = $this->view('Informes.detalles_problemas.create', [
+            'tiposProblema' => informes::TIPOS_PROBLEMA,
+        ]);
+        $detallesCreate->assertSee('Registrar Problema Común');
+
+        $detallesEdit = $this->view('Informes.detalles_problemas.edit', [
+            'detalle' => $detalle,
+            'tiposProblema' => informes::TIPOS_PROBLEMA,
+        ]);
+        $detallesEdit->assertSee('Editar Problema Común #2');
+
+        $detalle->informes_count = 3;
+        $detallesShow = $this->view('Informes.detalles_problemas.show', [
+            'detalle' => $detalle,
+        ]);
+        $detallesShow->assertSee('Detalle #2');
+        $detallesShow->assertSee('Sin acceso a red');
+    }
+
+    public function test_buscador_universal_detalles_problemas(): void
+    {
+        $query = detalles_problemas::query()->buscadorUniversal('Impresora');
+        $sql = $query->toSql();
+
+        $this->assertStringContainsString('detalle', $sql);
+        $this->assertStringContainsString('tipo_problema', $sql);
+        $this->assertSame(['%Impresora%', '%Impresora%'], $query->getBindings());
     }
 }
