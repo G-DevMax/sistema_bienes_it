@@ -22,6 +22,7 @@ use App\Http\Controllers\FuncionariosController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\Informes\DetalleProblemaController;
 use App\Http\Controllers\Informes\InformeController;
+use App\Http\Controllers\Tickets\TicketController;
 use App\Http\Controllers\UsuariosController;
 
 Route::middleware('auth')->group(function () {
@@ -40,6 +41,13 @@ Route::middleware('auth')->group(function () {
     Route::resource('informes', InformeController::class);
     Route::get('informes/{informe}/pdf', [InformeController::class, 'exportarPdf'])->name('informes.pdf');
     Route::resource('detalles-problemas', DetalleProblemaController::class);
+
+    // Módulo de Tickets (área del técnico)
+    Route::get('tickets', [TicketController::class, 'dashboard'])->name('tickets.dashboard');
+    Route::get('tickets/listado', [TicketController::class, 'index'])->name('tickets.index');
+    Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+    Route::post('tickets/{ticket}/asignar', [TicketController::class, 'asignar'])->name('tickets.asignar');
+    Route::post('tickets/{ticket}/cerrar', [TicketController::class, 'cerrar'])->name('tickets.cerrar');
     // los movimientos no se editan ni eliminan: se corrigen con devoluciones, bajas o anulaciones
     // debe ir antes del resource para no chocar con movimientos/{movimiento}
     Route::get('movimientos/informe', [MovimientosController::class, 'generarInforme'])->name('movimientos.informe');

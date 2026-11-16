@@ -20,6 +20,7 @@ return new class extends Migration
             $table->foreignId("asignado_a")->nullable()->constrained("users")->cascadeOnDelete();
             $table->date('fecha_creacion')->default(now());
             $table->date('fecha_cierre')->nullable();
+            $table->string("observacion")->nullable();
             $table->timestamps();
         });
     }

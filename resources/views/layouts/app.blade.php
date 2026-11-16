@@ -25,12 +25,18 @@
     @if (auth()->check())
         @php
             $esModuloInformes = request()->routeIs('informes.*', 'detalles-problemas.*');
+            $esModuloTickets = request()->routeIs('tickets.*');
+            $tituloModulo = match (true) {
+                $esModuloInformes => 'InfraDesk - Informes IT',
+                $esModuloTickets => 'InfraDesk - Tickets IT',
+                default => 'InfraDesk - Bienes IT (FC11)',
+            };
         @endphp
         <nav
             class="sticky top-0 z-50 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex justify-between items-center shadow-lg">
             <a href="/"
                 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
-                {{ $esModuloInformes ? 'InfraDesk - Informes IT' : 'InfraDesk - Bienes IT (FC11)' }}
+                {{ $tituloModulo }}
             </a>
             <div class="flex items-center space-x-2 sm:space-x-4">
                 @if ($esModuloInformes)
@@ -42,6 +48,19 @@
                         class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/15 text-blue-300 border border-blue-400/30 hover:bg-blue-500/25 hover:text-white transition-all">
                         Registrar Problema Común
                     </a>
+                @elseif ($esModuloTickets)
+                    <a href="{{ route('tickets.dashboard') }}"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.dashboard') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
+                        Inicio
+                    </a>
+                    <a href="{{ route('tickets.index') }}"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.index', 'tickets.show') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
+                        Listado de Tickets
+                    </a>
+                    <span title="Próximamente" aria-disabled="true"
+                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/40 cursor-not-allowed select-none">
+                        Crear Ticket
+                    </span>
                 @else
                     <a href="{{ route('items.index') }}"
                         class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">

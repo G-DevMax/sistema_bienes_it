@@ -1,0 +1,109 @@
+@extends('layouts.app')
+
+@section('title', 'Listado de Tickets')
+
+@section('content')
+    @php
+        $filtroTipo = request('tipo');
+    @endphp
+    <div class="w-full max-w-7xl animate-fade-in-up">
+        <!-- Encabezado -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
+                    Listado de Tickets
+                </h1>
+                <p class="text-white/70 mt-1">Consulta, asigna y cierra las solicitudes registradas</p>
+            </div>
+        </div>
+
+        <div>
+            @include('layouts.alerts')
+        </div>
+
+        <!-- Barra de búsqueda por funcionario -->
+        <div class="mb-4">
+            <x-barra_de_busqueda placeholder="Buscar por funcionario..."></x-barra_de_busqueda>
+        </div>
+
+        <!-- Filtros por tipo de problema -->
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+            <a href="{{ route('tickets.index', array_filter(['search' => request('search')])) }}"
+                class="px-4 py-1.5 rounded-full text-sm border transition-all {{ !$filtroTipo ? 'bg-white/15 border-white/30 text-white font-medium' : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5' }}">
+                Todos
+            </a>
+            @foreach ($tiposProblema as $tipo)
+                <a href="{{ route('tickets.index', array_filter(['tipo' => $tipo, 'search' => request('search')])) }}"
+                    class="px-4 py-1.5 rounded-full text-sm border transition-all {{ $filtroTipo === $tipo ? 'bg-white/15 border-white/30 text-white font-medium' : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5' }}">
+                    {{ $tipo }}
+                </a>
+            @endforeach
+        </div>
+
+        <!-- Tabla -->
+        <div
+            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-blue-600/10 border-b border-white/10 text-white">
+                            <th class="px-6 py-4 font-semibold">ID</th>
+                            <th class="px-6 py-4 font-semibold">Funcionario</th>
+                            <th class="px-6 py-4 font-semibold">Tipo de Problema</th>
+                            <th class="px-6 py-4 font-semibold">Descripción</th>
+                            <th class="px-6 py-4 font-semibold">Estado</th>
+                            <th class="px-6 py-4 font-semibold">Fecha de Creación</th>
+                            <th class="px-6 py-4 font-semibold text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-white/90">
+                        @forelse ($tickets as $ticket)
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="px-6 py-4 font-medium text-white/50">#{{ $ticket->id }}</td>
+                                <td class="px-6 py-4 font-medium text-white">{{ $ticket->funcionario->nombre ?? '—' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span
+                                        class="px-3 py-1 rounded-full text-xs font-medium border {{ \App\Models\Tickets\Ticket::badgeTipo($ticket->tipo_problema) }}">
+                                        {{ $ticket->tipo_problema }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-white/80 max-w-md truncate">
+                                    {{ $ticket->descripcion_problea }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span
+                                        class="px-3 py-1 rounded-full text-xs font-medium border {{ \App\Models\Tickets\Ticket::badgeEstado($ticket->estado) }}">
+                                        {{ $ticket->estado }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-white/80">
+                                    {{ ($ticket->fecha_creacion ?? $ticket->created_at)?->format('d/m/Y') }}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <a href="{{ route('tickets.show', $ticket) }}"
+                                        class="inline-flex p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                        title="Ver detalle">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                            </path>
+                                        </svg>
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-white/50">
+                                    No hay tickets registrados con estos filtros.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @include('layouts.pagination', ['paginator' => $tickets])
+        </div>
+    </div>
+@endsection

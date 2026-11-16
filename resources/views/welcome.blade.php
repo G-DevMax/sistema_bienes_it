@@ -87,7 +87,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-2xl">
             <!-- Card Módulo de Tickets -->
-            <a href="#"
+            <a href="{{ route('tickets.dashboard') }}"
                 class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:-translate-y-1">
                 <div
                     class="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -105,7 +105,12 @@
                     <p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Gestión de
                         incidentes, solicitudes de soporte y mesa de ayuda.</p>
                     <div class="mt-4 flex items-center text-sm font-medium text-blue-400 group-hover:text-blue-300">
-                        Próximamente
+                        Acceder al módulo
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
                     </div>
                 </div>
             </a>
