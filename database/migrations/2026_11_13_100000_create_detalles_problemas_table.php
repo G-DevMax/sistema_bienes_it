@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('detalles_problemas', function (Blueprint $table) {
             $table->id();
-            $table->enum("tipo_problema", ["Hardware", "Software", "Red", "Impresora", "Cuentas y Accesos", "Consulta", "Insumo"]);
-            $table->string("detalle");
+            $table->enum('tipo_problema', ['Equipo/Dispositivo', 'Programa/Sistema', 'Internet', 'Impresora/Escáner', 'Cuentas y Accesos', 'Consulta', 'Insumos']);
+            $table->string('detalle');
             $table->timestamps();
         });
     }

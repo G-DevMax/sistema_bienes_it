@@ -13,14 +13,15 @@ return new class extends Migration
     {
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("funcionario_id")->constrained("funcionarios")->cascadeOnDelete();
-            $table->enum("tipo_problema", ["Hardware", "Software", "Red", "Cuenta y Acceso", "Consulta", "Insumo"]);
-            $table->string("descripcion_problea");
-            $table->enum("estado", ["Pendiente", "Asignado", "Resuelto", "Cerrado"])->default("Pendiente");
-            $table->foreignId("asignado_a")->nullable()->constrained("users")->cascadeOnDelete();
+            $table->foreignId('funcionario_id')->constrained('funcionarios')->cascadeOnDelete();
+            $table->enum('tipo_problema', ['Equipo/Dispositivo', 'Programa/Sistema', 'Internet', 'Impresora/Escáner', 'Cuenta y Acceso', 'Consulta', 'Insumos']);
+            $table->foreignId('detalle_id')->nullable()->constrained('detalles_problemas')->nullOnDelete();
+            $table->string('descripcion_problema');
+            $table->enum('estado', ['Pendiente', 'Asignado', 'Resuelto', 'Cerrado'])->default('Pendiente');
+            $table->foreignId('asignado_a')->nullable()->constrained('users')->cascadeOnDelete();
             $table->date('fecha_creacion')->default(now());
             $table->date('fecha_cierre')->nullable();
-            $table->string("observacion")->nullable();
+            $table->string('observacion')->nullable();
             $table->timestamps();
         });
     }

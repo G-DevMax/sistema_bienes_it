@@ -13,12 +13,13 @@ class informes extends Model
     use HasFactory, LogsHistory, BuscadorUniversal;
 
     public const TIPOS_PROBLEMA = [
-        'Hardware',
-        'Software',
-        'Red',
-        'Impresora',
+        'Equipo/Dispositivo',
+        'Programa/Sistema',
+        'Internet',
+        'Impresora/Escáner',
         'Cuentas y Accesos',
         'Consulta',
+        'Insumos',
     ];
 
     protected $table = 'informes';

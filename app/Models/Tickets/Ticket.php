@@ -3,9 +3,9 @@
 namespace App\Models\Tickets;
 
 use App\Models\funcionarios;
+use App\Models\Informes\detalles_problemas;
 use App\Models\User;
 use App\Traits\BuscadorUniversal;
-use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ticket extends Model
 {
-    use BuscadorUniversal, HasFactory, LogsHistory;
+    use BuscadorUniversal, HasFactory;
 
     public const ESTADO_PENDIENTE = 'Pendiente';
 
@@ -31,21 +31,23 @@ class Ticket extends Model
     ];
 
     public const TIPOS_PROBLEMA = [
-        'Hardware',
-        'Software',
-        'Red',
-        'Cuenta y Acceso',
+        'Equipo/Dispositivo',
+        'Programa/Sistema',
+        'Internet',
+        'Impresora/Escáner',
+        'Cuentas y Accesos',
         'Consulta',
-        'Insumo',
+        'Insumos',
     ];
 
     private const BADGES_TIPO = [
-        'Hardware' => 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-        'Software' => 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-        'Red' => 'bg-[#1CD6CE]/20 text-[#1CD6CE] border-[#1CD6CE]/30',
-        'Cuenta y Acceso' => 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+        'Equipo/Dispositivo' => 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+        'Programa/Sistema' => 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+        'Internet' => 'bg-[#1CD6CE]/20 text-[#1CD6CE] border-[#1CD6CE]/30',
+        'Impresora/Escáner' => 'bg-[#FEDB39]/20 text-[#FEDB39] border-[#FEDB39]/30',
+        'Cuentas y Accesos' => 'bg-purple-500/20 text-purple-300 border-purple-500/30',
         'Consulta' => 'bg-green-500/20 text-green-300 border-green-500/30',
-        'Insumo' => 'bg-[#FEDB39]/20 text-[#FEDB39] border-[#FEDB39]/30',
+        'Insumos' => 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     ];
 
     private const BADGES_ESTADO = [
@@ -64,7 +66,8 @@ class Ticket extends Model
     protected $fillable = [
         'funcionario_id',
         'tipo_problema',
-        'descripcion_problea',
+        'detalle_id',
+        'descripcion_problema',
         'estado',
         'asignado_a',
         'fecha_creacion',
@@ -95,6 +98,11 @@ class Ticket extends Model
         return $this->belongsTo(User::class, 'asignado_a');
     }
 
+    public function detalle(): BelongsTo
+    {
+        return $this->belongsTo(detalles_problemas::class, 'detalle_id');
+    }
+
     public function historial(): HasMany
     {
         return $this->hasMany(TicketHistory::class, 'ticket_id')->orderByDesc('created_at')->orderByDesc('id');
@@ -103,6 +111,16 @@ class Ticket extends Model
     public function estaCerrado(): bool
     {
         return $this->estado === self::ESTADO_CERRADO;
+    }
+
+    public function detalleTexto(): string
+    {
+        return $this->detalle?->detalle ?? 'Otro (especificar)';
+    }
+
+    public static function tipoParaDetalle(string $tipo): string
+    {
+        return $tipo === 'Cuenta y Acceso' ? 'Cuentas y Accesos' : $tipo;
     }
 
     public static function badgeTipo(string $tipo): string

@@ -68,7 +68,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-white/80 max-w-md truncate">
-                                    {{ $ticket->descripcion_problea }}
+                                    {{ $ticket->descripcion_problema }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span

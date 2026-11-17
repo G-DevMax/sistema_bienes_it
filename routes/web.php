@@ -1,11 +1,16 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Tickets\TicketController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Formulario público de tickets para funcionarios (sin inicio de sesión)
+Route::get('tickets/crear', [TicketController::class, 'create'])->name('tickets.create');
+Route::post('tickets', [TicketController::class, 'store'])->name('tickets.store');
 
 // Rutas accesibles solo cuando NO se ha iniciado sesión
 Route::middleware('guest')->group(function () {
@@ -22,7 +27,6 @@ use App\Http\Controllers\FuncionariosController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\Informes\DetalleProblemaController;
 use App\Http\Controllers\Informes\InformeController;
-use App\Http\Controllers\Tickets\TicketController;
 use App\Http\Controllers\UsuariosController;
 
 Route::middleware('auth')->group(function () {

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Tickets;
 
 use App\Http\Controllers\Controller;
+use App\Models\funcionarios;
+use App\Models\Informes\detalles_problemas;
 use App\Models\Tickets\Ticket;
 use App\Models\Tickets\TicketHistory;
 use App\Models\User;
@@ -54,12 +56,91 @@ class TicketController extends Controller
         return view('Tickets.index', compact('tickets', 'tiposProblema'));
     }
 
+    public function create(): View
+    {
+        $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
+        $tiposProblema = Ticket::TIPOS_PROBLEMA;
+
+        return view('Tickets.create', compact('funcionarios', 'tiposProblema'));
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $datos = $request->validate([
+            'funcionario_id' => ['required', Rule::exists('funcionarios', 'id')->where('estado_funcionario', 1)],
+            'tipo_problema' => ['required', Rule::in(Ticket::TIPOS_PROBLEMA)],
+            'descripcion_problema' => [
+                'required',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $palabras = preg_split('/\s+/u', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
+                    if (count($palabras) > 100) {
+                        $fail('El título del problema no puede superar las 100 palabras.');
+                    }
+                },
+            ],
+        ], [
+            'funcionario_id.required' => 'Debe seleccionar su nombre de funcionario.',
+            'funcionario_id.exists' => 'El funcionario seleccionado no es válido o está inactivo.',
+            'tipo_problema.required' => 'Debe seleccionar el tipo de problema.',
+            'tipo_problema.in' => 'El tipo de problema seleccionado no es válido.',
+            'descripcion_problema.required' => 'Debe escribir un título breve para su problema.',
+            'descripcion_problema.max' => 'El título del problema no puede superar los 255 caracteres.',
+        ]);
+
+        try {
+            $ticket = DB::transaction(function () use ($datos): Ticket {
+                $ticket = Ticket::create([
+                    'funcionario_id' => $datos['funcionario_id'],
+                    'tipo_problema' => $datos['tipo_problema'],
+                    'descripcion_problema' => trim($datos['descripcion_problema']),
+                    'estado' => Ticket::ESTADO_PENDIENTE,
+                    'fecha_creacion' => now()->toDateString(),
+                ]);
+
+                TicketHistory::create([
+                    'ticket_id' => $ticket->id,
+                    'funcionario_id' => $ticket->funcionario_id,
+                    'accion' => 'Ticket creado',
+                    'responsable_id' => Auth::id(),
+                    'fecha' => now()->toDateString(),
+                ]);
+
+                return $ticket;
+            });
+
+            LoggerService::info('Ticket creado', [
+                'ticket_id' => $ticket->id,
+                'funcionario_id' => $ticket->funcionario_id,
+                'tipo_problema' => $ticket->tipo_problema,
+                'user_id' => Auth::id(),
+            ]);
+        } catch (\Exception $e) {
+            LoggerService::error('Error al crear ticket', [
+                'funcionario_id' => $request->input('funcionario_id'),
+                'tipo_problema' => $request->input('tipo_problema'),
+                'user_id' => Auth::id(),
+            ], $e);
+
+            return redirect()->route('tickets.create')
+                ->withInput()
+                ->with('error', 'No se pudo registrar el ticket. Intente nuevamente.');
+        }
+
+        return redirect()->route('tickets.create')
+            ->with('success', 'Tu ticket #'.$ticket->id.' fue enviado correctamente. En breve un técnico le asistirá con su problema.');
+    }
+
     public function show(Ticket $ticket): View
     {
-        $ticket->load(['funcionario.dependencia', 'tecnicoAsignado', 'historial.responsable']);
+        $ticket->load(['funcionario.dependencia', 'tecnicoAsignado', 'detalle', 'historial.responsable', 'historial.funcionario']);
         $tecnicos = User::where('estado_user', 1)->orderBy('name')->get();
+        $detallesComunes = detalles_problemas::where('tipo_problema', Ticket::tipoParaDetalle($ticket->tipo_problema))
+            ->orderBy('detalle')
+            ->get();
 
-        return view('Tickets.show', compact('ticket', 'tecnicos'));
+        return view('Tickets.show', compact('ticket', 'tecnicos', 'detallesComunes'));
     }
 
     public function asignar(Request $request, Ticket $ticket): RedirectResponse
@@ -125,30 +206,55 @@ class TicketController extends Controller
                 ->with('error', 'Debe asignar un técnico antes de cerrar el ticket.');
         }
 
+        // "Otro (especificar)" puede llegar como "" o "otro" desde el selector
+        $detalleId = $request->input('detalle_id');
+        if ($detalleId === '' || $detalleId === 'otro') {
+            $request->merge(['detalle_id' => null]);
+            $detalleId = null;
+        }
+
         $datos = $request->validate([
-            'observacion' => ['nullable', 'string', 'max:2000'],
+            'detalle_id' => [
+                'nullable',
+                Rule::exists('detalles_problemas', 'id')->where('tipo_problema', Ticket::tipoParaDetalle($ticket->tipo_problema)),
+            ],
+            'observacion' => [Rule::requiredIf(empty($detalleId)), 'nullable', 'string', 'max:2000'],
         ], [
+            'detalle_id.exists' => 'El problema común seleccionado no corresponde al tipo de problema del ticket.',
+            'observacion.required' => 'Debe especificar el problema y la solución en observaciones al seleccionar "Otro (especificar)".',
             'observacion.max' => 'La observación no puede superar los 2000 caracteres.',
         ]);
 
         $observacion = isset($datos['observacion']) && trim($datos['observacion']) !== ''
             ? trim($datos['observacion'])
             : null;
+        $detalleSeleccionadoId = $datos['detalle_id'] ?? null;
 
         try {
-            DB::transaction(function () use ($ticket, $observacion): void {
+            DB::transaction(function () use ($ticket, $detalleSeleccionadoId, $observacion): void {
+                $detalle = $detalleSeleccionadoId !== null
+                    ? detalles_problemas::find($detalleSeleccionadoId)
+                    : null;
+
                 $ticket->update([
                     'estado' => Ticket::ESTADO_CERRADO,
                     'fecha_cierre' => now()->toDateString(),
+                    'detalle_id' => $detalle?->id,
                     'observacion' => $observacion,
                 ]);
+
+                $accion = $detalle !== null
+                    ? 'Ticket cerrado ('.$detalle->detalle.')'.($observacion !== null ? ': '.$observacion : '')
+                    : 'Ticket cerrado: '.$observacion;
+
+                $accion = $detalle !== null
+                    ? 'Ticket cerrado (' . $detalle->detalle . ')' . ($observacion !== null ? ': ' . $observacion : '')
+                    : 'Ticket cerrado: ' . $observacion;
 
                 TicketHistory::create([
                     'ticket_id' => $ticket->id,
                     'funcionario_id' => $ticket->funcionario_id,
-                    'accion' => $observacion !== null
-                        ? Str::limit('Ticket cerrado: '.$observacion, 250)
-                        : 'Ticket cerrado',
+                    'accion' => Str::limit($accion, 250),
                     'responsable_id' => Auth::id(),
                     'fecha' => now()->toDateString(),
                 ]);
@@ -156,6 +262,7 @@ class TicketController extends Controller
 
             LoggerService::info('Ticket cerrado', [
                 'ticket_id' => $ticket->id,
+                'detalle_id' => $detalleSeleccionadoId,
                 'user_id' => Auth::id(),
             ]);
         } catch (\Exception $e) {
