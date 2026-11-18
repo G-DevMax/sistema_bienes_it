@@ -31,6 +31,7 @@ class TicketTest extends TestCase
     public function test_invitado_es_redirigido_al_login_en_rutas_de_tecnico_pero_rutas_de_usuario_son_publicas(): void
     {
         $this->get(route('tickets.dashboard'))->assertRedirect(route('login'));
+        $this->get(route('tickets.pendientes-status'))->assertRedirect(route('login'));
         $this->get(route('tickets.index'))->assertRedirect(route('login'));
         $this->post(route('tickets.asignar', 1))->assertRedirect(route('login'));
         $this->post(route('tickets.cerrar', 1))->assertRedirect(route('login'));
@@ -70,7 +71,7 @@ class TicketTest extends TestCase
         $vista->assertSee('searchable-select', false);
         $vista->assertSee('Carlos Benítez');
         $vista->assertSee('type="radio"', false);
-        foreach (['Hardware', 'Software', 'Red', 'Impresora', 'Cuenta y Acceso', 'Consulta', 'Insumo'] as $tipo) {
+        foreach (Ticket::TIPOS_PROBLEMA as $tipo) {
             $vista->assertSee($tipo);
         }
         $vista->assertSee('0 / 100 palabras');
@@ -82,7 +83,7 @@ class TicketTest extends TestCase
 
     public function test_validacion_titulo_hasta_100_palabras_y_tipos_incluyen_impresora(): void
     {
-        $this->assertContains('Impresora', Ticket::TIPOS_PROBLEMA);
+        $tipoPrueba = Ticket::TIPOS_PROBLEMA[0];
 
         $reglaPalabras = function (string $attribute, mixed $value, \Closure $fail): void {
             $palabras = preg_split('/\s+/u', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
@@ -93,7 +94,7 @@ class TicketTest extends TestCase
 
         $valido = Validator::make(
             [
-                'tipo_problema' => 'Impresora',
+                'tipo_problema' => $tipoPrueba,
                 'descripcion_problema' => implode(' ', array_fill(0, 100, 'a')),
             ],
             [
@@ -105,7 +106,7 @@ class TicketTest extends TestCase
 
         $invalido = Validator::make(
             [
-                'tipo_problema' => 'Impresora',
+                'tipo_problema' => $tipoPrueba,
                 'descripcion_problema' => implode(' ', array_fill(0, 101, 'a')),
             ],
             [
@@ -307,13 +308,22 @@ class TicketTest extends TestCase
         $request->setRouteResolver(fn () => $route);
         app()->instance('request', $request);
 
-        $html = view('layouts.app')->render();
+        $html = view('layouts.app', ['pendientes' => 4])->render();
 
+        $this->assertStringContainsString('<title>(4) Sistema de Bienes IT</title>', $html);
         $this->assertStringContainsString('InfraDesk - Tickets IT', $html);
         $this->assertStringContainsString('Inicio', $html);
         $this->assertStringContainsString('Listado de Tickets', $html);
         $this->assertStringContainsString('Crear Ticket', $html);
         $this->assertStringContainsString(route('tickets.dashboard'), $html);
         $this->assertStringContainsString(route('tickets.index'), $html);
+
+        $routeIndex = app('router')->getRoutes()->getByName('tickets.index');
+        $requestIndex = Request::create('/tickets/listado', 'GET');
+        $requestIndex->setRouteResolver(fn () => $routeIndex);
+        app()->instance('request', $requestIndex);
+
+        $htmlIndex = view('layouts.app', ['pendientes' => 4])->render();
+        $this->assertStringContainsString('<title>Sistema de Bienes IT</title>', $htmlIndex);
     }
 }

@@ -10,6 +10,7 @@ use App\Models\Tickets\TicketHistory;
 use App\Models\User;
 use App\Services\LoggerService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,7 +37,29 @@ class TicketController extends Controller
             ->limit(5)
             ->get();
 
-        return view('Tickets.dashboard', compact('pendientes', 'asignados', 'cerrados', 'ticketsRecientes'));
+        $ultimoPendienteId = (int) (Ticket::where('estado', Ticket::ESTADO_PENDIENTE)->max('id') ?? 0);
+
+        return view('Tickets.dashboard', compact('pendientes', 'asignados', 'cerrados', 'ticketsRecientes', 'ultimoPendienteId'));
+    }
+
+    public function estadoPendientes(): JsonResponse
+    {
+        $pendientes = Ticket::where('estado', Ticket::ESTADO_PENDIENTE)->count();
+        $ultimo = Ticket::with('funcionario')
+            ->where('estado', Ticket::ESTADO_PENDIENTE)
+            ->orderByDesc('id')
+            ->first();
+
+        return response()->json([
+            'pendientes' => $pendientes,
+            'ultimo_id' => (int) ($ultimo?->id ?? 0),
+            'ultimo_ticket' => $ultimo ? [
+                'id' => $ultimo->id,
+                'funcionario' => $ultimo->funcionario->nombre ?? 'Funcionario',
+                'tipo_problema' => $ultimo->tipo_problema,
+                'descripcion_problema' => $ultimo->descripcion_problema,
+            ] : null,
+        ]);
     }
 
     public function index(Request $request): View
@@ -248,8 +271,8 @@ class TicketController extends Controller
                     : 'Ticket cerrado: '.$observacion;
 
                 $accion = $detalle !== null
-                    ? 'Ticket cerrado (' . $detalle->detalle . ')' . ($observacion !== null ? ': ' . $observacion : '')
-                    : 'Ticket cerrado: ' . $observacion;
+                    ? 'Ticket cerrado ('.$detalle->detalle.')'.($observacion !== null ? ': '.$observacion : '')
+                    : 'Ticket cerrado: '.$observacion;
 
                 TicketHistory::create([
                     'ticket_id' => $ticket->id,

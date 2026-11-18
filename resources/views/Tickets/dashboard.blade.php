@@ -12,6 +12,11 @@
                 </h1>
                 <p class="text-white/70 mt-1">Resumen de solicitudes de soporte técnico</p>
             </div>
+            <button type="button" id="btn-alertas-tickets"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/15 text-white/80 transition-all cursor-pointer">
+                <span id="indicador-alertas" class="w-2 h-2 rounded-full bg-[#FEDB39]"></span>
+                <span id="texto-alertas">Activar notificaciones y sonido</span>
+            </button>
         </div>
 
         <div>
@@ -24,7 +29,7 @@
                 class="bg-white/5 backdrop-blur-xl border border-[#FEDB39]/30 rounded-2xl p-6 shadow-lg flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-white/60">Tickets pendientes</p>
-                    <p class="text-4xl font-bold text-[#FEDB39] mt-2">{{ $pendientes }}</p>
+                    <p id="contador-pendientes" class="text-4xl font-bold text-[#FEDB39] mt-2">{{ $pendientes }}</p>
                 </div>
                 <div class="p-3.5 rounded-xl bg-[#FEDB39]/15 text-[#FEDB39]">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,4 +132,131 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlEstado = @json(route('tickets.pendientes-status'));
+            const contadorEl = document.getElementById('contador-pendientes');
+            const btnAlertas = document.getElementById('btn-alertas-tickets');
+            const textoAlertas = document.getElementById('texto-alertas');
+            const indicadorAlertas = document.getElementById('indicador-alertas');
+
+            let pendientesActual = {{ (int) $pendientes }};
+            let ultimoId = {{ (int) ($ultimoPendienteId ?? 0) }};
+            let audioCtx = null;
+
+            function inicializarAudio() {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) {
+                    return null;
+                }
+                if (!audioCtx) {
+                    audioCtx = new AudioContextClass();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                return audioCtx;
+            }
+
+            function reproducirSonido() {
+                try {
+                    const ctx = inicializarAudio();
+                    if (!ctx) {
+                        return;
+                    }
+                    [587.33, 880].forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        const inicio = ctx.currentTime + idx * 0.16;
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, inicio);
+                        gain.gain.setValueAtTime(0.18, inicio);
+                        gain.gain.exponentialRampToValueAtTime(0.001, inicio + 0.25);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(inicio);
+                        osc.stop(inicio + 0.25);
+                    });
+                } catch (_) {}
+            }
+
+            function actualizarEstadoBoton() {
+                if (!('Notification' in window)) {
+                    textoAlertas.textContent = 'Sonido activo (sin soporte push)';
+                    indicadorAlertas.className = 'w-2 h-2 rounded-full bg-blue-400';
+                    return;
+                }
+                if (Notification.permission === 'granted') {
+                    textoAlertas.textContent = 'Notificaciones y sonido activos';
+                    indicadorAlertas.className = 'w-2 h-2 rounded-full bg-green-400';
+                } else if (Notification.permission === 'denied') {
+                    textoAlertas.textContent = 'Notificaciones bloqueadas (solo sonido)';
+                    indicadorAlertas.className = 'w-2 h-2 rounded-full bg-red-400';
+                }
+            }
+
+            async function activarAlertas() {
+                inicializarAudio();
+                if ('Notification' in window && Notification.permission === 'default') {
+                    try {
+                        await Notification.requestPermission();
+                    } catch (_) {}
+                }
+                actualizarEstadoBoton();
+            }
+
+            btnAlertas?.addEventListener('click', () => {
+                activarAlertas();
+                reproducirSonido();
+            });
+            document.addEventListener('click', activarAlertas, { once: true });
+            actualizarEstadoBoton();
+
+            function notificarNuevoTicket(ticket) {
+                reproducirSonido();
+                if ('Notification' in window && Notification.permission === 'granted' && ticket) {
+                    const notif = new Notification(`Nuevo Ticket Pendiente #${ticket.id}`, {
+                        body: `${ticket.funcionario} (${ticket.tipo_problema}): ${ticket.descripcion_problema}`,
+                        tag: `ticket-${ticket.id}`,
+                    });
+                    notif.onclick = () => {
+                        window.focus();
+                        notif.close();
+                    };
+                }
+            }
+
+            async function verificarPendientes() {
+                try {
+                    const res = await fetch(urlEstado, {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        cache: 'no-store',
+                    });
+                    if (!res.ok) {
+                        return;
+                    }
+                    const data = await res.json();
+                    const nuevosPendientes = Number(data.pendientes ?? 0);
+                    const nuevoUltimoId = Number(data.ultimo_id ?? 0);
+
+                    document.title = `(${nuevosPendientes}) Panel de Tickets`;
+                    if (contadorEl) {
+                        contadorEl.textContent = String(nuevosPendientes);
+                    }
+
+                    if ((nuevoUltimoId > ultimoId && ultimoId !== 0) || nuevosPendientes > pendientesActual) {
+                        notificarNuevoTicket(data.ultimo_ticket);
+                    }
+
+                    pendientesActual = nuevosPendientes;
+                    if (nuevoUltimoId > 0) {
+                        ultimoId = nuevoUltimoId;
+                    }
+                } catch (_) {}
+            }
+
+            setInterval(verificarPendientes, 10000);
+        });
+    </script>
 @endsection

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Sistema de Bienes IT')</title>
+    <title>{{ request()->routeIs('tickets.dashboard') && isset($pendientes) ? "({$pendientes}) " : '' }}@yield('title', 'Sistema de Bienes IT')</title>
     <meta name="description" content="Dashboard del Sistema de Bienes IT">
     <link rel="icon" type="image/png" href="{{ asset('../img/logo_app.png') }}">
 

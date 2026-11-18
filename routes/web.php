@@ -48,6 +48,7 @@ Route::middleware('auth')->group(function () {
 
     // Módulo de Tickets (área del técnico)
     Route::get('tickets', [TicketController::class, 'dashboard'])->name('tickets.dashboard');
+    Route::get('tickets/estado-pendientes', [TicketController::class, 'estadoPendientes'])->name('tickets.pendientes-status');
     Route::get('tickets/listado', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
     Route::post('tickets/{ticket}/asignar', [TicketController::class, 'asignar'])->name('tickets.asignar');

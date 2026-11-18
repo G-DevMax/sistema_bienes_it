@@ -61,12 +61,8 @@
     <main class="w-full max-w-lg mx-auto ticket-user-form">
         <!-- Cabecera simple -->
         <header class="mb-6 text-center sm:text-left">
-            <span
-                class="inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wide uppercase rounded-full bg-indigo-600 text-white">
-                InfraDesk | Soporte Técnico IT
-            </span>
             <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Crear Ticket de Ayuda
+                Crear Ticket de Soporte
             </h1>
         </header>
 
@@ -147,6 +143,7 @@
         </section>
 
         <footer class="mt-6 text-center text-xs text-zinc-500">
+            <p>© {{ date('Y') }} - InfraDesk (SGDI) | Departamento de Informática y TICs</p>
         </footer>
     </main>
 
