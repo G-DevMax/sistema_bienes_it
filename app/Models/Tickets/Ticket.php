@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class Ticket extends Model
 {
@@ -199,5 +200,21 @@ class Ticket extends Model
             ."\nFecha: ".$fechaFormateada
             ."\nHorario aproximado: ".trim((string) $horarioReunion)
             ."\nDetalles de la reunión: ".trim((string) $detallesReunion);
+    }
+
+    /**
+     * Prepara los atributos para generar automáticamente el informe técnico al cerrar el ticket.
+     *
+     * @return array{titulo: string, funcionario_id: int, tipo_problema: string, detalle_id: int|null, observacion: string|null}
+     */
+    public function datosParaInforme(?int $detalleId = null, ?string $observacion = null): array
+    {
+        return [
+            'titulo' => Str::limit(trim((string) $this->descripcion_problema), 495, ''),
+            'funcionario_id' => (int) $this->funcionario_id,
+            'tipo_problema' => self::tipoParaDetalle((string) $this->tipo_problema),
+            'detalle_id' => $detalleId,
+            'observacion' => $observacion,
+        ];
     }
 }

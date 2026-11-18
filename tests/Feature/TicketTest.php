@@ -170,7 +170,7 @@ class TicketTest extends TestCase
             'fecha_creacion' => now(),
         ]);
         $ticketPendiente->id = 15;
-        $ticketPendiente->created_at = now();
+        $ticketPendiente->created_at = now()->setTime(9, 15);
         $ticketPendiente->setRelation('funcionario', $funcionario);
         $ticketPendiente->setRelation('tecnicoAsignado', null);
         $ticketPendiente->setRelation('historial', collect());
@@ -199,6 +199,7 @@ class TicketTest extends TestCase
         $index->assertSee('Carlos Benítez');
         $index->assertSee('Hardware');
         $index->assertSee('Monitor sin señal HDMI');
+        $index->assertSee($ticketPendiente->created_at->format('d/m/Y H:i'));
         $index->assertSee(route('tickets.show', 15));
 
         $showPendiente = $this->view('Tickets.show', [
@@ -207,6 +208,7 @@ class TicketTest extends TestCase
             'detallesComunes' => collect(),
         ]);
         $showPendiente->assertSee('Ticket #15');
+        $showPendiente->assertSee($ticketPendiente->created_at->format('d/m/Y H:i'));
         $showPendiente->assertSee('Asignar Técnico');
         $showPendiente->assertSee('Ana Soporte');
         $showPendiente->assertSee(route('tickets.asignar', 15));
@@ -241,13 +243,23 @@ class TicketTest extends TestCase
             'accion' => 'Ticket creado',
             'fecha' => now()->subDay(),
         ]);
+        $eventoCreacion->created_at = now()->subDay()->setTime(8, 30);
         $eventoCreacion->setRelation('responsable', null);
         $eventoCreacion->setRelation('funcionario', $funcionario);
+
+        $eventoAsignacion = new TicketHistory([
+            'accion' => 'Ticket asignado a Ana Soporte',
+            'fecha' => now(),
+        ]);
+        $eventoAsignacion->created_at = now()->setTime(10, 45);
+        $eventoAsignacion->setRelation('responsable', $tecnico);
+        $eventoAsignacion->setRelation('funcionario', $funcionario);
 
         $eventoCierre = new TicketHistory([
             'accion' => 'Ticket cerrado (Cable HDMI defectuoso): Se cambió el cable HDMI',
             'fecha' => now(),
         ]);
+        $eventoCierre->created_at = now()->setTime(14, 20);
         $eventoCierre->setRelation('responsable', $tecnico);
         $eventoCierre->setRelation('funcionario', $funcionario);
 
@@ -263,10 +275,12 @@ class TicketTest extends TestCase
             'observacion' => 'Se cambió el cable HDMI.',
         ]);
         $ticketCerrado->id = 16;
+        $ticketCerrado->created_at = $eventoCreacion->created_at;
+        $ticketCerrado->updated_at = $eventoCierre->created_at;
         $ticketCerrado->setRelation('funcionario', $funcionario);
         $ticketCerrado->setRelation('tecnicoAsignado', $tecnico);
         $ticketCerrado->setRelation('detalle', $detalleComun);
-        $ticketCerrado->setRelation('historial', collect([$eventoCierre, $eventoCreacion]));
+        $ticketCerrado->setRelation('historial', collect([$eventoCierre, $eventoAsignacion, $eventoCreacion]));
 
         $showCerrado = $this->view('Tickets.show', [
             'ticket' => $ticketCerrado,
@@ -274,6 +288,10 @@ class TicketTest extends TestCase
             'detallesComunes' => collect([$detalleComun]),
         ]);
         $showCerrado->assertSee('Ticket Cerrado');
+        $showCerrado->assertSee('Fecha y Hora de Cierre');
+        $showCerrado->assertSee($eventoCreacion->created_at->format('d/m/Y H:i'));
+        $showCerrado->assertSee($eventoAsignacion->created_at->format('d/m/Y H:i'));
+        $showCerrado->assertSee($eventoCierre->created_at->format('d/m/Y H:i'));
         $showCerrado->assertSee('Cable HDMI defectuoso');
         $showCerrado->assertSee('Se cambió el cable HDMI.');
         $showCerrado->assertSee('Ana Soporte');
@@ -530,5 +548,38 @@ class TicketTest extends TestCase
             'detalles_reunion' => 'Auditorio - micrófono y HDMI',
         ], $reglas);
         $this->assertFalse($valido->fails());
+    }
+
+    public function test_datos_para_informe_mapea_ticket_cerrado_al_modulo_de_informes(): void
+    {
+        $ticket = new Ticket([
+            'funcionario_id' => 9,
+            'tipo_problema' => 'Cuenta y Acceso',
+            'descripcion_problema' => '  Restablecer contraseña de correo institucional  ',
+        ]);
+
+        $datos = $ticket->datosParaInforme(5, 'Se restableció la clave.');
+
+        $this->assertSame([
+            'titulo' => 'Restablecer contraseña de correo institucional',
+            'funcionario_id' => 9,
+            'tipo_problema' => 'Cuentas y Accesos',
+            'detalle_id' => 5,
+            'observacion' => 'Se restableció la clave.',
+        ], $datos);
+
+        $ticketReunion = new Ticket([
+            'funcionario_id' => 12,
+            'tipo_problema' => Ticket::TIPO_ASISTENCIA_REUNION,
+            'descripcion_problema' => str_repeat('a', 520),
+        ]);
+
+        $datosReunion = $ticketReunion->datosParaInforme(null, 'Todo funcionó correctamente.');
+
+        $this->assertSame(495, strlen($datosReunion['titulo']));
+        $this->assertSame(12, $datosReunion['funcionario_id']);
+        $this->assertSame(Ticket::TIPO_ASISTENCIA_REUNION, $datosReunion['tipo_problema']);
+        $this->assertNull($datosReunion['detalle_id']);
+        $this->assertSame('Todo funcionó correctamente.', $datosReunion['observacion']);
     }
 }

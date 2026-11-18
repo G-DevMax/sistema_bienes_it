@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tickets;
 use App\Http\Controllers\Controller;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
+use App\Models\Informes\informes;
 use App\Models\Tickets\Ticket;
 use App\Models\Tickets\TicketHistory;
 use App\Models\User;
@@ -388,9 +389,10 @@ class TicketController extends Controller
             ? trim($datos['observacion'])
             : null;
         $detalleSeleccionadoId = $datos['detalle_id'] ?? null;
+        $informe = null;
 
         try {
-            DB::transaction(function () use ($ticket, $detalleSeleccionadoId, $observacion): void {
+            DB::transaction(function () use ($ticket, $detalleSeleccionadoId, $observacion, &$informe): void {
                 $detalle = $detalleSeleccionadoId !== null
                     ? detalles_problemas::find($detalleSeleccionadoId)
                     : null;
@@ -406,10 +408,6 @@ class TicketController extends Controller
                     ? 'Ticket cerrado ('.$detalle->detalle.')'.($observacion !== null ? ': '.$observacion : '')
                     : 'Ticket cerrado: '.$observacion;
 
-                $accion = $detalle !== null
-                    ? 'Ticket cerrado ('.$detalle->detalle.')'.($observacion !== null ? ': '.$observacion : '')
-                    : 'Ticket cerrado: '.$observacion;
-
                 TicketHistory::create([
                     'ticket_id' => $ticket->id,
                     'funcionario_id' => $ticket->funcionario_id,
@@ -417,11 +415,14 @@ class TicketController extends Controller
                     'responsable_id' => Auth::id(),
                     'fecha' => now()->toDateString(),
                 ]);
+
+                $informe = informes::create($ticket->datosParaInforme($detalle?->id, $observacion));
             });
 
             LoggerService::info('Ticket cerrado', [
                 'ticket_id' => $ticket->id,
                 'detalle_id' => $detalleSeleccionadoId,
+                'informe_id' => $informe?->id,
                 'user_id' => Auth::id(),
             ]);
         } catch (\Exception $e) {
@@ -435,6 +436,6 @@ class TicketController extends Controller
         }
 
         return redirect()->route('tickets.show', $ticket)
-            ->with('success', 'Ticket cerrado exitosamente.');
+            ->with('success', 'Ticket cerrado exitosamente y registrado en Informes (#'.$informe->id.').');
     }
 }

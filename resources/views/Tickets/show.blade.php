@@ -55,13 +55,14 @@
                         <div>
                             <span class="block text-xs font-medium text-white/50 mb-1">Fecha y Hora de Creación</span>
                             <p class="font-medium text-white">
-                                {{ ($ticket->fecha_creacion ?? $ticket->created_at)?->format('d/m/Y') }}</p>
+                                {{ ($ticket->created_at ?? $ticket->fecha_creacion)?->format('d/m/Y H:i') }}</p>
                         </div>
 
                         @if ($ticket->fecha_cierre)
                             <div>
-                                <span class="block text-xs font-medium text-white/50 mb-1">Fecha de Cierre</span>
-                                <p class="font-medium text-white">{{ $ticket->fecha_cierre->format('d/m/Y') }}</p>
+                                <span class="block text-xs font-medium text-white/50 mb-1">Fecha y Hora de Cierre</span>
+                                <p class="font-medium text-white">
+                                    {{ ($ticket->updated_at ?? $ticket->fecha_cierre)->format('d/m/Y H:i') }}</p>
                             </div>
                         @endif
                     </div>
@@ -112,7 +113,7 @@
                                     </p>
                                 </div>
                                 <span class="text-xs text-white/60 whitespace-nowrap">
-                                    {{ $evento->fecha?->format('d/m/Y') }}
+                                    {{ ($evento->created_at ?? $evento->fecha)?->format('d/m/Y H:i') }}
                                 </span>
                             </div>
                         @empty
@@ -140,7 +141,7 @@
                             </p>
                             <p class="text-xs text-green-200/80">
                                 Atendido por {{ $ticket->tecnicoAsignado->name ?? 'Técnico' }} el
-                                {{ $ticket->fecha_cierre?->format('d/m/Y') }}.
+                                {{ ($ticket->updated_at ?? $ticket->fecha_cierre)?->format('d/m/Y H:i') }}.
                             </p>
                         </div>
                     @elseif ($ticket->estado === \App\Models\Tickets\Ticket::ESTADO_PENDIENTE)

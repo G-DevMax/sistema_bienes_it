@@ -77,7 +77,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-white/80">
-                                    {{ ($ticket->fecha_creacion ?? $ticket->created_at)?->format('d/m/Y') }}
+                                    {{ ($ticket->created_at ?? $ticket->fecha_creacion)?->format('d/m/Y H:i') }}
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <a href="{{ route('tickets.show', $ticket) }}"
