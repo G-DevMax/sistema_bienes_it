@@ -50,6 +50,8 @@ Route::middleware('auth')->group(function () {
     Route::get('tickets', [TicketController::class, 'dashboard'])->name('tickets.dashboard');
     Route::get('tickets/estado-pendientes', [TicketController::class, 'estadoPendientes'])->name('tickets.pendientes-status');
     Route::get('tickets/listado', [TicketController::class, 'index'])->name('tickets.index');
+    Route::get('tickets/crear-manual', [TicketController::class, 'createManual'])->name('tickets.create-manual');
+    Route::post('tickets/crear-manual', [TicketController::class, 'storeManual'])->name('tickets.store-manual');
     Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
     Route::post('tickets/{ticket}/asignar', [TicketController::class, 'asignar'])->name('tickets.asignar');
     Route::post('tickets/{ticket}/cerrar', [TicketController::class, 'cerrar'])->name('tickets.cerrar');

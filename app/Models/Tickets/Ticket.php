@@ -15,6 +15,8 @@ class Ticket extends Model
 {
     use BuscadorUniversal, HasFactory;
 
+    public const ANIO_MINIMO = 2026;
+
     public const ESTADO_PENDIENTE = 'Pendiente';
 
     public const ESTADO_ASIGNADO = 'Asignado';
@@ -131,5 +133,44 @@ class Ticket extends Model
     public static function badgeEstado(string $estado): string
     {
         return self::BADGES_ESTADO[$estado] ?? 'bg-white/10 text-white border-white/20';
+    }
+
+    /**
+     * Valida que el mes (YYYY-MM) corresponda a un mes real dentro del rango de años permitido.
+     */
+    public static function mesValidoEnRango(mixed $mes, int $anioMinimo = self::ANIO_MINIMO, ?int $anioMaximo = null): ?string
+    {
+        if (! is_string($mes) || ! preg_match('/^(\d{4})-(0[1-9]|1[0-2])$/', $mes, $coincidencias)) {
+            return null;
+        }
+
+        $anio = (int) $coincidencias[1];
+        $limiteSuperior = $anioMaximo ?? max(now()->addDay()->year, $anioMinimo);
+
+        return ($anio >= $anioMinimo && $anio <= $limiteSuperior) ? $mes : null;
+    }
+
+    /**
+     * Calcula el año mínimo (>= 2026) y máximo usando el año actual y los registros existentes en BD.
+     *
+     * @return array{min: int, max: int}
+     */
+    public static function rangoAniosDashboard(): array
+    {
+        $rango = self::query()
+            ->selectRaw('MIN(fecha_creacion) as min_creacion, MAX(fecha_creacion) as max_creacion, MAX(fecha_cierre) as max_cierre')
+            ->first();
+
+        $anioActual = max(now()->year, self::ANIO_MINIMO);
+        $anioMinDb = (int) substr((string) ($rango->min_creacion ?? ''), 0, 4);
+        $anioMaxDb = max(
+            (int) substr((string) ($rango->max_creacion ?? ''), 0, 4),
+            (int) substr((string) ($rango->max_cierre ?? ''), 0, 4)
+        );
+
+        $min = $anioMinDb >= self::ANIO_MINIMO ? min($anioMinDb, $anioActual) : self::ANIO_MINIMO;
+        $max = max($anioActual, $anioMaxDb, $min);
+
+        return ['min' => $min, 'max' => $max];
     }
 }

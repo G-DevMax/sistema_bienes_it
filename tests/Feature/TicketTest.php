@@ -33,6 +33,8 @@ class TicketTest extends TestCase
         $this->get(route('tickets.dashboard'))->assertRedirect(route('login'));
         $this->get(route('tickets.pendientes-status'))->assertRedirect(route('login'));
         $this->get(route('tickets.index'))->assertRedirect(route('login'));
+        $this->get(route('tickets.create-manual'))->assertRedirect(route('login'));
+        $this->post(route('tickets.store-manual'))->assertRedirect(route('login'));
         $this->post(route('tickets.asignar', 1))->assertRedirect(route('login'));
         $this->post(route('tickets.cerrar', 1))->assertRedirect(route('login'));
 
@@ -67,7 +69,7 @@ class TicketTest extends TestCase
             'tiposProblema' => Ticket::TIPOS_PROBLEMA,
         ]);
 
-        $vista->assertSee('Crear Ticket de Ayuda');
+        $vista->assertSee('Crear Ticket de Soporte');
         $vista->assertSee('searchable-select', false);
         $vista->assertSee('Carlos Benítez');
         $vista->assertSee('type="radio"', false);
@@ -79,6 +81,30 @@ class TicketTest extends TestCase
         $vista->assertSee('bg-indigo-600', false);
         $vista->assertDontSee('backdrop-blur', false);
         $vista->assertSee(route('tickets.store'));
+    }
+
+    public function test_formulario_manual_tecnico_renderiza_diseno_del_sistema_y_mismos_campos(): void
+    {
+        View::share('errors', new ViewErrorBag);
+
+        $funcionario = new funcionarios(['nombre' => 'Carlos Benítez']);
+        $funcionario->id = 4;
+
+        $vista = $this->view('Tickets.create_manual', [
+            'funcionarios' => collect([$funcionario]),
+            'tiposProblema' => Ticket::TIPOS_PROBLEMA,
+        ]);
+
+        $vista->assertSee('Crear Ticket Manual');
+        $vista->assertSee('searchable-select', false);
+        $vista->assertSee('Carlos Benítez');
+        $vista->assertSee('type="radio"', false);
+        foreach (Ticket::TIPOS_PROBLEMA as $tipo) {
+            $vista->assertSee($tipo);
+        }
+        $vista->assertSee('0 / 100 palabras');
+        $vista->assertSee('backdrop-blur-xl', false);
+        $vista->assertSee(route('tickets.store-manual'));
     }
 
     public function test_validacion_titulo_hasta_100_palabras_y_tipos_incluyen_impresora(): void
@@ -317,6 +343,7 @@ class TicketTest extends TestCase
         $this->assertStringContainsString('Crear Ticket', $html);
         $this->assertStringContainsString(route('tickets.dashboard'), $html);
         $this->assertStringContainsString(route('tickets.index'), $html);
+        $this->assertStringContainsString(route('tickets.create-manual'), $html);
 
         $routeIndex = app('router')->getRoutes()->getByName('tickets.index');
         $requestIndex = Request::create('/tickets/listado', 'GET');
@@ -325,5 +352,75 @@ class TicketTest extends TestCase
 
         $htmlIndex = view('layouts.app', ['pendientes' => 4])->render();
         $this->assertStringContainsString('<title>Sistema de Bienes IT</title>', $htmlIndex);
+    }
+
+    public function test_dashboard_filtro_por_mes_renderiza_boton_calendario_y_filtra_estadisticas(): void
+    {
+        View::share('errors', new ViewErrorBag);
+
+        // Vista en el mes actual (por defecto sin botón de restablecer y acotada a >= 2026)
+        $mesActual = now()->format('Y-m');
+        $anioActual = now()->year;
+        $vistaActual = $this->view('Tickets.dashboard', [
+            'pendientes' => 3,
+            'asignados' => 1,
+            'cerrados' => 5,
+            'ticketsRecientes' => collect(),
+            'ultimoPendienteId' => 10,
+            'mes' => $mesActual,
+            'nombreMes' => 'Noviembre 2026',
+            'nombreMesSimple' => 'Noviembre',
+            'anio' => (string) $anioActual,
+            'anioMinimo' => Ticket::ANIO_MINIMO,
+            'anioMaximo' => $anioActual,
+        ]);
+
+        $vistaActual->assertSee('Mes de Noviembre');
+        $vistaActual->assertSee('type="month"', false);
+        $vistaActual->assertSee('name="mes"', false);
+        $vistaActual->assertSee('value="'.$mesActual.'"', false);
+        $vistaActual->assertSee('min="2026-01"', false);
+        $vistaActual->assertSee('max="'.$anioActual.'-12"', false);
+        $vistaActual->assertDontSee('Volver al mes actual');
+
+        // Vista en un mes filtrado diferente dentro del rango permitido
+        $mesDistinto = now()->month === 1 ? $anioActual.'-02' : $anioActual.'-01';
+        $vistaOtroMes = $this->view('Tickets.dashboard', [
+            'pendientes' => 0,
+            'asignados' => 0,
+            'cerrados' => 2,
+            'ticketsRecientes' => collect(),
+            'ultimoPendienteId' => 10,
+            'mes' => $mesDistinto,
+            'nombreMes' => 'Enero '.$anioActual,
+            'nombreMesSimple' => 'Enero',
+            'anio' => (string) $anioActual,
+            'anioMinimo' => 2026,
+            'anioMaximo' => max(2028, $anioActual),
+        ]);
+
+        $vistaOtroMes->assertSee('Mes de Enero');
+        $vistaOtroMes->assertSee('value="'.$mesDistinto.'"', false);
+        $vistaOtroMes->assertSee('min="2026-01"', false);
+        $vistaOtroMes->assertSee('max="'.max(2028, $anioActual).'-12"', false);
+        $vistaOtroMes->assertSee('Volver al mes actual');
+
+        // Comprobación de consulta para filtrado de estadísticas por mes y año
+        $queryPendientes = Ticket::where('estado', Ticket::ESTADO_PENDIENTE)
+            ->whereYear('fecha_creacion', 2026)
+            ->whereMonth('fecha_creacion', 8);
+
+        $sql = $queryPendientes->toSql();
+        $this->assertStringContainsString('fecha_creacion', $sql);
+        $this->assertStringContainsString('estado', $sql);
+
+        // Validación de rango dinámico (>= 2026, hasta año máximo, meses reales 01..12)
+        $this->assertSame('2026-11', Ticket::mesValidoEnRango('2026-11', 2026, 2026));
+        $this->assertSame('2026-05', Ticket::mesValidoEnRango('2026-05', 2026, 2028));
+        $this->assertNull(Ticket::mesValidoEnRango('2025-12', 2026, 2026));
+        $this->assertNull(Ticket::mesValidoEnRango('2027-01', 2026, 2026));
+        $this->assertNull(Ticket::mesValidoEnRango('2026-13', 2026, 2026));
+        $this->assertNull(Ticket::mesValidoEnRango('2026-00', 2026, 2026));
+        $this->assertNull(Ticket::mesValidoEnRango('mes-invalido', 2026, 2026));
     }
 }

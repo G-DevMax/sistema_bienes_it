@@ -68,6 +68,59 @@
             </div>
         </div>
 
+        @php
+            $mesActualServidor = now()->format('Y-m');
+            $mesSeleccionado = $mes ?? $mesActualServidor;
+            $nombreMesMostrar = $nombreMesSimple ?? ($nombreMes ?? 'Mes');
+            $anioMostrar = $anio ?? substr($mesSeleccionado, 0, 4);
+            $anioMinimoPicker = $anioMinimo ?? \App\Models\Tickets\Ticket::ANIO_MINIMO;
+            $anioMaximoPicker = $anioMaximo ?? max(now()->year, (int) $anioMostrar, $anioMinimoPicker);
+        @endphp
+
+        <!-- Filtro por mes -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-3">
+                <div class="relative inline-flex items-center">
+                    <button type="button" id="btn-filtro-mes"
+                        class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white/10 hover:bg-white/15 border border-white/20 text-white shadow-md transition-all cursor-pointer">
+                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>Mes de {{ $nombreMesMostrar }}</span>
+                        <span class="text-blue-300 text-xs font-medium bg-blue-500/20 border border-blue-400/30 px-2 py-0.5 rounded-md">
+                            {{ $anioMostrar }}
+                        </span>
+                        <svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <input type="month" id="input-filtro-mes" name="mes"
+                        value="{{ $mesSeleccionado }}"
+                        min="{{ $anioMinimoPicker }}-01"
+                        max="{{ $anioMaximoPicker }}-12"
+                        class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                        title="Seleccionar mes para filtrar"
+                        onclick="if (this.showPicker) { try { this.showPicker(); } catch (e) {} }"
+                        onchange="if (this.value && (!this.min || this.value >= this.min) && (!this.max || this.value <= this.max)) { window.location.href = '{{ route('tickets.dashboard') }}?mes=' + this.value; }">
+                </div>
+
+                @if ($mesSeleccionado !== $mesActualServidor)
+                    <a href="{{ route('tickets.dashboard') }}"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-300 hover:text-white bg-blue-500/10 hover:bg-blue-500/20 border border-blue-400/20 transition-all">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span>Volver al mes actual</span>
+                    </a>
+                @endif
+            </div>
+
+            <p class="text-xs text-white/50">
+                Filtrando estadísticas de <span class="text-white font-medium">{{ $nombreMesMostrar }} {{ $anioMostrar }}</span>
+            </p>
+        </div>
+
         <!-- Tickets recientes -->
         <div
             class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
@@ -135,7 +188,39 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const urlEstado = @json(route('tickets.pendientes-status'));
+            const ahora = new Date();
+            const anioMinimo = {{ (int) $anioMinimoPicker }};
+            const anioMaximo = Math.max(ahora.getFullYear(), {{ (int) $anioMaximoPicker }});
+            const btnFiltroMes = document.getElementById('btn-filtro-mes');
+            const inputFiltroMes = document.getElementById('input-filtro-mes');
+
+            if (inputFiltroMes) {
+                inputFiltroMes.max = `${anioMaximo}-12`;
+            }
+
+            // Sincronizar por defecto con el mes registrado en el dispositivo si no se indicó en la URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has('mes') && ahora.getFullYear() >= anioMinimo) {
+                const mesDispositivo = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
+                const mesServidor = '{{ $mesSeleccionado }}';
+                if (mesDispositivo !== mesServidor) {
+                    urlParams.set('mes', mesDispositivo);
+                    window.location.replace(`${window.location.pathname}?${urlParams.toString()}`);
+                    return;
+                }
+            }
+
+            if (btnFiltroMes && inputFiltroMes) {
+                btnFiltroMes.addEventListener('click', () => {
+                    if (inputFiltroMes.showPicker) {
+                        try {
+                            inputFiltroMes.showPicker();
+                        } catch (_) {}
+                    }
+                });
+            }
+
+            const urlEstado = @json(route('tickets.pendientes-status', ['mes' => $mesSeleccionado]));
             const contadorEl = document.getElementById('contador-pendientes');
             const btnAlertas = document.getElementById('btn-alertas-tickets');
             const textoAlertas = document.getElementById('texto-alertas');

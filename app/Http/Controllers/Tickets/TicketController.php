@@ -20,16 +20,60 @@ use Illuminate\Validation\Rule;
 
 class TicketController extends Controller
 {
-    public function dashboard(): View
+    public function dashboard(Request $request): View
     {
-        $conteos = Ticket::query()
-            ->selectRaw('estado, COUNT(*) as total')
-            ->groupBy('estado')
-            ->pluck('total', 'estado');
+        $rangoAnios = Ticket::rangoAniosDashboard();
+        $anioMinimo = $rangoAnios['min'];
+        $anioMaximo = $rangoAnios['max'];
 
-        $pendientes = (int) ($conteos[Ticket::ESTADO_PENDIENTE] ?? 0);
-        $asignados = (int) ($conteos[Ticket::ESTADO_ASIGNADO] ?? 0);
-        $cerrados = (int) ($conteos[Ticket::ESTADO_CERRADO] ?? 0);
+        $mes = Ticket::mesValidoEnRango($request->query('mes'), $anioMinimo, max($anioMaximo, now()->addDay()->year))
+            ?? sprintf('%04d-%02d', max(now()->year, $anioMinimo), now()->month);
+
+        [$year, $month] = explode('-', $mes);
+        $anioMaximo = max($anioMaximo, (int) $year);
+
+        $pendientes = Ticket::where('estado', Ticket::ESTADO_PENDIENTE)
+            ->whereYear('fecha_creacion', $year)
+            ->whereMonth('fecha_creacion', $month)
+            ->count();
+
+        $asignados = Ticket::where('estado', Ticket::ESTADO_ASIGNADO)
+            ->whereYear('fecha_creacion', $year)
+            ->whereMonth('fecha_creacion', $month)
+            ->count();
+
+        $cerrados = Ticket::where('estado', Ticket::ESTADO_CERRADO)
+            ->where(function ($q) use ($year, $month): void {
+                $q->where(function ($sub) use ($year, $month): void {
+                    $sub->whereNotNull('fecha_cierre')
+                        ->whereYear('fecha_cierre', $year)
+                        ->whereMonth('fecha_cierre', $month);
+                })->orWhere(function ($sub) use ($year, $month): void {
+                    $sub->whereNull('fecha_cierre')
+                        ->whereYear('fecha_creacion', $year)
+                        ->whereMonth('fecha_creacion', $month);
+                });
+            })
+            ->count();
+
+        $meses = [
+            '01' => 'Enero',
+            '02' => 'Febrero',
+            '03' => 'Marzo',
+            '04' => 'Abril',
+            '05' => 'Mayo',
+            '06' => 'Junio',
+            '07' => 'Julio',
+            '08' => 'Agosto',
+            '09' => 'Septiembre',
+            '10' => 'Octubre',
+            '11' => 'Noviembre',
+            '12' => 'Diciembre',
+        ];
+
+        $nombreMesSimple = $meses[$month] ?? 'Mes';
+        $nombreMes = $nombreMesSimple.' '.$year;
+        $anio = $year;
 
         $ticketsRecientes = Ticket::with('funcionario')
             ->orderByDesc('created_at')
@@ -39,12 +83,32 @@ class TicketController extends Controller
 
         $ultimoPendienteId = (int) (Ticket::where('estado', Ticket::ESTADO_PENDIENTE)->max('id') ?? 0);
 
-        return view('Tickets.dashboard', compact('pendientes', 'asignados', 'cerrados', 'ticketsRecientes', 'ultimoPendienteId'));
+        return view('Tickets.dashboard', compact(
+            'pendientes',
+            'asignados',
+            'cerrados',
+            'ticketsRecientes',
+            'ultimoPendienteId',
+            'mes',
+            'nombreMes',
+            'nombreMesSimple',
+            'anio',
+            'anioMinimo',
+            'anioMaximo'
+        ));
     }
 
-    public function estadoPendientes(): JsonResponse
+    public function estadoPendientes(Request $request): JsonResponse
     {
-        $pendientes = Ticket::where('estado', Ticket::ESTADO_PENDIENTE)->count();
+        $mes = Ticket::mesValidoEnRango($request->query('mes'));
+        $queryPendientes = Ticket::where('estado', Ticket::ESTADO_PENDIENTE);
+
+        if ($mes !== null) {
+            [$year, $month] = explode('-', $mes);
+            $queryPendientes->whereYear('fecha_creacion', $year)->whereMonth('fecha_creacion', $month);
+        }
+
+        $pendientes = $queryPendientes->count();
         $ultimo = Ticket::with('funcionario')
             ->where('estado', Ticket::ESTADO_PENDIENTE)
             ->orderByDesc('id')
@@ -87,58 +151,20 @@ class TicketController extends Controller
         return view('Tickets.create', compact('funcionarios', 'tiposProblema'));
     }
 
+    public function createManual(): View
+    {
+        $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
+        $tiposProblema = Ticket::TIPOS_PROBLEMA;
+
+        return view('Tickets.create_manual', compact('funcionarios', 'tiposProblema'));
+    }
+
     public function store(Request $request): RedirectResponse
     {
-        $datos = $request->validate([
-            'funcionario_id' => ['required', Rule::exists('funcionarios', 'id')->where('estado_funcionario', 1)],
-            'tipo_problema' => ['required', Rule::in(Ticket::TIPOS_PROBLEMA)],
-            'descripcion_problema' => [
-                'required',
-                'string',
-                'max:255',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    $palabras = preg_split('/\s+/u', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
-                    if (count($palabras) > 100) {
-                        $fail('El título del problema no puede superar las 100 palabras.');
-                    }
-                },
-            ],
-        ], [
-            'funcionario_id.required' => 'Debe seleccionar su nombre de funcionario.',
-            'funcionario_id.exists' => 'El funcionario seleccionado no es válido o está inactivo.',
-            'tipo_problema.required' => 'Debe seleccionar el tipo de problema.',
-            'tipo_problema.in' => 'El tipo de problema seleccionado no es válido.',
-            'descripcion_problema.required' => 'Debe escribir un título breve para su problema.',
-            'descripcion_problema.max' => 'El título del problema no puede superar los 255 caracteres.',
-        ]);
+        $datos = $this->validarTicket($request);
 
         try {
-            $ticket = DB::transaction(function () use ($datos): Ticket {
-                $ticket = Ticket::create([
-                    'funcionario_id' => $datos['funcionario_id'],
-                    'tipo_problema' => $datos['tipo_problema'],
-                    'descripcion_problema' => trim($datos['descripcion_problema']),
-                    'estado' => Ticket::ESTADO_PENDIENTE,
-                    'fecha_creacion' => now()->toDateString(),
-                ]);
-
-                TicketHistory::create([
-                    'ticket_id' => $ticket->id,
-                    'funcionario_id' => $ticket->funcionario_id,
-                    'accion' => 'Ticket creado',
-                    'responsable_id' => Auth::id(),
-                    'fecha' => now()->toDateString(),
-                ]);
-
-                return $ticket;
-            });
-
-            LoggerService::info('Ticket creado', [
-                'ticket_id' => $ticket->id,
-                'funcionario_id' => $ticket->funcionario_id,
-                'tipo_problema' => $ticket->tipo_problema,
-                'user_id' => Auth::id(),
-            ]);
+            $ticket = $this->crearTicket($datos);
         } catch (\Exception $e) {
             LoggerService::error('Error al crear ticket', [
                 'funcionario_id' => $request->input('funcionario_id'),
@@ -153,6 +179,92 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.create')
             ->with('success', 'Tu ticket #'.$ticket->id.' fue enviado correctamente. En breve un técnico le asistirá con su problema.');
+    }
+
+    public function storeManual(Request $request): RedirectResponse
+    {
+        $datos = $this->validarTicket($request);
+
+        try {
+            $ticket = $this->crearTicket($datos);
+        } catch (\Exception $e) {
+            LoggerService::error('Error al crear ticket manual', [
+                'funcionario_id' => $request->input('funcionario_id'),
+                'tipo_problema' => $request->input('tipo_problema'),
+                'user_id' => Auth::id(),
+            ], $e);
+
+            return redirect()->route('tickets.create-manual')
+                ->withInput()
+                ->with('error', 'No se pudo registrar el ticket. Intente nuevamente.');
+        }
+
+        return redirect()->route('tickets.index')
+            ->with('success', 'Ticket #'.$ticket->id.' creado exitosamente.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validarTicket(Request $request): array
+    {
+        return $request->validate([
+            'funcionario_id' => ['required', Rule::exists('funcionarios', 'id')->where('estado_funcionario', 1)],
+            'tipo_problema' => ['required', Rule::in(Ticket::TIPOS_PROBLEMA)],
+            'descripcion_problema' => [
+                'required',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $palabras = preg_split('/\s+/u', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
+                    if (count($palabras) > 100) {
+                        $fail('El título del problema no puede superar las 100 palabras.');
+                    }
+                },
+            ],
+        ], [
+            'funcionario_id.required' => 'Debe seleccionar un funcionario.',
+            'funcionario_id.exists' => 'El funcionario seleccionado no es válido o está inactivo.',
+            'tipo_problema.required' => 'Debe seleccionar el tipo de problema.',
+            'tipo_problema.in' => 'El tipo de problema seleccionado no es válido.',
+            'descripcion_problema.required' => 'Debe escribir un título breve para el problema.',
+            'descripcion_problema.max' => 'El título del problema no puede superar los 255 caracteres.',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $datos
+     */
+    private function crearTicket(array $datos): Ticket
+    {
+        $ticket = DB::transaction(function () use ($datos): Ticket {
+            $ticket = Ticket::create([
+                'funcionario_id' => $datos['funcionario_id'],
+                'tipo_problema' => $datos['tipo_problema'],
+                'descripcion_problema' => trim($datos['descripcion_problema']),
+                'estado' => Ticket::ESTADO_PENDIENTE,
+                'fecha_creacion' => now()->toDateString(),
+            ]);
+
+            TicketHistory::create([
+                'ticket_id' => $ticket->id,
+                'funcionario_id' => $ticket->funcionario_id,
+                'accion' => 'Ticket creado',
+                'responsable_id' => Auth::id(),
+                'fecha' => now()->toDateString(),
+            ]);
+
+            return $ticket;
+        });
+
+        LoggerService::info('Ticket creado', [
+            'ticket_id' => $ticket->id,
+            'funcionario_id' => $ticket->funcionario_id,
+            'tipo_problema' => $ticket->tipo_problema,
+            'user_id' => Auth::id(),
+        ]);
+
+        return $ticket;
     }
 
     public function show(Ticket $ticket): View

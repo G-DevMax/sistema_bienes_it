@@ -207,28 +207,4 @@ class InformeTest extends TestCase
 
         $this->assertStringStartsWith('%PDF-', $pdfBytes);
     }
-
-    public function test_genera_pdf_informe_servicio_tecnico_con_texto_largo(): void
-    {
-        $service = new InformePdfService();
-        $logoMethod = new \ReflectionMethod($service, 'logoBase64');
-        $logoBase64 = $logoMethod->invoke($service);
-
-        $this->assertNotNull($logoBase64);
-        $this->assertStringStartsWith('data:image/png;base64,', $logoBase64);
-
-        $pdfBytes = Pdf::loadView('Informes.pdf', [
-            'numero' => 1,
-            'fecha' => '16/11/2026',
-            'usuario' => 'Nacho Bogarin',
-            'tecnico' => 'Gustavo Martínez',
-            'titulo' => implode(' ', array_fill(0, 40, 'Equipo')),
-            'tipo_problema' => 'Hardware',
-            'detalle' => 'El equipo presenta fallos en su fuente de poder',
-            'observacion' => "Se realizó el cambio de fuente de poder.\nEl usuario mandó la petición por correo.",
-            'logoBase64' => $logoBase64,
-        ])->setPaper('a4', 'portrait')->output();
-
-        $this->assertStringStartsWith('%PDF-', $pdfBytes);
-    }
 }

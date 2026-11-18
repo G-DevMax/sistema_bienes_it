@@ -57,10 +57,10 @@
                         class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.index', 'tickets.show') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
                         Listado de Tickets
                     </a>
-                    <span title="Próximamente" aria-disabled="true"
-                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/40 cursor-not-allowed select-none">
+                    <a href="{{ route('tickets.create-manual') }}"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.create-manual') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
                         Crear Ticket
-                    </span>
+                    </a>
                 @else
                     <a href="{{ route('items.index') }}"
                         class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
