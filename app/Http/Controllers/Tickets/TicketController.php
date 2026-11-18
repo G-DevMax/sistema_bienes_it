@@ -208,20 +208,29 @@ class TicketController extends Controller
      */
     private function validarTicket(Request $request): array
     {
+        $esReunion = $request->input('tipo_problema') === Ticket::TIPO_ASISTENCIA_REUNION;
+
         return $request->validate([
             'funcionario_id' => ['required', Rule::exists('funcionarios', 'id')->where('estado_funcionario', 1)],
             'tipo_problema' => ['required', Rule::in(Ticket::TIPOS_PROBLEMA)],
             'descripcion_problema' => [
-                'required',
+                Rule::requiredIf(! $esReunion),
+                'nullable',
                 'string',
                 'max:255',
-                function (string $attribute, mixed $value, \Closure $fail): void {
+                function (string $attribute, mixed $value, \Closure $fail) use ($esReunion): void {
+                    if ($esReunion) {
+                        return;
+                    }
                     $palabras = preg_split('/\s+/u', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
                     if (count($palabras) > 100) {
                         $fail('El título del problema no puede superar las 100 palabras.');
                     }
                 },
             ],
+            'fecha_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'date', 'after_or_equal:2026-01-01'],
+            'horario_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'string', 'max:100'],
+            'detalles_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'string', 'max:500'],
         ], [
             'funcionario_id.required' => 'Debe seleccionar un funcionario.',
             'funcionario_id.exists' => 'El funcionario seleccionado no es válido o está inactivo.',
@@ -229,6 +238,13 @@ class TicketController extends Controller
             'tipo_problema.in' => 'El tipo de problema seleccionado no es válido.',
             'descripcion_problema.required' => 'Debe escribir un título breve para el problema.',
             'descripcion_problema.max' => 'El título del problema no puede superar los 255 caracteres.',
+            'fecha_reunion.required' => 'Debe indicar la fecha de la reunión.',
+            'fecha_reunion.date' => 'La fecha de la reunión no es válida.',
+            'fecha_reunion.after_or_equal' => 'La fecha de la reunión debe ser a partir del 01/01/2026.',
+            'horario_reunion.required' => 'Debe indicar la hora de comienzo y finalización aproximada de la reunión.',
+            'horario_reunion.max' => 'El horario de la reunión no puede superar los 100 caracteres.',
+            'detalles_reunion.required' => 'Debe indicar dónde será la reunión y sus observaciones.',
+            'detalles_reunion.max' => 'Los detalles de la reunión no pueden superar los 500 caracteres.',
         ]);
     }
 
@@ -237,11 +253,19 @@ class TicketController extends Controller
      */
     private function crearTicket(array $datos): Ticket
     {
-        $ticket = DB::transaction(function () use ($datos): Ticket {
+        $descripcion = Ticket::formatearDescripcion(
+            $datos['tipo_problema'],
+            $datos['descripcion_problema'] ?? null,
+            $datos['fecha_reunion'] ?? null,
+            $datos['horario_reunion'] ?? null,
+            $datos['detalles_reunion'] ?? null
+        );
+
+        $ticket = DB::transaction(function () use ($datos, $descripcion): Ticket {
             $ticket = Ticket::create([
                 'funcionario_id' => $datos['funcionario_id'],
                 'tipo_problema' => $datos['tipo_problema'],
-                'descripcion_problema' => trim($datos['descripcion_problema']),
+                'descripcion_problema' => $descripcion,
                 'estado' => Ticket::ESTADO_PENDIENTE,
                 'fecha_creacion' => now()->toDateString(),
             ]);

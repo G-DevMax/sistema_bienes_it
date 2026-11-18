@@ -77,6 +77,9 @@ class TicketTest extends TestCase
             $vista->assertSee($tipo);
         }
         $vista->assertSee('0 / 100 palabras');
+        $vista->assertSee('campos-reunion', false);
+        $vista->assertSee('type="date"', false);
+        $vista->assertSeeInOrder(['name="fecha_reunion"', 'name="horario_reunion"', 'name="detalles_reunion"'], false);
         $vista->assertSee('bg-neutral-950', false);
         $vista->assertSee('bg-indigo-600', false);
         $vista->assertDontSee('backdrop-blur', false);
@@ -103,6 +106,9 @@ class TicketTest extends TestCase
             $vista->assertSee($tipo);
         }
         $vista->assertSee('0 / 100 palabras');
+        $vista->assertSee('campos-reunion', false);
+        $vista->assertSee('type="date"', false);
+        $vista->assertSeeInOrder(['name="fecha_reunion"', 'name="horario_reunion"', 'name="detalles_reunion"'], false);
         $vista->assertSee('backdrop-blur-xl', false);
         $vista->assertSee(route('tickets.store-manual'));
     }
@@ -475,5 +481,54 @@ class TicketTest extends TestCase
         $html = preg_replace('/\s+/', ' ', (string) $createMovimiento);
         $this->assertStringContainsString('<option value="4" selected>', $html);
         $this->assertStringNotContainsString('<option value="9" selected>', $html);
+    }
+
+    public function test_asistencia_reunion_formatea_descripcion_y_exige_horario_y_detalles(): void
+    {
+        $descripcionReunion = Ticket::formatearDescripcion(
+            Ticket::TIPO_ASISTENCIA_REUNION,
+            'Texto alterado manualmente',
+            '2026-11-20',
+            '09:00 a 11:00 aprox.',
+            'Sala Piso 2 - Proyector'
+        );
+
+        $this->assertSame(
+            "Asistencia a Reunión\nFecha: 20/11/2026\nHorario aproximado: 09:00 a 11:00 aprox.\nDetalles de la reunión: Sala Piso 2 - Proyector",
+            $descripcionReunion
+        );
+
+        $descripcionNormal = Ticket::formatearDescripcion(
+            'Internet',
+            '  Sin conexión en oficina  ',
+            '2026-11-20',
+            '09:00 a 11:00',
+            'Ignorado'
+        );
+        $this->assertSame('Sin conexión en oficina', $descripcionNormal);
+
+        $esReunion = true;
+        $reglas = [
+            'fecha_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'date', 'after_or_equal:2026-01-01'],
+            'horario_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'string', 'max:100'],
+            'detalles_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'string', 'max:500'],
+        ];
+
+        $invalido = Validator::make([
+            'fecha_reunion' => '',
+            'horario_reunion' => '',
+            'detalles_reunion' => '',
+        ], $reglas);
+        $this->assertTrue($invalido->fails());
+        $this->assertArrayHasKey('fecha_reunion', $invalido->errors()->toArray());
+        $this->assertArrayHasKey('horario_reunion', $invalido->errors()->toArray());
+        $this->assertArrayHasKey('detalles_reunion', $invalido->errors()->toArray());
+
+        $valido = Validator::make([
+            'fecha_reunion' => '2026-11-20',
+            'horario_reunion' => '14:00 a 15:30 aprox.',
+            'detalles_reunion' => 'Auditorio - micrófono y HDMI',
+        ], $reglas);
+        $this->assertFalse($valido->fails());
     }
 }

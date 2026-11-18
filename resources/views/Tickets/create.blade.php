@@ -134,6 +134,43 @@
                     </p>
                 </div>
 
+                <!-- 4. Campos adicionales para Asistencia a Reunión -->
+                <div id="campos-reunion" class="hidden space-y-5 pt-3 border-t border-zinc-800">
+                    <div>
+                        <label for="fecha_reunion" class="block mb-2 text-sm font-semibold text-zinc-200">
+                            Fecha de la reunión
+                        </label>
+                        <input type="date" id="fecha_reunion" name="fecha_reunion" min="{{ now()->toDateString() }}"
+                            value="{{ old('fecha_reunion', now()->toDateString()) }}"
+                            class="w-full px-4 py-3 bg-neutral-950 border border-zinc-700 rounded-xl text-white [color-scheme:dark] focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-600 transition-colors"
+                            disabled>
+                    </div>
+
+                    <div>
+                        <label for="horario_reunion" class="block mb-2 text-sm font-semibold text-zinc-200">
+                            Hora de comienzo y finalización aproximada
+                        </label>
+                        <input type="text" id="horario_reunion" name="horario_reunion" maxlength="100"
+                            value="{{ old('horario_reunion') }}" placeholder="Ej. 09:00 a 11:00 aprox."
+                            class="w-full px-4 py-3 bg-neutral-950 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-600 transition-colors"
+                            disabled>
+                    </div>
+
+                    <div>
+                        <label for="detalles_reunion" class="block mb-2 text-sm font-semibold text-zinc-200">
+                            Detalles de la reunión
+                        </label>
+                        <input type="text" id="detalles_reunion" name="detalles_reunion" maxlength="500"
+                            value="{{ old('detalles_reunion') }}"
+                            placeholder="Ej. Salón Multiuso - se requiere proyector y audio"
+                            class="w-full px-4 py-3 bg-neutral-950 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-600 transition-colors"
+                            disabled>
+                        <p class="mt-1.5 text-xs text-zinc-400">
+                            Indica dónde será la reunión y observaciones necesarias.
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Botón de envío -->
                 <button type="submit"
                     class="w-full py-3.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-violet-700 text-white font-bold text-base transition-colors cursor-pointer">
@@ -146,29 +183,6 @@
             <p>© {{ date('Y') }} - InfraDesk (SGDI) | Departamento de Informática y TICs</p>
         </footer>
     </main>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const input = document.getElementById('descripcion_problema');
-            const contador = document.getElementById('contador-palabras');
-
-            if (!input || !contador) {
-                return;
-            }
-
-            function actualizarContador() {
-                const palabras = input.value.trim().split(/\s+/).filter(Boolean).length;
-                contador.textContent = `${palabras} / 100 palabras`;
-                contador.classList.toggle('text-red-400', palabras > 100);
-                contador.classList.toggle('text-zinc-400', palabras <= 100);
-                input.setCustomValidity(palabras > 100 ?
-                    'El título del problema no puede superar las 100 palabras.' : '');
-            }
-
-            input.addEventListener('input', actualizarContador);
-            actualizarContador();
-        });
-    </script>
 </body>
 
 </html>

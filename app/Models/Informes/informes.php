@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class informes extends Model
 {
-    use HasFactory, LogsHistory, BuscadorUniversal;
+    use BuscadorUniversal, HasFactory, LogsHistory;
 
     public const TIPOS_PROBLEMA = [
         'Equipo/Dispositivo',
@@ -18,6 +18,7 @@ class informes extends Model
         'Internet',
         'Impresora/Escáner',
         'Cuentas y Accesos',
+        'Asistencia a Reunión',
         'Consulta',
         'Insumos',
     ];
@@ -26,7 +27,7 @@ class informes extends Model
 
     protected array $buscador = [
         'funcionario.nombre',
-        'titulo'
+        'titulo',
     ];
 
     // created_at queda fuera de $fillable para que la fecha y hora de registro nunca sea editable

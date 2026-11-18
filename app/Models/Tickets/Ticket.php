@@ -10,12 +10,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class Ticket extends Model
 {
     use BuscadorUniversal, HasFactory;
 
     public const ANIO_MINIMO = 2026;
+
+    public const TIPO_ASISTENCIA_REUNION = 'Asistencia a Reunión';
 
     public const ESTADO_PENDIENTE = 'Pendiente';
 
@@ -38,6 +41,7 @@ class Ticket extends Model
         'Internet',
         'Impresora/Escáner',
         'Cuentas y Accesos',
+        'Asistencia a Reunión',
         'Consulta',
         'Insumos',
     ];
@@ -48,6 +52,7 @@ class Ticket extends Model
         'Internet' => 'bg-[#1CD6CE]/20 text-[#1CD6CE] border-[#1CD6CE]/30',
         'Impresora/Escáner' => 'bg-[#FEDB39]/20 text-[#FEDB39] border-[#FEDB39]/30',
         'Cuentas y Accesos' => 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+        'Asistencia a Reunión' => 'bg-pink-500/20 text-pink-300 border-pink-500/30',
         'Consulta' => 'bg-green-500/20 text-green-300 border-green-500/30',
         'Insumos' => 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     ];
@@ -172,5 +177,27 @@ class Ticket extends Model
         $max = max($anioActual, $anioMaxDb, $min);
 
         return ['min' => $min, 'max' => $max];
+    }
+
+    /**
+     * Construye la descripción final del ticket, anexando fecha, horario y detalles si es asistencia a reunión.
+     */
+    public static function formatearDescripcion(
+        string $tipoProblema,
+        ?string $descripcion,
+        ?string $fechaReunion = null,
+        ?string $horarioReunion = null,
+        ?string $detallesReunion = null
+    ): string {
+        if ($tipoProblema !== self::TIPO_ASISTENCIA_REUNION) {
+            return trim((string) $descripcion);
+        }
+
+        $fechaFormateada = Carbon::parse((string) $fechaReunion)->format('d/m/Y');
+
+        return self::TIPO_ASISTENCIA_REUNION
+            ."\nFecha: ".$fechaFormateada
+            ."\nHorario aproximado: ".trim((string) $horarioReunion)
+            ."\nDetalles de la reunión: ".trim((string) $detallesReunion);
     }
 }

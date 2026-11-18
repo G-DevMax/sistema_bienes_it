@@ -4,7 +4,8 @@
 
 @section('content')
     @php
-        $input = 'w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all';
+        $input =
+            'w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all';
 
         $coloresTipo = [
             'Equipo/Dispositivo' => '#60a5fa',
@@ -12,6 +13,7 @@
             'Internet' => '#1CD6CE',
             'Impresora/Escáner' => '#FEDB39',
             'Cuentas y Accesos' => '#a78bfa',
+            'Asistencia a Reunión' => '#f472b6',
             'Consulta' => '#4ade80',
             'Insumos' => '#fbbf24',
         ];
@@ -24,8 +26,8 @@
                 class="p-2 text-white/50 hover:text-blue-400 hover:bg-blue-400/10 rounded-xl transition-all"
                 title="Volver al listado">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                    </path>
                 </svg>
             </a>
             <div>
@@ -40,8 +42,7 @@
             @include('layouts.alerts')
         </div>
 
-        <div
-            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
             <form action="{{ route('tickets.store-manual') }}" method="POST" id="form-ticket-manual" class="space-y-6">
                 @csrf
 
@@ -69,8 +70,8 @@
                         @foreach ($tiposProblema as $tipo)
                             @php $color = $coloresTipo[$tipo] ?? '#60a5fa'; @endphp
                             <label class="relative cursor-pointer block">
-                                <input type="radio" name="tipo_problema" value="{{ $tipo }}"
-                                    class="peer sr-only" @checked(old('tipo_problema') === $tipo) required>
+                                <input type="radio" name="tipo_problema" value="{{ $tipo }}" class="peer sr-only"
+                                    @checked(old('tipo_problema') === $tipo) required>
                                 <div class="flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-white/5 transition-all hover:bg-white/10 peer-checked:bg-white/10"
                                     style="--c: {{ $color }}" data-card>
                                     <span
@@ -94,11 +95,45 @@
                     </div>
                     <input type="text" id="descripcion_problema" name="descripcion_problema" maxlength="255"
                         value="{{ old('descripcion_problema') }}"
-                        placeholder="Ej. PC no enciende en Dirección Administrativa"
-                        class="{{ $input }}" required>
+                        placeholder="Ej. PC no enciende en Dirección Administrativa" class="{{ $input }}" required>
                     <p class="mt-1 text-xs text-white/50">
                         Describe brevemente lo que ocurre (máximo 100 palabras).
                     </p>
+                </div>
+
+                <!-- Campos adicionales para Asistencia a Reunión -->
+                <div id="campos-reunion" class="hidden space-y-5 pt-4 border-t border-white/10">
+                    <div>
+                        <label for="fecha_reunion" class="block mb-2 text-sm font-medium text-white/90">
+                            Fecha de la reunión
+                        </label>
+                        <input type="date" id="fecha_reunion" name="fecha_reunion"
+                            min="{{ \App\Models\Tickets\Ticket::ANIO_MINIMO }}-01-01"
+                            value="{{ old('fecha_reunion', now()->toDateString()) }}"
+                            class="{{ $input }} [color-scheme:dark]" disabled>
+                    </div>
+
+                    <div>
+                        <label for="horario_reunion" class="block mb-2 text-sm font-medium text-white/90">
+                            Hora de comienzo y finalización aproximada
+                        </label>
+                        <input type="text" id="horario_reunion" name="horario_reunion" maxlength="100"
+                            value="{{ old('horario_reunion') }}" placeholder="Ej. 09:00 a 11:00 aprox."
+                            class="{{ $input }}" disabled>
+                    </div>
+
+                    <div>
+                        <label for="detalles_reunion" class="block mb-2 text-sm font-medium text-white/90">
+                            Detalles de la reunión
+                        </label>
+                        <input type="text" id="detalles_reunion" name="detalles_reunion" maxlength="500"
+                            value="{{ old('detalles_reunion') }}"
+                            placeholder="Ej. Salón Multiuso - se requiere proyector y audio" class="{{ $input }}"
+                            disabled>
+                        <p class="mt-1 text-xs text-white/50">
+                            Indica dónde será la reunión y observaciones necesarias.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Botones -->
@@ -106,8 +141,8 @@
                     <a href="{{ route('tickets.index') }}"
                         class="px-8 py-3 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold rounded-xl transition-all flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
                         </svg>
                         Cancelar
                     </a>
@@ -137,27 +172,4 @@
             background-color: var(--c);
         }
     </style>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const input = document.getElementById('descripcion_problema');
-            const contador = document.getElementById('contador-palabras');
-
-            if (!input || !contador) {
-                return;
-            }
-
-            function actualizarContador() {
-                const palabras = input.value.trim().split(/\s+/).filter(Boolean).length;
-                contador.textContent = `${palabras} / 100 palabras`;
-                contador.classList.toggle('text-red-400', palabras > 100);
-                contador.classList.toggle('text-white/50', palabras <= 100);
-                input.setCustomValidity(palabras > 100 ?
-                    'El título del problema no puede superar las 100 palabras.' : '');
-            }
-
-            input.addEventListener('input', actualizarContador);
-            actualizarContador();
-        });
-    </script>
 @endsection
