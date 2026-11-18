@@ -41,6 +41,7 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            'remember' => 43200, // duracion de mantener sesión en días (30 días)
         ],
     ],
 

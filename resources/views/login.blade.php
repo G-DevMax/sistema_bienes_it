@@ -15,11 +15,11 @@
 
         <div
             class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(59,130,246,0.1)]">
-            <form action="#" method="POST">
+            <form action="{{ route('login.post') }}" method="POST">
                 @csrf
                 <div class="mb-6">
                     <label for="email" class="block mb-2 text-sm font-medium text-white/90">Correo Electrónico</label>
-                    <input type="email" id="email" name="email"
+                    <input type="email" id="email" name="email" value="{{ old('email') }}"
                         class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all"
                         placeholder="nombre@ejemplo.com" required>
                 </div>
@@ -47,6 +47,15 @@
                             </svg>
                         </button>
                     </div>
+                </div>
+
+                <div class="mb-6 flex items-center">
+                    <input type="hidden" name="remember" value="0">
+                    <input type="checkbox" id="remember" name="remember" value="1" checked
+                        class="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-500/30">
+                    <label for="remember" class="ml-2 text-sm text-white/80 select-none cursor-pointer">
+                        Mantener sesión iniciada
+                    </label>
                 </div>
 
                 <button type="submit"

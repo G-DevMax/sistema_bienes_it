@@ -3,19 +3,20 @@
 namespace App\Http\Controllers\Bienes;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use App\Models\Bienes\estados;
-use App\Models\funcionarios;
 use App\Models\Bienes\items;
 use App\Models\Bienes\movimientos;
+use App\Models\funcionarios;
+use App\Services\Bienes\InformeMovimientoService;
 use App\Services\Bienes\MovimientoService;
 use App\Services\Bienes\PlanillaMovimientoService;
-use App\Services\Bienes\InformeMovimientoService;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use App\Services\LoggerService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class MovimientosController extends Controller
 {
@@ -25,7 +26,7 @@ class MovimientosController extends Controller
     {
         $query = movimientos::with(['item', 'funcionario'])
             ->buscadorUniversal($request->search)
-            ->withSum(['hijos as hijos_activos' => fn($q) => $q->whereNull('anulado_at')], 'cantidad')
+            ->withSum(['hijos as hijos_activos' => fn ($q) => $q->whereNull('anulado_at')], 'cantidad')
             ->orderByDesc('fecha_movimiento')
             ->orderByDesc('id');
 
@@ -52,15 +53,16 @@ class MovimientosController extends Controller
     {
         // items con al menos una unidad en Informatica
         $items = items::where('stock_disponible', '>', 0)
-            ->where(fn($q) => $q->whereNull('codigo_patrimonial')->orWhere('estado_id', estados::DISPONIBLE))
+            ->where(fn ($q) => $q->whereNull('codigo_patrimonial')->orWhere('estado_id', estados::DISPONIBLE))
             ->orderBy('descripcion')
             ->get();
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
 
         $tipoSeleccionado = $request->query('tipo', movimientos::PRESTAMO);
         $itemSeleccionado = $request->query('item_id');
+        $funcionarioSeleccionado = $request->query('funcionario_id');
 
-        return view('Bienes.movimientos.create', compact('items', 'funcionarios', 'tipoSeleccionado', 'itemSeleccionado'));
+        return view('Bienes.movimientos.create', compact('items', 'funcionarios', 'tipoSeleccionado', 'itemSeleccionado', 'funcionarioSeleccionado'));
     }
 
     public function store(Request $request)
@@ -75,7 +77,7 @@ class MovimientosController extends Controller
             'cantidad' => ['required', 'array', 'min:1'],
             'cantidad.*' => ['required', 'integer', 'min:1'],
             'fecha_movimiento' => ['required', 'date'],
-            'fecha_devolucion_prevista' => [Rule::requiredIf($tipo === movimientos::PRESTAMO), 'nullable', 'date', 'after_or_equal:' . substr((string) $request->input('fecha_movimiento'), 0, 10)],
+            'fecha_devolucion_prevista' => [Rule::requiredIf($tipo === movimientos::PRESTAMO), 'nullable', 'date', 'after_or_equal:'.substr((string) $request->input('fecha_movimiento'), 0, 10)],
             'motivo' => [Rule::requiredIf($tipo === movimientos::BAJA), 'nullable', 'string', 'max:255'],
             'observaciones' => ['nullable', 'string', 'max:2000'],
         ], [
@@ -99,7 +101,7 @@ class MovimientosController extends Controller
         ], 'movimientos.index');
 
         try {
-            $loteId = \Illuminate\Support\Str::uuid()->toString();
+            $loteId = Str::uuid()->toString();
             $primerMovimientoId = null;
 
             DB::beginTransaction();
@@ -118,7 +120,7 @@ class MovimientosController extends Controller
 
                 $mov->update(['lote_id' => $loteId]);
 
-                if (!$primerMovimientoId) {
+                if (! $primerMovimientoId) {
                     $primerMovimientoId = $mov->id;
                 }
 
@@ -142,7 +144,7 @@ class MovimientosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('movimientos.index')->with('error', 'Error al registrar el movimiento: ' . $e->getMessage());
+            return redirect()->route('movimientos.index')->with('error', 'Error al registrar el movimiento: '.$e->getMessage());
         }
 
         return redirect()->route('movimientos.show', $primerMovimientoId)->with('success', 'Movimiento(s) registrado(s) correctamente.');
@@ -156,7 +158,7 @@ class MovimientosController extends Controller
             'usuario',
             'anuladoPor',
             'origen.funcionario',
-            'hijos' => fn($q) => $q->with(['usuario', 'anuladoPor'])->orderBy('fecha_movimiento'),
+            'hijos' => fn ($q) => $q->with(['usuario', 'anuladoPor'])->orderBy('fecha_movimiento'),
         ])->findOrFail($id);
 
         return view('Bienes.movimientos.show', compact('movimiento'));
@@ -220,7 +222,7 @@ class MovimientosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('movimientos.show', $id)->with('error', 'Error al registrar la devolución: ' . $e->getMessage());
+            return redirect()->route('movimientos.show', $id)->with('error', 'Error al registrar la devolución: '.$e->getMessage());
         }
 
         return redirect()->route('movimientos.show', $id)->with('success', 'Devolución registrada; el stock fue actualizado.');
@@ -268,7 +270,7 @@ class MovimientosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('movimientos.show', $id)->with('error', 'Error al registrar la baja desde entrega: ' . $e->getMessage());
+            return redirect()->route('movimientos.show', $id)->with('error', 'Error al registrar la baja desde entrega: '.$e->getMessage());
         }
 
         return redirect()->route('movimientos.show', $id)->with('success', 'Baja registrada con nota de responsabilidad.');
@@ -301,7 +303,7 @@ class MovimientosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('movimientos.show', $id)->with('error', 'Error al anular el movimiento: ' . $e->getMessage());
+            return redirect()->route('movimientos.show', $id)->with('error', 'Error al anular el movimiento: '.$e->getMessage());
         }
     }
 

@@ -8,6 +8,7 @@
             'w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed';
         $tipoActual = old('tipo_movimiento', $tipoSeleccionado);
         $itemActual = old('item_id', $itemSeleccionado);
+        $funcionarioActual = old('funcionario_id', $funcionarioSeleccionado ?? null);
         $tipos = [
             'prestamo' => ['Préstamo', 'Uso temporal con fecha prevista de devolución', '#FEDB39'],
             'transferencia' => ['Transferencia', 'Asignación casi permanente a un funcionario', '#a78bfa'],
@@ -66,10 +67,13 @@
                         <div class="item-row grid grid-cols-1 md:grid-cols-[1fr_120px_auto] gap-4 mb-4 items-end">
                             <div class="w-full">
                                 <label class="block mb-2 text-sm font-medium text-white/90">Bien / Item</label>
-                                <select name="item_id[]" class="searchable-select {{ $input }} appearance-none item-select" required>
-                                    <option value="" disabled {{ $itemActual ? '' : 'selected' }}>Selecciona un bien</option>
+                                <select name="item_id[]"
+                                    class="searchable-select {{ $input }} appearance-none item-select" required>
+                                    <option value="" disabled {{ $itemActual ? '' : 'selected' }}>Selecciona un bien
+                                    </option>
                                     @foreach ($items as $item)
-                                        <option value="{{ $item->id }}" data-serial="{{ $item->esSerializado() ? 1 : 0 }}"
+                                        <option value="{{ $item->id }}"
+                                            data-serial="{{ $item->esSerializado() ? 1 : 0 }}"
                                             data-disponible="{{ $item->stock_disponible }}"
                                             {{ (string) $itemActual === (string) $item->id ? 'selected' : '' }}>
                                             {{ $item->descripcion }} —
@@ -80,27 +84,42 @@
                             </div>
                             <div class="w-full">
                                 <label class="block mb-2 text-sm font-medium text-white/90">Cantidad</label>
-                                <input type="number" name="cantidad[]" value="{{ old('cantidad.0', 1) }}"
-                                    min="1" class="{{ $input }} cantidad-input" required>
+                                <input type="number" name="cantidad[]" value="{{ old('cantidad.0', 1) }}" min="1"
+                                    class="{{ $input }} cantidad-input" required>
                             </div>
                             <div class="w-full h-[48px] flex items-center justify-center btn-remove-container hidden">
-                                <button type="button" class="p-2 text-red-400 hover:bg-red-400/20 rounded-xl transition-all" onclick="quitarFila(this)">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                <button type="button"
+                                    class="p-2 text-red-400 hover:bg-red-400/20 rounded-xl transition-all"
+                                    onclick="quitarFila(this)">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                        </path>
+                                    </svg>
                                 </button>
                             </div>
                         </div>
-                        <p class="mt-2 text-xs text-white/50 item-ayuda">Solo se listan items con unidades disponibles en Informática.</p>
+                        <p class="mt-2 text-xs text-white/50 item-ayuda">Solo se listan items con unidades disponibles en
+                            Informática.</p>
 
                         <!-- Error de items duplicados (validación en el cliente al enviar) -->
                         <div id="error-items-duplicados" role="alert"
                             class="hidden mt-4 flex items-start gap-3 p-4 rounded-xl border border-red-400/40 bg-red-500/10 text-red-300 text-sm animate-fade-in-up">
-                            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>
+                            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z">
+                                </path>
+                            </svg>
                             <span data-mensaje></span>
                         </div>
-                        
+
                         <div class="mt-4" data-campo="agregar-item">
-                            <button type="button" id="btn-add-item" class="text-sm font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <button type="button" id="btn-add-item"
+                                class="text-sm font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
                                 Añadir otro ítem al movimiento
                             </button>
                         </div>
@@ -110,11 +129,13 @@
                     <div class="col-span-1 md:col-span-2" data-campo="funcionario">
                         <label for="funcionario_id" class="block mb-2 text-sm font-medium text-white/90">Funcionario
                             Receptor</label>
-                        <select id="funcionario_id" name="funcionario_id" class="searchable-select {{ $input }} appearance-none">
-                            <option value="" disabled {{ old('funcionario_id') ? '' : 'selected' }}>Selecciona un funcionario</option>
+                        <select id="funcionario_id" name="funcionario_id"
+                            class="searchable-select {{ $input }} appearance-none">
+                            <option value="" disabled @selected(! $funcionarios->contains('id', $funcionarioActual))>Selecciona
+                                un funcionario</option>
                             @foreach ($funcionarios as $func)
-                                <option value="{{ $func->id }}"
-                                    {{ old('funcionario_id') == $func->id ? 'selected' : '' }}>{{ $func->nombre }}
+                                <option value="{{ $func->id }}" @selected((string) $funcionarioActual === (string) $func->id)>
+                                    {{ $func->nombre }}
                                 </option>
                             @endforeach
                         </select>
@@ -143,15 +164,17 @@
 
                     <!-- Motivo (solo baja) -->
                     <div class="col-span-1 md:col-span-2" data-campo="baja">
-                        <label for="motivo" class="block mb-2 text-sm font-medium text-white/90">Motivo de la baja</label>
-                        <input type="text" id="motivo" name="motivo" value="{{ old('motivo') }}" maxlength="255"
-                            class="{{ $input }}" placeholder="Ej. Pantalla rota, no enciende, obsoleto...">
+                        <label for="motivo" class="block mb-2 text-sm font-medium text-white/90">Motivo de la
+                            baja</label>
+                        <input type="text" id="motivo" name="motivo" value="{{ old('motivo') }}"
+                            maxlength="255" class="{{ $input }}"
+                            placeholder="Ej. Pantalla rota, no enciende, obsoleto...">
                     </div>
 
                     <!-- Observaciones -->
                     <div class="col-span-1 md:col-span-2">
-                        <label for="observaciones" class="block mb-2 text-sm font-medium text-white/90">Observaciones <span
-                                class="text-white/50 text-xs font-normal">(Opcional)</span></label>
+                        <label for="observaciones" class="block mb-2 text-sm font-medium text-white/90">Observaciones
+                            <span class="text-white/50 text-xs font-normal">(Opcional)</span></label>
                         <textarea id="observaciones" name="observaciones" rows="2" class="{{ $input }}"
                             placeholder="Detalles adicionales">{{ old('observaciones') }}</textarea>
                     </div>
@@ -191,17 +214,25 @@
                     <option value="" disabled selected>Selecciona un bien</option>
                     @foreach ($items as $item)
                         <option value="{{ $item->id }}" data-serial="{{ $item->esSerializado() ? 1 : 0 }}"
-                            data-disponible="{{ $item->stock_disponible }}">{{ $item->descripcion }} — {{ $item->esSerializado() ? 'Cód. ' . $item->codigo_patrimonial : 'Disponibles: ' . $item->stock_disponible }}</option>
+                            data-disponible="{{ $item->stock_disponible }}">{{ $item->descripcion }} —
+                            {{ $item->esSerializado() ? 'Cód. ' . $item->codigo_patrimonial : 'Disponibles: ' . $item->stock_disponible }}
+                        </option>
                     @endforeach
                 </select>
             </div>
             <div class="w-full">
                 <label class="block mb-2 text-sm font-medium text-white/90">Cantidad</label>
-                <input type="number" name="cantidad[]" value="1" min="1" class="{{ $input }} cantidad-input" required>
+                <input type="number" name="cantidad[]" value="1" min="1"
+                    class="{{ $input }} cantidad-input" required>
             </div>
             <div class="w-full h-[48px] flex items-center justify-center btn-remove-container">
-                <button type="button" class="p-2 text-red-400 hover:bg-red-400/20 rounded-xl transition-all" onclick="quitarFila(this)">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <button type="button" class="p-2 text-red-400 hover:bg-red-400/20 rounded-xl transition-all"
+                    onclick="quitarFila(this)">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                        </path>
+                    </svg>
                 </button>
             </div>
         </div>
@@ -254,16 +285,16 @@
                 const cantidad = fila.querySelector('.cantidad-input');
                 const btnRemove = fila.querySelector('.btn-remove-container');
                 const ayuda = fila.parentElement.querySelector('.item-ayuda');
-                
+
                 actualizarVisibilidadBorrar();
 
                 const opt = select.selectedOptions ? select.selectedOptions[0] : null;
                 if (!opt || !opt.value) return;
-                
+
                 const serial = opt.dataset.serial === '1';
                 const disponible = parseInt(opt.dataset.disponible, 10);
                 cantidad.max = serial ? 1 : disponible;
-                
+
                 if (serial) {
                     cantidad.value = 1;
                     cantidad.readOnly = true;
@@ -312,7 +343,10 @@
                     new window.TomSelect(select, {
                         create: false,
                         placeholder: 'Selecciona un bien',
-                        sortField: { field: 'text', direction: 'asc' }
+                        sortField: {
+                            field: 'text',
+                            direction: 'asc'
+                        }
                     });
                 }
 
@@ -366,7 +400,8 @@
                 const nombres = duplicados.map(grupo => {
                     const opt = grupo[0].selectedOptions[0];
                     grupo.forEach(s => controlDe(s).classList.add(...CLASES_ERROR));
-                    return '“' + (opt ? opt.textContent.replace(/\s+/g, ' ').trim() : grupo[0].value) + '”';
+                    return '“' + (opt ? opt.textContent.replace(/\s+/g, ' ').trim() : grupo[0].value) +
+                        '”';
                 });
 
                 errorBox.querySelector('[data-mensaje]').innerHTML =
@@ -374,7 +409,10 @@
                     'Repetido(s): ' + nombres.map(n => n.replace(/</g, '&lt;')).join(', ') +
                     '. Eliminá la fila duplicada o ajustá la cantidad en una sola fila.';
                 errorBox.classList.remove('hidden');
-                errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                errorBox.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
             });
 
             // al cambiar cualquier item se limpia el aviso

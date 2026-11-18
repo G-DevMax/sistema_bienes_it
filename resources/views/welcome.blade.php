@@ -116,7 +116,7 @@
             </a>
 
             <!-- Card Módulo de Bienes -->
-            <a href="{{ route('login') }}"
+            <a href="{{ auth()->check() ? route('items.index') : route('login') }}"
                 class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:-translate-y-1">
                 <div
                     class="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">

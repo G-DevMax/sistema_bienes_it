@@ -423,4 +423,57 @@ class TicketTest extends TestCase
         $this->assertNull(Ticket::mesValidoEnRango('2026-00', 2026, 2026));
         $this->assertNull(Ticket::mesValidoEnRango('mes-invalido', 2026, 2026));
     }
+
+    public function test_ticket_insumos_enlaza_a_movimientos_con_funcionario_y_create_lo_preselecciona(): void
+    {
+        View::share('errors', new ViewErrorBag);
+
+        $funcionario = new funcionarios(['nombre' => 'Carlos Benítez']);
+        $funcionario->id = 4;
+
+        $otroFuncionario = new funcionarios(['nombre' => 'Lucía Gómez']);
+        $otroFuncionario->id = 9;
+
+        $ticketAbierto = new Ticket([
+            'funcionario_id' => 4,
+            'tipo_problema' => 'Insumos',
+            'descripcion_problema' => 'Tóner agotado',
+            'estado' => Ticket::ESTADO_ASIGNADO,
+            'fecha_creacion' => now(),
+        ]);
+        $ticketAbierto->id = 21;
+        $ticketAbierto->setRelation('funcionario', $funcionario);
+        $ticketAbierto->setRelation('tecnicoAsignado', null);
+        $ticketAbierto->setRelation('historial', collect());
+
+        $showAbierto = $this->view('Tickets.show', [
+            'ticket' => $ticketAbierto,
+            'tecnicos' => collect(),
+            'detallesComunes' => collect(),
+        ]);
+        $showAbierto->assertSee(route('movimientos.create', ['funcionario_id' => 4]), false);
+        $showAbierto->assertSee('Ir a Movimientos para');
+
+        $ticketCerrado = clone $ticketAbierto;
+        $ticketCerrado->estado = Ticket::ESTADO_CERRADO;
+
+        $showCerrado = $this->view('Tickets.show', [
+            'ticket' => $ticketCerrado,
+            'tecnicos' => collect(),
+            'detallesComunes' => collect(),
+        ]);
+        $showCerrado->assertDontSee('Ir a Movimientos para');
+
+        $createMovimiento = $this->view('Bienes.movimientos.create', [
+            'items' => collect(),
+            'funcionarios' => collect([$funcionario, $otroFuncionario]),
+            'tipoSeleccionado' => 'prestamo',
+            'itemSeleccionado' => null,
+            'funcionarioSeleccionado' => 4,
+        ]);
+
+        $html = preg_replace('/\s+/', ' ', (string) $createMovimiento);
+        $this->assertStringContainsString('<option value="4" selected>', $html);
+        $this->assertStringNotContainsString('<option value="9" selected>', $html);
+    }
 }

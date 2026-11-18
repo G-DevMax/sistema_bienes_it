@@ -2,41 +2,44 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\LoggerService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Services\LoggerService;
+use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    // formulario de login
-    public function showLoginForm()
+    public function showLoginForm(): View
     {
         return view('login');
     }
 
-    // metodo para procesar el login
-    public function login(Request $request)
+    public function login(Request $request): RedirectResponse
     {
+        $credenciales = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ], [
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Debe ingresar un correo electrónico válido.',
+            'password.required' => 'La contraseña es obligatoria.',
+        ]);
+
         try {
-            // validacion de los datos enviados por el formulario
-            $credenciales = $request->validate([
-                'email' => ['required', 'email'],
-                'password' => ['required', 'string'],
-            ], [
-                'email.required' => 'El correo electrónico es obligatorio.',
-                'email.email' => 'Debe ingresar un correo electrónico válido.',
-                'password.required' => 'La contraseña es obligatoria.',
-            ]);
+            $remember = $request->boolean('remember', true);
 
-            $remember = $request->boolean('remember');
-
-            // si las credenciales son correctas, redirige al usuario a la ruta /items
-            if (Auth::attempt($credenciales, $remember)) {
+            if (Auth::attempt(array_merge($credenciales, ['estado_user' => 1]), $remember)) {
                 $request->session()->regenerate();
+
+                LoggerService::info('Inicio de Sesión', [
+                    'email' => $credenciales['email'],
+                ]);
+
                 return redirect()->intended('/items');
             }
 
-            LoggerService::info('Inicio de Sesión', [
+            LoggerService::warning('Intento fallido de inicio de sesión', [
                 'email' => $credenciales['email'],
             ]);
         } catch (\Exception $e) {
@@ -44,19 +47,15 @@ class AuthController extends Controller
                 'email' => $credenciales['email'],
             ], $e);
 
-            return redirect()->route('login')->with('error', 'Error al iniciar sesión: ' . $e->getMessage());
+            return redirect()->route('login')->with('error', 'Error al iniciar sesión: '.$e->getMessage());
         }
-        // si las credenciales son incorrectas, redirige al usuario a la ruta /login con errores
-        return back()->withErrors(
-            [
-                'error' => 'Las credenciales no coinciden',
-                'warning' => 'Su cuenta esta desactivada'
-            ]
-        );
+
+        return back()->withInput($request->only('email'))->withErrors([
+            'error' => 'Las credenciales no coinciden o su cuenta está desactivada.',
+        ]);
     }
 
-    // metodo para cerrar sesion
-    public function logout(Request $request)
+    public function logout(Request $request): RedirectResponse
     {
         Auth::logout();
         $request->session()->invalidate();

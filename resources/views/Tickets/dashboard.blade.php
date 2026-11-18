@@ -85,20 +85,20 @@
                         class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white/10 hover:bg-white/15 border border-white/20 text-white shadow-md transition-all cursor-pointer">
                         <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                            </path>
                         </svg>
                         <span>Mes de {{ $nombreMesMostrar }}</span>
-                        <span class="text-blue-300 text-xs font-medium bg-blue-500/20 border border-blue-400/30 px-2 py-0.5 rounded-md">
+                        <span
+                            class="text-blue-300 text-xs font-medium bg-blue-500/20 border border-blue-400/30 px-2 py-0.5 rounded-md">
                             {{ $anioMostrar }}
                         </span>
                         <svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </button>
-                    <input type="month" id="input-filtro-mes" name="mes"
-                        value="{{ $mesSeleccionado }}"
-                        min="{{ $anioMinimoPicker }}-01"
-                        max="{{ $anioMaximoPicker }}-12"
+                    <input type="month" id="input-filtro-mes" name="mes" value="{{ $mesSeleccionado }}"
+                        min="{{ $anioMinimoPicker }}-01" max="{{ $anioMaximoPicker }}-12"
                         class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                         title="Seleccionar mes para filtrar"
                         onclick="if (this.showPicker) { try { this.showPicker(); } catch (e) {} }"
@@ -109,16 +109,14 @@
                     <a href="{{ route('tickets.dashboard') }}"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-300 hover:text-white bg-blue-500/10 hover:bg-blue-500/20 border border-blue-400/20 transition-all">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
                         </svg>
                         <span>Volver al mes actual</span>
                     </a>
                 @endif
             </div>
-
-            <p class="text-xs text-white/50">
-                Filtrando estadísticas de <span class="text-white font-medium">{{ $nombreMesMostrar }} {{ $anioMostrar }}</span>
-            </p>
         </div>
 
         <!-- Tickets recientes -->
@@ -295,7 +293,9 @@
                 activarAlertas();
                 reproducirSonido();
             });
-            document.addEventListener('click', activarAlertas, { once: true });
+            document.addEventListener('click', activarAlertas, {
+                once: true
+            });
             actualizarEstadoBoton();
 
             function notificarNuevoTicket(ticket) {
@@ -315,7 +315,10 @@
             async function verificarPendientes() {
                 try {
                     const res = await fetch(urlEstado, {
-                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
                         cache: 'no-store',
                     });
                     if (!res.ok) {

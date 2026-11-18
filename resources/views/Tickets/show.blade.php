@@ -180,7 +180,8 @@
                                     placeholder="Selecciona o busca un detalle..."
                                     class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 outline-none">
                                     @if ($detallesComunes->isNotEmpty())
-                                        <option value="" @selected($detalleInicial === '')>Selecciona o busca un detalle...</option>
+                                        <option value="" @selected($detalleInicial === '')>Selecciona o busca un detalle...
+                                        </option>
                                     @endif
                                     @foreach ($detallesComunes as $detalle)
                                         <option value="{{ $detalle->id }}" @selected((string) $detalleInicial === (string) $detalle->id)>
@@ -196,10 +197,10 @@
                             <div>
                                 <label for="observacion" class="block text-sm font-medium text-white/90 mb-2">
                                     Observación de cierre
-                                    <span id="badge-observacion" class="ml-1 text-xs font-normal text-white/50">(Opcional)</span>
+                                    <span id="badge-observacion"
+                                        class="ml-1 text-xs font-normal text-white/50">(Opcional)</span>
                                 </label>
-                                <textarea name="observacion" id="observacion" rows="4"
-                                    placeholder="Describe brevemente la solución aplicada..."
+                                <textarea name="observacion" id="observacion" rows="4" placeholder="Describe brevemente la solución aplicada..."
                                     class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all">{{ old('observacion') }}</textarea>
                             </div>
                             <button type="submit"
@@ -218,7 +219,8 @@
                                         d="M19 9l-7 7-7-7"></path>
                                 </svg>
                             </summary>
-                            <form action="{{ route('tickets.asignar', $ticket) }}" method="POST" class="mt-3 space-y-3">
+                            <form action="{{ route('tickets.asignar', $ticket) }}" method="POST"
+                                class="mt-3 space-y-3">
                                 @csrf
                                 <select name="asignado_a" required
                                     class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-xl text-sm text-white focus:border-blue-400 outline-none">
@@ -234,6 +236,13 @@
                                 </button>
                             </form>
                         </details>
+                    @endif
+                    @if ($ticket->tipo_problema === 'Insumos' && ! $ticket->estaCerrado())
+                        <div class="mb-6">
+                            <a href="{{ route('movimientos.create', ['funcionario_id' => $ticket->funcionario_id]) }}"
+                                class="text-white/70 hover:text-white/100 font-medium text-xs">Ir a Movimientos para
+                                prestar/transferir el insumo solicitado</a>
+                        </div>
                     @endif
                 </div>
             </div>
