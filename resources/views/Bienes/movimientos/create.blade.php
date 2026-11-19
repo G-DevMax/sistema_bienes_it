@@ -12,8 +12,13 @@
         $tipos = [
             'prestamo' => ['Préstamo', 'Uso temporal con fecha prevista de devolución', '#FEDB39'],
             'transferencia' => ['Transferencia', 'Asignación casi permanente a un funcionario', '#a78bfa'],
-            'baja' => ['Baja', 'El item se dañó o quedó inservible (desde Informática)', '#D61C4E'],
         ];
+        if (auth()->user()?->can('bienes.eliminar')) {
+            $tipos['baja'] = ['Baja', 'El item se dañó o quedó inservible (desde Informática)', '#D61C4E'];
+        }
+        if (! array_key_exists($tipoActual, $tipos)) {
+            $tipoActual = 'prestamo';
+        }
     @endphp
     <div class="w-full max-w-4xl animate-fade-in-up">
         <!-- Encabezado -->

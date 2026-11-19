@@ -87,91 +87,97 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-2xl">
             <!-- Card Módulo de Tickets -->
-            <a href="{{ route('tickets.dashboard') }}"
-                class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:-translate-y-1">
-                <div
-                    class="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                </div>
-                <div class="relative z-10 flex flex-col items-center text-left">
+            @if (!auth()->check() || auth()->user()->can('tickets.ver'))
+                <a href="{{ route('tickets.dashboard') }}"
+                    class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:-translate-y-1">
                     <div
-                        class="p-3 bg-blue-500/20 rounded-xl mb-4 text-blue-300 group-hover:scale-110 group-hover:text-blue-200 transition-all duration-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                        </svg>
+                        class="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     </div>
-                    <h2 class="text-xl font-semibold text-white mb-2">Tickets</h2>
-                    <p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Gestión de
-                        incidentes, solicitudes de soporte y mesa de ayuda.</p>
-                    <div class="mt-4 flex items-center text-sm font-medium text-blue-400 group-hover:text-blue-300">
-                        Acceder al módulo
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
+                    <div class="relative z-10 flex flex-col items-center text-left">
+                        <div
+                            class="p-3 bg-blue-500/20 rounded-xl mb-4 text-blue-300 group-hover:scale-110 group-hover:text-blue-200 transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-semibold text-white mb-2">Tickets</h2>
+                        <p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Gestión de
+                            incidentes, solicitudes de soporte y mesa de ayuda.</p>
+                        <div class="mt-4 flex items-center text-sm font-medium text-blue-400 group-hover:text-blue-300">
+                            Acceder al módulo
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
+            @endif
 
             <!-- Card Módulo de Bienes -->
-            <a href="{{ auth()->check() ? route('items.index') : route('login') }}"
-                class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:-translate-y-1">
-                <div
-                    class="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                </div>
-                <div class="relative z-10 flex flex-col items-center text-left">
+            @if (!auth()->check() || auth()->user()->can('bienes.ver'))
+                <a href="{{ auth()->check() ? route('items.index') : route('login') }}"
+                    class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:-translate-y-1">
                     <div
-                        class="p-3 bg-indigo-500/20 rounded-xl mb-4 text-indigo-300 group-hover:scale-110 group-hover:text-indigo-200 transition-all duration-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
+                        class="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     </div>
-                    <h2 class="text-xl font-semibold text-white mb-2">Bienes</h2>
-                    <p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Control de
-                        inventario, asignación de equipos y movimientos.</p>
-                    <div class="mt-4 flex items-center text-sm font-medium text-indigo-400 group-hover:text-indigo-300">
-                        Acceder al módulo
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
+                    <div class="relative z-10 flex flex-col items-center text-left">
+                        <div
+                            class="p-3 bg-indigo-500/20 rounded-xl mb-4 text-indigo-300 group-hover:scale-110 group-hover:text-indigo-200 transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-semibold text-white mb-2">Bienes</h2>
+                        <p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Control de
+                            inventario, asignación de equipos y movimientos.</p>
+                        <div class="mt-4 flex items-center text-sm font-medium text-indigo-400 group-hover:text-indigo-300">
+                            Acceder al módulo
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
+            @endif
 
             <!-- Card Módulo de Informes -->
-            <a href="{{ route('informes.index') }}"
-                class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:-translate-y-1">
-                <div
-                    class="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                </div>
-                <div class="relative z-10 flex flex-col items-center text-left">
+            @if (!auth()->check() || auth()->user()->can('informes.ver'))
+                <a href="{{ route('informes.index') }}"
+                    class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:-translate-y-1">
                     <div
-                        class="p-3 bg-indigo-500/20 rounded-xl mb-4 text-indigo-300 group-hover:scale-110 group-hover:text-indigo-200 transition-all duration-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                        </svg>
+                        class="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     </div>
-                    <h2 class="text-xl font-semibold text-white mb-2">Informes</h2>
-                    <p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">
-                        Registro de informes sobre los problemas de los usuarios.</p>
-                    <div class="mt-4 flex items-center text-sm font-medium text-indigo-400 group-hover:text-indigo-300">
-                        Acceder al módulo
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
+                    <div class="relative z-10 flex flex-col items-center text-left">
+                        <div
+                            class="p-3 bg-indigo-500/20 rounded-xl mb-4 text-indigo-300 group-hover:scale-110 group-hover:text-indigo-200 transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-semibold text-white mb-2">Informes</h2>
+                        <p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">
+                            Registro de informes sobre los problemas de los usuarios.</p>
+                        <div class="mt-4 flex items-center text-sm font-medium text-indigo-400 group-hover:text-indigo-300">
+                            Acceder al módulo
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
+            @endif
         </div>
 
         <div class="mt-12 text-sm text-slate-500">

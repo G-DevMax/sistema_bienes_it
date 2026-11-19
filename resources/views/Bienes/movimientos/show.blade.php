@@ -48,10 +48,12 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                     Imprimir Planilla (Excel)
                 </a>
-                <button onclick="document.getElementById('modal-anular').showModal()"
-                    class="px-4 py-2 rounded-xl text-sm font-semibold border border-white/20 text-white/70 hover:bg-white/10 hover:text-white transition-all">
-                    Anular Movimiento
-                </button>
+                @can('bienes.eliminar')
+                    <button onclick="document.getElementById('modal-anular').showModal()"
+                        class="px-4 py-2 rounded-xl text-sm font-semibold border border-white/20 text-white/70 hover:bg-white/10 hover:text-white transition-all">
+                        Anular Movimiento
+                    </button>
+                @endcan
             </div>
         @endif
     </div>
@@ -85,9 +87,13 @@
                     <div>
                         <span class="block text-xs font-medium text-white/50 mb-1">Item</span>
                         <div class="font-medium text-white">
-                            <a href="{{ route('items.edit', $movimiento->item_id) }}" class="hover:text-blue-400 transition-colors">
-                                {{ $movimiento->item->descripcion }}
-                            </a>
+                            @can('bienes.editar')
+                                <a href="{{ route('items.edit', $movimiento->item_id) }}" class="hover:text-blue-400 transition-colors">
+                                    {{ $movimiento->item->descripcion }}
+                                </a>
+                            @else
+                                <span>{{ $movimiento->item->descripcion }}</span>
+                            @endcan
                             <span class="block text-sm text-white/50 font-mono">{{ $movimiento->item->codigoMostrar() }}</span>
                         </div>
                     </div>
@@ -201,95 +207,99 @@
                         @endif
                     </div>
 
-                    @if ($pendiente > 0)
+                    @if ($pendiente > 0 && (auth()->user()?->can('bienes.crear') || auth()->user()?->can('bienes.eliminar')))
                         <div class="space-y-4 pt-4 border-t border-white/10" id="devolucion">
-                            <!-- Accion: Devolver -->
-                            <details class="group/accion">
-                                <summary class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#1CD6CE]/50 hover:bg-blue-400/10 transition-colors cursor-pointer list-none">
-                                    <div class="p-2 rounded-lg bg-blue-600/20 text-[#1CD6CE]">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
-                                    </div>
-                                    <div class="flex-1">
-                                        <span class="block font-bold text-white">Registrar Devolución</span>
-                                        <span class="block text-xs text-white/60">Volver a ingresar al stock</span>
-                                    </div>
-                                    <svg class="w-4 h-4 text-white/40 group-open/accion:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                </summary>
-                                <div class="mt-3 p-4 rounded-xl bg-black/20 border border-white/5">
-                                    <form action="{{ route('movimientos.devolver', $movimiento->id) }}" method="POST">
-                                        @csrf
-                                        <div class="space-y-3">
-                                            <div>
-                                                <label class="block text-xs font-medium text-white/70 mb-1">Cantidad a devolver</label>
-                                                <input type="number" name="cantidad" min="1" max="{{ $pendiente }}" value="{{ $pendiente }}" required
-                                                    class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400"
-                                                    {{ $movimiento->item->esSerializado() ? 'readonly' : '' }}>
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-medium text-white/70 mb-1">Fecha de devolución</label>
-                                                <input type="datetime-local" name="fecha_movimiento" value="{{ now()->format('Y-m-d\TH:i') }}" required
-                                                    class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-medium text-white/70 mb-1">Observaciones (Opcional)</label>
-                                                <input type="text" name="observaciones" placeholder="Ej. Devuelve 1 cargador roto"
-                                                    class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
-                                            </div>
-                                            <button type="submit" class="w-full py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:opacity-90 transition-opacity mt-2">
-                                                Confirmar Devolución
-                                            </button>
+                            @can('bienes.crear')
+                                <!-- Accion: Devolver -->
+                                <details class="group/accion">
+                                    <summary class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#1CD6CE]/50 hover:bg-blue-400/10 transition-colors cursor-pointer list-none">
+                                        <div class="p-2 rounded-lg bg-blue-600/20 text-[#1CD6CE]">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
                                         </div>
-                                    </form>
-                                </div>
-                            </details>
-
-                            <!-- Accion: Baja (pérdida) -->
-                            <details class="group/accion">
-                                <summary class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#D61C4E]/50 hover:bg-[#D61C4E]/10 transition-colors cursor-pointer list-none">
-                                    <div class="p-2 rounded-lg bg-[#D61C4E]/20 text-[#ff5c86]">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                    </div>
-                                    <div class="flex-1">
-                                        <span class="block font-bold text-white">Dar de Baja</span>
-                                        <span class="block text-xs text-white/60">Pérdida o daño total</span>
-                                    </div>
-                                    <svg class="w-4 h-4 text-white/40 group-open/accion:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                </summary>
-                                <div class="mt-3 p-4 rounded-xl bg-black/20 border border-white/5">
-                                    <form action="{{ route('movimientos.baja', $movimiento->id) }}" method="POST">
-                                        @csrf
-                                        <div class="space-y-3">
-                                            <div class="flex gap-3">
-                                                <div class="flex-1">
-                                                    <label class="block text-xs font-medium text-white/70 mb-1">Cantidad</label>
+                                        <div class="flex-1">
+                                            <span class="block font-bold text-white">Registrar Devolución</span>
+                                            <span class="block text-xs text-white/60">Volver a ingresar al stock</span>
+                                        </div>
+                                        <svg class="w-4 h-4 text-white/40 group-open/accion:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </summary>
+                                    <div class="mt-3 p-4 rounded-xl bg-black/20 border border-white/5">
+                                        <form action="{{ route('movimientos.devolver', $movimiento->id) }}" method="POST">
+                                            @csrf
+                                            <div class="space-y-3">
+                                                <div>
+                                                    <label class="block text-xs font-medium text-white/70 mb-1">Cantidad a devolver</label>
                                                     <input type="number" name="cantidad" min="1" max="{{ $pendiente }}" value="{{ $pendiente }}" required
                                                         class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400"
                                                         {{ $movimiento->item->esSerializado() ? 'readonly' : '' }}>
                                                 </div>
-                                                <div class="flex-1">
-                                                    <label class="block text-xs font-medium text-white/70 mb-1">Fecha</label>
-                                                    <input type="date" name="fecha_movimiento" value="{{ now()->format('Y-m-d') }}" required
+                                                <div>
+                                                    <label class="block text-xs font-medium text-white/70 mb-1">Fecha de devolución</label>
+                                                    <input type="datetime-local" name="fecha_movimiento" value="{{ now()->format('Y-m-d\TH:i') }}" required
                                                         class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
                                                 </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-white/70 mb-1">Observaciones (Opcional)</label>
+                                                    <input type="text" name="observaciones" placeholder="Ej. Devuelve 1 cargador roto"
+                                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
+                                                </div>
+                                                <button type="submit" class="w-full py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:opacity-90 transition-opacity mt-2">
+                                                    Confirmar Devolución
+                                                </button>
                                             </div>
-                                            <div>
-                                                <label class="block text-xs font-medium text-white/70 mb-1">Motivo Corto</label>
-                                                <input type="text" name="motivo" placeholder="Ej. Robo, Extravío..." required
-                                                    class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-medium text-[#ff5c86] mb-1">Nota de Responsabilidad (Req.)</label>
-                                                <textarea name="observaciones" rows="2" placeholder="Detallar cómo se perdió y la responsabilidad del funcionario..." required minlength="10"
-                                                    class="w-full px-3 py-2 bg-white/5 border border-[#D61C4E]/40 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400"></textarea>
-                                            </div>
-                                            <button type="submit" onclick="return confirm('¿Confirmás la baja definitiva de estas unidades?')"
-                                                class="w-full py-2.5 rounded-lg bg-[#D61C4E] text-white font-bold hover:bg-[#b81742] transition-colors mt-2">
-                                                Confirmar Baja
-                                            </button>
+                                        </form>
+                                    </div>
+                                </details>
+                            @endcan
+
+                            @can('bienes.eliminar')
+                                <!-- Accion: Baja (pérdida) -->
+                                <details class="group/accion">
+                                    <summary class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#D61C4E]/50 hover:bg-[#D61C4E]/10 transition-colors cursor-pointer list-none">
+                                        <div class="p-2 rounded-lg bg-[#D61C4E]/20 text-[#ff5c86]">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                                         </div>
-                                    </form>
-                                </div>
-                            </details>
+                                        <div class="flex-1">
+                                            <span class="block font-bold text-white">Dar de Baja</span>
+                                            <span class="block text-xs text-white/60">Pérdida o daño total</span>
+                                        </div>
+                                        <svg class="w-4 h-4 text-white/40 group-open/accion:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </summary>
+                                    <div class="mt-3 p-4 rounded-xl bg-black/20 border border-white/5">
+                                        <form action="{{ route('movimientos.baja', $movimiento->id) }}" method="POST">
+                                            @csrf
+                                            <div class="space-y-3">
+                                                <div class="flex gap-3">
+                                                    <div class="flex-1">
+                                                        <label class="block text-xs font-medium text-white/70 mb-1">Cantidad</label>
+                                                        <input type="number" name="cantidad" min="1" max="{{ $pendiente }}" value="{{ $pendiente }}" required
+                                                            class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400"
+                                                            {{ $movimiento->item->esSerializado() ? 'readonly' : '' }}>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <label class="block text-xs font-medium text-white/70 mb-1">Fecha</label>
+                                                        <input type="date" name="fecha_movimiento" value="{{ now()->format('Y-m-d') }}" required
+                                                            class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-white/70 mb-1">Motivo Corto</label>
+                                                    <input type="text" name="motivo" placeholder="Ej. Robo, Extravío..." required
+                                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-[#ff5c86] mb-1">Nota de Responsabilidad (Req.)</label>
+                                                    <textarea name="observaciones" rows="2" placeholder="Detallar cómo se perdió y la responsabilidad del funcionario..." required minlength="10"
+                                                        class="w-full px-3 py-2 bg-white/5 border border-[#D61C4E]/40 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400"></textarea>
+                                                </div>
+                                                <button type="submit" onclick="return confirm('¿Confirmás la baja definitiva de estas unidades?')"
+                                                    class="w-full py-2.5 rounded-lg bg-[#D61C4E] text-white font-bold hover:bg-[#b81742] transition-colors mt-2">
+                                                    Confirmar Baja
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </details>
+                            @endcan
                         </div>
                     @endif
                 </div>
@@ -298,36 +308,38 @@
     </div>
 </div>
 
-<!-- Modal para anular -->
-<dialog id="modal-anular" class="bg-transparent backdrop:bg-white/5 backdrop:backdrop-blur-sm p-0 m-auto w-full max-w-md rounded-2xl shadow-2xl border border-white/20">
-    <div class="bg-slate-900 p-6 text-white w-full">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-bold text-[#ff5c86]">Anular Movimiento</h3>
-            <button onclick="document.getElementById('modal-anular').close()" class="p-1 text-white/50 hover:text-white rounded-lg">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+@can('bienes.eliminar')
+    <!-- Modal para anular -->
+    <dialog id="modal-anular" class="bg-transparent backdrop:bg-white/5 backdrop:backdrop-blur-sm p-0 m-auto w-full max-w-md rounded-2xl shadow-2xl border border-white/20">
+        <div class="bg-slate-900 p-6 text-white w-full">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-[#ff5c86]">Anular Movimiento</h3>
+                <button onclick="document.getElementById('modal-anular').close()" class="p-1 text-white/50 hover:text-white rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <p class="text-sm text-white/70 mb-5">
+                Esto revertirá el impacto en el stock. El movimiento no se borrará, quedará marcado como anulado.
+            </p>
+            <form action="{{ route('movimientos.anular', $movimiento->id) }}" method="POST">
+                @csrf
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium">Motivo de anulación</label>
+                    <input type="text" name="motivo_anulacion" required placeholder="Ej. Error de tipeo, asignación incorrecta"
+                        class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-[#ff5c86]">
+                </div>
+                <div class="flex gap-3 justify-end mt-6">
+                    <button type="button" onclick="document.getElementById('modal-anular').close()"
+                        class="px-5 py-2.5 rounded-xl border border-white/20 hover:bg-white/5 transition-colors font-semibold">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                        class="px-5 py-2.5 rounded-xl bg-[#D61C4E] hover:bg-[#b81742] text-white transition-colors font-bold shadow-blue-500/30">
+                        Confirmar Anulación
+                    </button>
+                </div>
+            </form>
         </div>
-        <p class="text-sm text-white/70 mb-5">
-            Esto revertirá el impacto en el stock. El movimiento no se borrará, quedará marcado como anulado.
-        </p>
-        <form action="{{ route('movimientos.anular', $movimiento->id) }}" method="POST">
-            @csrf
-            <div class="mb-4">
-                <label class="block mb-2 text-sm font-medium">Motivo de anulación</label>
-                <input type="text" name="motivo_anulacion" required placeholder="Ej. Error de tipeo, asignación incorrecta"
-                    class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-[#ff5c86]">
-            </div>
-            <div class="flex gap-3 justify-end mt-6">
-                <button type="button" onclick="document.getElementById('modal-anular').close()"
-                    class="px-5 py-2.5 rounded-xl border border-white/20 hover:bg-white/5 transition-colors font-semibold">
-                    Cancelar
-                </button>
-                <button type="submit"
-                    class="px-5 py-2.5 rounded-xl bg-[#D61C4E] hover:bg-[#b81742] text-white transition-colors font-bold shadow-blue-500/30">
-                    Confirmar Anulación
-                </button>
-            </div>
-        </form>
-    </div>
-</dialog>
+    </dialog>
+@endcan
 @endsection

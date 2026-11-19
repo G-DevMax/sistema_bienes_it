@@ -6,6 +6,7 @@ use App\Http\Controllers\Tickets\TicketController;
 use App\Models\dependencias;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
+use App\Models\rol;
 use App\Models\Tickets\Ticket;
 use App\Models\Tickets\TicketHistory;
 use App\Models\User;
@@ -156,6 +157,10 @@ class TicketTest extends TestCase
     public function test_vistas_de_tickets_renderizan_dashboard_listado_y_detalle(): void
     {
         View::share('errors', new ViewErrorBag);
+
+        $admin = new User(['name' => 'Admin', 'email' => 'admin@example.com', 'rol_id' => rol::ADMIN]);
+        $admin->id = 1;
+        $this->be($admin);
 
         $dependencia = new dependencias(['nombre' => 'Secretaría General']);
         $funcionario = new funcionarios(['nombre' => 'Carlos Benítez']);
@@ -349,7 +354,7 @@ class TicketTest extends TestCase
 
     public function test_navbar_tickets_muestra_inicio_listado_y_crear_ticket_en_layout(): void
     {
-        $tecnico = new User(['name' => 'Tecnico', 'email' => 'tec@example.com']);
+        $tecnico = new User(['name' => 'Tecnico', 'email' => 'tec@example.com', 'rol_id' => rol::TECNICO_TERCERIZADO]);
         $tecnico->id = 1;
         $this->be($tecnico);
 
@@ -451,6 +456,10 @@ class TicketTest extends TestCase
     public function test_ticket_insumos_enlaza_a_movimientos_con_funcionario_y_create_lo_preselecciona(): void
     {
         View::share('errors', new ViewErrorBag);
+
+        $admin = new User(['name' => 'Admin', 'email' => 'admin@example.com', 'rol_id' => rol::ADMIN]);
+        $admin->id = 1;
+        $this->be($admin);
 
         $funcionario = new funcionarios(['nombre' => 'Carlos Benítez']);
         $funcionario->id = 4;

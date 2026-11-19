@@ -150,106 +150,120 @@
                                 el ticket</a>
                         </div>
                     @elseif ($ticket->estado === \App\Models\Tickets\Ticket::ESTADO_PENDIENTE)
-                        <form action="{{ route('tickets.asignar', $ticket) }}" method="POST" class="space-y-4">
-                            @csrf
-                            <div>
-                                <label for="asignado_a" class="block text-sm font-medium text-white/90 mb-2">
-                                    Asignar Técnico
-                                </label>
-                                <select name="asignado_a" id="asignado_a" required
-                                    class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 outline-none">
-                                    <option value="">Seleccione un técnico...</option>
-                                    @foreach ($tecnicos as $tecnico)
-                                        <option value="{{ $tecnico->id }}" @selected(old('asignado_a', auth()->id()) == $tecnico->id)>
-                                            {{ $tecnico->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <button type="submit"
-                                class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white font-bold shadow-lg shadow-blue-500/20 transition-all">
-                                Asignar Técnico
-                            </button>
-                        </form>
-                    @else
-                        <!-- Ticket Asignado / Resuelto: permite cerrar y opcionalmente reasignar -->
-                        @php
-                            $detalleInicial = old('detalle_id', $detallesComunes->isEmpty() ? 'otro' : '');
-                        @endphp
-                        <form action="{{ route('tickets.cerrar', $ticket) }}" method="POST" class="space-y-4">
-                            @csrf
-                            <div>
-                                <label for="detalle_id" class="block text-sm font-medium text-white/90 mb-2">
-                                    Problema Común ({{ $ticket->tipo_problema }})
-                                </label>
-                                <select name="detalle_id" id="detalle_id" data-sort="none"
-                                    placeholder="Selecciona o busca un detalle..."
-                                    class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 outline-none">
-                                    @if ($detallesComunes->isNotEmpty())
-                                        <option value="" @selected($detalleInicial === '')>Selecciona o busca un detalle...
-                                        </option>
-                                    @endif
-                                    @foreach ($detallesComunes as $detalle)
-                                        <option value="{{ $detalle->id }}" @selected((string) $detalleInicial === (string) $detalle->id)>
-                                            {{ $detalle->detalle }}
-                                        </option>
-                                    @endforeach
-                                    <option value="otro" @selected($detalleInicial === 'otro')>Otro (Leer Observaciones)</option>
-                                </select>
-                                <p class="mt-1 text-xs text-white/50">
-                                    Si no coincide con ninguno, elige <strong>Otro (Leer Observaciones)</strong>.
-                                </p>
-                            </div>
-                            <div>
-                                <label for="observacion" class="block text-sm font-medium text-white/90 mb-2">
-                                    Observación de cierre
-                                    <span id="badge-observacion"
-                                        class="ml-1 text-xs font-normal text-white/50">(Opcional)</span>
-                                </label>
-                                <textarea name="observacion" id="observacion" rows="4" placeholder="Describe brevemente la solución aplicada..."
-                                    class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all">{{ old('observacion') }}</textarea>
-                            </div>
-                            <button type="submit"
-                                class="w-full py-2.5 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold shadow-lg shadow-green-500/20 transition-all">
-                                Cerrar Ticket
-                            </button>
-                        </form>
-
-                        <details class="pt-4 border-t border-white/10 group">
-                            <summary
-                                class="text-xs font-medium text-white/60 hover:text-white cursor-pointer list-none flex items-center justify-between">
-                                <span>Reasignar técnico</span>
-                                <svg class="w-4 h-4 group-open:rotate-180 transition-transform" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </summary>
-                            <form action="{{ route('tickets.asignar', $ticket) }}" method="POST"
-                                class="mt-3 space-y-3">
+                        @can('tickets.operar', $ticket)
+                            <form action="{{ route('tickets.asignar', $ticket) }}" method="POST" class="space-y-4">
                                 @csrf
-                                <select name="asignado_a" required
-                                    class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-xl text-sm text-white focus:border-blue-400 outline-none">
-                                    @foreach ($tecnicos as $tecnico)
-                                        <option value="{{ $tecnico->id }}" @selected($ticket->asignado_a == $tecnico->id)>
-                                            {{ $tecnico->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <div>
+                                    <label for="asignado_a" class="block text-sm font-medium text-white/90 mb-2">
+                                        Asignar Técnico
+                                    </label>
+                                    <select name="asignado_a" id="asignado_a" required
+                                        class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 outline-none">
+                                        <option value="">Seleccione un técnico...</option>
+                                        @foreach ($tecnicos as $tecnico)
+                                            <option value="{{ $tecnico->id }}" @selected(old('asignado_a', auth()->id()) == $tecnico->id)>
+                                                {{ $tecnico->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                                 <button type="submit"
-                                    class="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all">
-                                    Actualizar Técnico
+                                    class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white font-bold shadow-lg shadow-blue-500/20 transition-all">
+                                    Asignar Técnico
                                 </button>
                             </form>
-                        </details>
+                        @else
+                            <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs">
+                                Solo lectura: solo un técnico autorizado o administrador puede asignar este ticket.
+                            </div>
+                        @endcan
+                    @else
+                        @can('tickets.operar', $ticket)
+                            <!-- Ticket Asignado / Resuelto: permite cerrar y opcionalmente reasignar -->
+                            @php
+                                $detalleInicial = old('detalle_id', $detallesComunes->isEmpty() ? 'otro' : '');
+                            @endphp
+                            <form action="{{ route('tickets.cerrar', $ticket) }}" method="POST" class="space-y-4">
+                                @csrf
+                                <div>
+                                    <label for="detalle_id" class="block text-sm font-medium text-white/90 mb-2">
+                                        Problema Común ({{ $ticket->tipo_problema }})
+                                    </label>
+                                    <select name="detalle_id" id="detalle_id" data-sort="none"
+                                        placeholder="Selecciona o busca un detalle..."
+                                        class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 outline-none">
+                                        @if ($detallesComunes->isNotEmpty())
+                                            <option value="" @selected($detalleInicial === '')>Selecciona o busca un detalle...
+                                            </option>
+                                        @endif
+                                        @foreach ($detallesComunes as $detalle)
+                                            <option value="{{ $detalle->id }}" @selected((string) $detalleInicial === (string) $detalle->id)>
+                                                {{ $detalle->detalle }}
+                                            </option>
+                                        @endforeach
+                                        <option value="otro" @selected($detalleInicial === 'otro')>Otro (Leer Observaciones)</option>
+                                    </select>
+                                    <p class="mt-1 text-xs text-white/50">
+                                        Si no coincide con ninguno, elige <strong>Otro (Leer Observaciones)</strong>.
+                                    </p>
+                                </div>
+                                <div>
+                                    <label for="observacion" class="block text-sm font-medium text-white/90 mb-2">
+                                        Observación de cierre
+                                        <span id="badge-observacion"
+                                            class="ml-1 text-xs font-normal text-white/50">(Opcional)</span>
+                                    </label>
+                                    <textarea name="observacion" id="observacion" rows="4" placeholder="Describe brevemente la solución aplicada..."
+                                        class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all">{{ old('observacion') }}</textarea>
+                                </div>
+                                <button type="submit"
+                                    class="w-full py-2.5 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold shadow-lg shadow-green-500/20 transition-all">
+                                    Cerrar Ticket
+                                </button>
+                            </form>
+
+                            <details class="pt-4 border-t border-white/10 group">
+                                <summary
+                                    class="text-xs font-medium text-white/60 hover:text-white cursor-pointer list-none flex items-center justify-between">
+                                    <span>Reasignar técnico</span>
+                                    <svg class="w-4 h-4 group-open:rotate-180 transition-transform" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </summary>
+                                <form action="{{ route('tickets.asignar', $ticket) }}" method="POST"
+                                    class="mt-3 space-y-3">
+                                    @csrf
+                                    <select name="asignado_a" required
+                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-xl text-sm text-white focus:border-blue-400 outline-none">
+                                        @foreach ($tecnicos as $tecnico)
+                                            <option value="{{ $tecnico->id }}" @selected($ticket->asignado_a == $tecnico->id)>
+                                                {{ $tecnico->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit"
+                                        class="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all">
+                                        Actualizar Técnico
+                                    </button>
+                                </form>
+                            </details>
+                        @else
+                            <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs">
+                                Solo lectura: ticket asignado a {{ $ticket->tecnicoAsignado->name ?? 'otro técnico' }}.
+                            </div>
+                        @endcan
                     @endif
-                    @if ($ticket->tipo_problema === 'Insumos' && !$ticket->estaCerrado())
-                        <div class="mb-6">
-                            <a href="{{ route('movimientos.create', ['funcionario_id' => $ticket->funcionario_id]) }}"
-                                class="text-white/70 hover:text-white/100 font-medium text-xs">Ir a Movimientos para
-                                prestar/transferir el insumo solicitado</a>
-                        </div>
-                    @endif
+                    @can('bienes.crear')
+                        @if ($ticket->tipo_problema === 'Insumos' && !$ticket->estaCerrado())
+                            <div class="mb-6">
+                                <a href="{{ route('movimientos.create', ['funcionario_id' => $ticket->funcionario_id]) }}"
+                                    class="text-white/70 hover:text-white/100 font-medium text-xs">Ir a Movimientos para
+                                    prestar/transferir el insumo solicitado</a>
+                            </div>
+                        @endif
+                    @endcan
                 </div>
             </div>
         </div>

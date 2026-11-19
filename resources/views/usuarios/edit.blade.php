@@ -65,11 +65,15 @@
                             placeholder="Dejar en blanco para no cambiar">
                     </div>
 
+                    @php
+                        $esPropioUsuario = auth()->id() === $usuario->id;
+                    @endphp
                     <!-- Rol -->
                     <div>
                         <label for="rol_id" class="block mb-2 text-sm font-medium text-white/90">Rol del Usuario</label>
                         <select id="rol_id" name="rol_id"
-                            class="searchable-select w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
+                            @disabled($esPropioUsuario)
+                            class="searchable-select w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                             required>
                             @if (isset($roles))
                                 @foreach ($roles as $rol)
@@ -84,6 +88,9 @@
                                 </option>
                             @endif
                         </select>
+                        @if ($esPropioUsuario)
+                            <p class="mt-1 text-xs text-amber-300/80">No puedes cambiar tu propio rol en sesión.</p>
+                        @endif
                     </div>
                     <!-- Estado del Usuario (activo o desactivado) -->
                     <div>
@@ -91,11 +98,15 @@
                             Estado del Usuario
                         </label>
                         <select id="estado_user" name="estado_user"
-                            class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none"
+                            @disabled($esPropioUsuario)
+                            class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                             required>
                             <option value="1" {{ $usuario->estado_user == 1 ? 'selected' : '' }}>Activo</option>
                             <option value="0" {{ $usuario->estado_user == 0 ? 'selected' : '' }}>Desactivado</option>
                         </select>
+                        @if ($esPropioUsuario)
+                            <p class="mt-1 text-xs text-amber-300/80">No puedes desactivar tu propia cuenta en sesión.</p>
+                        @endif
                     </div>
                 </div> <!-- Fin del grid -->
 

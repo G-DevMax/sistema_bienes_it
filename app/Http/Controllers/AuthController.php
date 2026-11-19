@@ -30,13 +30,30 @@ class AuthController extends Controller
             $remember = $request->boolean('remember', true);
 
             if (Auth::attempt(array_merge($credenciales, ['estado_user' => 1]), $remember)) {
+                $usuario = Auth::user();
+
+                if (! $usuario->puedeIniciarSesion()) {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+
+                    LoggerService::warning('Intento de inicio de sesión de rol sin acceso', [
+                        'email' => $credenciales['email'],
+                        'rol_id' => $usuario->rol_id,
+                    ]);
+
+                    return back()->withInput($request->only('email'))->withErrors([
+                        'error' => 'Su rol no tiene permiso para acceder al sistema.',
+                    ]);
+                }
+
                 $request->session()->regenerate();
 
                 LoggerService::info('Inicio de Sesión', [
                     'email' => $credenciales['email'],
                 ]);
 
-                return redirect()->intended('/items');
+                return redirect()->intended($usuario->rutaInicio());
             }
 
             LoggerService::warning('Intento fallido de inicio de sesión', [

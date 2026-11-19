@@ -76,22 +76,24 @@
                                             </button>
                                         </a>
 
-                                        <form action="{{ route('usuarios.destroy', $usuario->id) }}" method="POST"
-                                            class="inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
-                                                title="Eliminar"
-                                                onclick="return confirm('¿Estás seguro de desactivar este usuario?')">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                                    </path>
-                                                </svg>
-                                            </button>
-                                        </form>
+                                        @if (auth()->id() !== $usuario->id)
+                                            <form action="{{ route('usuarios.destroy', $usuario->id) }}" method="POST"
+                                                class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
+                                                    title="Eliminar"
+                                                    onclick="return confirm('¿Estás seguro de desactivar este usuario?')">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                        </path>
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -110,53 +112,55 @@
             @endif
         </div>
 
-        <!-- Botón para descargar registro de cambios -->
-        <div class="mt-8 flex justify-end">
-            <button onclick="document.getElementById('modalHistorial').classList.remove('hidden')"
-                class="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/20 rounded-xl text-white/80 hover:text-white transition-all flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                Descargar registro de cambios en el SGDI
-            </button>
-        </div>
-
-        <!-- Modal de Historial -->
-        <div id="modalHistorial"
-            class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center">
-            <div class="bg-[#0b1329] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in-up">
-                <h3 class="text-xl font-bold text-white mb-4">Descargar Historial de Cambios del SGDI</h3>
-                <p class="text-sm text-white/60 mb-6">Seleccione el rango de fechas para descargar los registros en formato
-                    JSON.</p>
-
-                <form action="{{ route('historial.descargar') }}" method="GET">
-                    <div class="space-y-4 mb-6">
-                        <div>
-                            <label class="block text-sm font-medium text-white/90 mb-1">Fecha de Inicio</label>
-                            <input type="date" name="fecha_inicio" required min="2026-01-01"
-                                class="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-white/90 mb-1">Fecha de Fin</label>
-                            <input type="date" name="fecha_fin" required min="2026-01-01" value="{{ date('Y-m-d') }}"
-                                class="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none">
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end gap-3">
-                        <button type="button" onclick="document.getElementById('modalHistorial').classList.add('hidden')"
-                            class="px-4 py-2 rounded-xl text-white/70 hover:bg-white/10 transition-colors">
-                            Cancelar
-                        </button>
-                        <button type="submit"
-                            onclick="setTimeout(() => document.getElementById('modalHistorial').classList.add('hidden'), 500)"
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium shadow-lg shadow-blue-500/20 transition-all">
-                            Descargar JSON
-                        </button>
-                    </div>
-                </form>
+        @can('historial.descargar')
+            <!-- Botón para descargar registro de cambios -->
+            <div class="mt-8 flex justify-end">
+                <button onclick="document.getElementById('modalHistorial').classList.remove('hidden')"
+                    class="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/20 rounded-xl text-white/80 hover:text-white transition-all flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Descargar registro de cambios en el SGDI
+                </button>
             </div>
-        </div>
+
+            <!-- Modal de Historial -->
+            <div id="modalHistorial"
+                class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                <div class="bg-[#0b1329] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in-up">
+                    <h3 class="text-xl font-bold text-white mb-4">Descargar Historial de Cambios del SGDI</h3>
+                    <p class="text-sm text-white/60 mb-6">Seleccione el rango de fechas para descargar los registros en formato
+                        JSON.</p>
+
+                    <form action="{{ route('historial.descargar') }}" method="GET">
+                        <div class="space-y-4 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-white/90 mb-1">Fecha de Inicio</label>
+                                <input type="date" name="fecha_inicio" required min="2026-01-01"
+                                    class="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-white/90 mb-1">Fecha de Fin</label>
+                                <input type="date" name="fecha_fin" required min="2026-01-01" value="{{ date('Y-m-d') }}"
+                                    class="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3">
+                            <button type="button" onclick="document.getElementById('modalHistorial').classList.add('hidden')"
+                                class="px-4 py-2 rounded-xl text-white/70 hover:bg-white/10 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit"
+                                onclick="setTimeout(() => document.getElementById('modalHistorial').classList.add('hidden'), 500)"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium shadow-lg shadow-blue-500/20 transition-all">
+                                Descargar JSON
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endcan
     </div>
 @endsection

@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\rol;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class RolesSeeder extends Seeder
@@ -13,21 +12,16 @@ class RolesSeeder extends Seeder
      */
     public function run(): void
     {
-        // creacion de los roles predeterminados
-        $rol = new rol();
-        $rol->nombre = 'Administrador IT';
-        $rol->save();
+        $roles = [
+            'Administrador IT',
+            'Supervisor IT',
+            'Director/Jefe de Área',
+            'Funcionario',
+            'Técnico Tercerizado',
+        ];
 
-        $rol = new rol();
-        $rol->nombre = 'Supervisor IT';
-        $rol->save();
-
-        $rol = new rol();
-        $rol->nombre = 'Director/Jefe de Área';
-        $rol->save();
-
-        $rol = new rol();
-        $rol->nombre = 'Funcionario';
-        $rol->save();
+        foreach ($roles as $nombre) {
+            rol::firstOrCreate(['nombre' => $nombre]);
+        }
     }
 }

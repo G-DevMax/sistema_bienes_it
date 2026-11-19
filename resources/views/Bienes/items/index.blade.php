@@ -12,18 +12,20 @@
                 </h1>
                 <p class="text-white/70 mt-1">Gestiona el inventario de bienes del Departamento de IT</p>
             </div>
-            <a href="{{ route('items.create') }}">
-                <button
-                    class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] transition-all flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 6v6m0 0v6m0-6h6m-6 0H6">
-                        </path>
-                    </svg>
-                    Nuevo Item
-                </button>
-            </a>
+            @can('bienes.crear')
+                <a href="{{ route('items.create') }}">
+                    <button
+                        class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] transition-all flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6">
+                            </path>
+                        </svg>
+                        Nuevo Item
+                    </button>
+                </a>
+            @endcan
         </div>
 
         <!-- Mensaje de alertas -->
@@ -123,75 +125,81 @@
                                 <td class="px-6 py-4 text-right">
                                     <div
                                         class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                                        @if ($item->stock_disponible > 0)
-                                            <a href="{{ route('movimientos.create', ['item_id' => $item->id]) }}"
-                                                class="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                                                title="Prestar / Transferir">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                                                </svg>
-                                            </a>
-                                        @endif
-
-                                        @unless ($item->esSerializado())
-                                            {{-- ingreso de stock para items genericos --}}
-                                            <details class="relative" name="stock-actions">
-                                                <summary
-                                                    class="list-none p-2 text-white/60 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors cursor-pointer"
-                                                    title="Ingresar stock">
+                                        @can('bienes.crear')
+                                            @if ($item->stock_disponible > 0)
+                                                <a href="{{ route('movimientos.create', ['item_id' => $item->id]) }}"
+                                                    class="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                                                    title="Prestar / Transferir">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                         viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M12 4v16m8-8H4"></path>
+                                                            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                                                     </svg>
-                                                </summary>
-                                                <form action="{{ route('items.ingresar-stock', $item->id) }}" method="POST"
-                                                    class="absolute right-0 {{ $loop->index > 4 && $loop->last ? 'bottom-full mb-2' : 'top-full mt-2' }} z-50 w-72 p-4 bg-slate-900/95 backdrop-blur-xl border border-white/15 rounded-xl shadow-2xl text-left flex flex-col gap-3 whitespace-normal">
-                                                    @csrf
-                                                    <p class="text-xs text-white/70">Ingresar unidades de <b
-                                                            class="text-white">{{ $item->descripcion }}</b></p>
-                                                    <div class="flex flex-col gap-1">
-                                                        <label class="text-xs font-medium text-white/70">Cantidad</label>
-                                                        <input type="number" name="cantidad" min="1" value="1" required
-                                                            class="w-full px-3 py-1.5 text-sm bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
-                                                    </div>
-                                                    <div class="flex flex-col gap-1">
-                                                        <label class="text-xs font-medium text-white/70">Observaciones</label>
-                                                        <input type="text" name="observaciones"
-                                                            placeholder="Observación (opcional)"
-                                                            class="w-full px-3 py-1.5 text-sm bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
-                                                    </div>
-                                                    <button type="submit"
-                                                        class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors text-sm shadow-md shadow-blue-600/30">Ingresar</button>
-                                                </form>
-                                            </details>
-                                        @endunless
+                                                </a>
+                                            @endif
 
-                                        <a href="{{ route('items.edit', $item->id) }}"
-                                            class="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                                            title="Editar">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
-                                                </path>
-                                            </svg>
-                                        </a>
+                                            @unless ($item->esSerializado())
+                                                {{-- ingreso de stock para items genericos --}}
+                                                <details class="relative" name="stock-actions">
+                                                    <summary
+                                                        class="list-none p-2 text-white/60 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors cursor-pointer"
+                                                        title="Ingresar stock">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                            viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M12 4v16m8-8H4"></path>
+                                                        </svg>
+                                                    </summary>
+                                                    <form action="{{ route('items.ingresar-stock', $item->id) }}" method="POST"
+                                                        class="absolute right-0 {{ $loop->index > 4 && $loop->last ? 'bottom-full mb-2' : 'top-full mt-2' }} z-50 w-72 p-4 bg-slate-900/95 backdrop-blur-xl border border-white/15 rounded-xl shadow-2xl text-left flex flex-col gap-3 whitespace-normal">
+                                                        @csrf
+                                                        <p class="text-xs text-white/70">Ingresar unidades de <b
+                                                                class="text-white">{{ $item->descripcion }}</b></p>
+                                                        <div class="flex flex-col gap-1">
+                                                            <label class="text-xs font-medium text-white/70">Cantidad</label>
+                                                            <input type="number" name="cantidad" min="1" value="1" required
+                                                                class="w-full px-3 py-1.5 text-sm bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400">
+                                                        </div>
+                                                        <div class="flex flex-col gap-1">
+                                                            <label class="text-xs font-medium text-white/70">Observaciones</label>
+                                                            <input type="text" name="observaciones"
+                                                                placeholder="Observación (opcional)"
+                                                                class="w-full px-3 py-1.5 text-sm bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-400">
+                                                        </div>
+                                                        <button type="submit"
+                                                            class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors text-sm shadow-md shadow-blue-600/30">Ingresar</button>
+                                                    </form>
+                                                </details>
+                                            @endunless
+                                        @endcan
 
-                                        @if ($item->stock_disponible > 0)
-                                            <a href="{{ route('movimientos.create', ['tipo' => 'baja', 'item_id' => $item->id]) }}"
-                                                class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
-                                                title="Dar de baja">
+                                        @can('bienes.editar')
+                                            <a href="{{ route('items.edit', $item->id) }}"
+                                                class="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                                                title="Editar">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
                                                     </path>
                                                 </svg>
                                             </a>
-                                        @endif
+                                        @endcan
+
+                                        @can('bienes.eliminar')
+                                            @if ($item->stock_disponible > 0)
+                                                <a href="{{ route('movimientos.create', ['tipo' => 'baja', 'item_id' => $item->id]) }}"
+                                                    class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
+                                                    title="Dar de baja">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                        </path>
+                                                    </svg>
+                                                </a>
+                                            @endif
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

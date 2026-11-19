@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
 use App\Models\Informes\informes;
+use App\Models\rol;
 use App\Models\Tickets\Ticket;
 use App\Models\Tickets\TicketHistory;
 use App\Models\User;
@@ -295,7 +296,10 @@ class TicketController extends Controller
     public function show(Ticket $ticket): View
     {
         $ticket->load(['funcionario.dependencia', 'tecnicoAsignado', 'detalle', 'historial.responsable', 'historial.funcionario']);
-        $tecnicos = User::where('estado_user', 1)->orderBy('name')->get();
+        $tecnicos = User::where('estado_user', 1)
+            ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO])
+            ->orderBy('name')
+            ->get();
         $detallesComunes = detalles_problemas::where('tipo_problema', $ticket->tipo_problema)
             ->orderBy('detalle')
             ->get();
@@ -311,7 +315,12 @@ class TicketController extends Controller
         }
 
         $datos = $request->validate([
-            'asignado_a' => ['required', Rule::exists('users', 'id')->where('estado_user', 1)],
+            'asignado_a' => [
+                'required',
+                Rule::exists('users', 'id')->where(fn ($q) => $q
+                    ->where('estado_user', 1)
+                    ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO])),
+            ],
         ], [
             'asignado_a.required' => 'Debe seleccionar un técnico para asignar el ticket.',
             'asignado_a.exists' => 'El técnico seleccionado no es válido o está inactivo.',

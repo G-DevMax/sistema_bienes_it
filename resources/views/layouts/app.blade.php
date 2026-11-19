@@ -40,44 +40,58 @@
             </a>
             <div class="flex items-center space-x-2 sm:space-x-4">
                 @if ($esModuloInformes)
-                    <a href="{{ route('informes.index') }}"
-                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                        Informes
-                    </a>
-                    <a href="{{ route('detalles-problemas.index') }}"
-                        class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/15 text-blue-300 border border-blue-400/30 hover:bg-blue-500/25 hover:text-white transition-all">
-                        Registrar Problema Común
-                    </a>
+                    @can('informes.ver')
+                        <a href="{{ route('informes.index') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                            Informes
+                        </a>
+                    @endcan
+                    @can('detalles.ver')
+                        <a href="{{ route('detalles-problemas.index') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/15 text-blue-300 border border-blue-400/30 hover:bg-blue-500/25 hover:text-white transition-all">
+                            Registrar Problema Común
+                        </a>
+                    @endcan
                 @elseif ($esModuloTickets)
-                    <a href="{{ route('tickets.dashboard') }}"
-                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.dashboard') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
-                        Inicio
-                    </a>
-                    <a href="{{ route('tickets.index') }}"
-                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.index', 'tickets.show') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
-                        Listado de Tickets
-                    </a>
-                    <a href="{{ route('tickets.create-manual') }}"
-                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.create-manual') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
-                        Crear Ticket
-                    </a>
+                    @can('tickets.ver')
+                        <a href="{{ route('tickets.dashboard') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.dashboard') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
+                            Inicio
+                        </a>
+                        <a href="{{ route('tickets.index') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.index', 'tickets.show') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
+                            Listado de Tickets
+                        </a>
+                    @endcan
+                    @can('tickets.crear')
+                        <a href="{{ route('tickets.create-manual') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.create-manual') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
+                            Crear Ticket
+                        </a>
+                    @endcan
                 @else
-                    <a href="{{ route('items.index') }}"
-                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                        Items
-                    </a>
-                    <a href="{{ route('movimientos.index') }}"
-                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                        Movimientos
-                    </a>
-                    <a href="{{ route('funcionarios.index') }}"
-                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                        Funcionarios
-                    </a>
-                    <a href="{{ route('usuarios.index') }}"
-                        class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                        Usuarios
-                    </a>
+                    @can('bienes.ver')
+                        <a href="{{ route('items.index') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                            Items
+                        </a>
+                        <a href="{{ route('movimientos.index') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                            Movimientos
+                        </a>
+                    @endcan
+                    @can('funcionarios.ver')
+                        <a href="{{ route('funcionarios.index') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                            Funcionarios
+                        </a>
+                    @endcan
+                    @can('usuarios.gestionar')
+                        <a href="{{ route('usuarios.index') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                            Usuarios
+                        </a>
+                    @endcan
                 @endif
 
                 <form action="{{ route('logout') }}" method="POST" class="inline">

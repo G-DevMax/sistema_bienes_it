@@ -14,6 +14,7 @@ use App\Services\LoggerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -68,6 +69,10 @@ class MovimientosController extends Controller
     public function store(Request $request)
     {
         $tipo = $request->input('tipo_movimiento');
+
+        if ($tipo === movimientos::BAJA) {
+            Gate::authorize('bienes.eliminar');
+        }
 
         $datos = $this->validateWithIndexRedirect($request, [
             'tipo_movimiento' => ['required', Rule::in([movimientos::PRESTAMO, movimientos::TRANSFERENCIA, movimientos::BAJA])],

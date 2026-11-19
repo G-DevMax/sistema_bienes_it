@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Services\LoggerService;
-use App\Models\User;
 use App\Models\rol;
+use App\Models\User;
+use App\Services\LoggerService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -107,14 +107,36 @@ class UsuariosController extends Controller
     public function update(Request $request, string $id)
     {
         $usuario_editado = User::findOrFail($id);
+        $esPropioUsuario = (int) Auth::id() === (int) $usuario_editado->id;
 
-        $this->validateWithIndexRedirect($request, [
+        if ($esPropioUsuario && (
+            ($request->has('rol_id') && (int) $request->input('rol_id') !== (int) $usuario_editado->rol_id)
+            || ($request->has('estado_user') && (int) $request->input('estado_user') !== (int) $usuario_editado->estado_user)
+        )) {
+            LoggerService::warning('Usuario intentó modificar su propio rol o estado', [
+                'user_id' => Auth::id(),
+                'rol_actual' => $usuario_editado->rol_id,
+                'rol_solicitado' => $request->input('rol_id'),
+                'estado_actual' => $usuario_editado->estado_user,
+                'estado_solicitado' => $request->input('estado_user'),
+            ]);
+
+            return redirect()->route('usuarios.index')
+                ->with('error', 'No puedes cambiar tu propio rol ni modificar el estado de tu cuenta en sesión.');
+        }
+
+        $reglas = [
             'name' => 'required|string|max:120',
-            'email' => 'required|email|max:150|unique:users,email,' . $usuario_editado->id,
+            'email' => 'required|email|max:150|unique:users,email,'.$usuario_editado->id,
             'password' => 'nullable|string|min:4',
-            'rol_id' => 'required|exists:roles,id',
-            'estado_user' => 'required|in:0,1',
-        ], [
+        ];
+
+        if (! $esPropioUsuario) {
+            $reglas['rol_id'] = 'required|exists:roles,id';
+            $reglas['estado_user'] = 'required|in:0,1';
+        }
+
+        $this->validateWithIndexRedirect($request, $reglas, [
             'name.required' => 'El nombre del usuario es obligatorio.',
             'name.max' => 'El nombre no puede superar los 120 caracteres.',
             'email.required' => 'El correo electrónico es obligatorio.',
@@ -136,21 +158,24 @@ class UsuariosController extends Controller
                 $usuario_editado->password = $request->password;
             }
 
-            $usuario_editado->estado_user = $request->estado_user;
-            $usuario_editado->rol_id = $request->rol_id;
+            if (! $esPropioUsuario) {
+                $usuario_editado->estado_user = $request->estado_user;
+                $usuario_editado->rol_id = $request->rol_id;
+            }
+
             $usuario_editado->save();
 
             LoggerService::info('Usuario actualizado', [
                 'name' => $request->name,
                 'email' => $request->email,
-                'rol' => $request->rol_id,
+                'rol' => $usuario_editado->rol_id,
                 'user_id' => Auth::id(),
             ]);
         } catch (\Exception $exception) {
             LoggerService::error('Error al actualizar usuario', [
                 'name' => $request->name,
                 'email' => $request->email,
-                'rol' => $request->rol_id,
+                'rol' => $usuario_editado->rol_id,
                 'user_id' => Auth::id(),
             ], $exception);
 
@@ -174,6 +199,7 @@ class UsuariosController extends Controller
                 'rol' => $usuario_eliminar->rol_id,
                 'user_id' => Auth::id(),
             ]);
+
             return redirect()->route('usuarios.index')->with('error', 'No puedes desactivar tu propia cuenta de usuario en sesión.');
         }
 

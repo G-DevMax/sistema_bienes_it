@@ -23,14 +23,16 @@
                 </h1>
                 <p class="text-white/70 mt-1">Controla los préstamos, transferencias, devoluciones y bajas de bienes</p>
             </div>
-            <a href="{{ route('movimientos.create') }}"
-                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] transition-all gap-2 group">
-                <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Nuevo Movimiento
-            </a>
+            @can('bienes.crear')
+                <a href="{{ route('movimientos.create') }}"
+                    class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] transition-all gap-2 group">
+                    <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Nuevo Movimiento
+                </a>
+            @endcan
         </div>
 
         <div>
@@ -134,12 +136,14 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">
-                                        @if (!$anulado && $pendiente > 0)
-                                            <a href="{{ route('movimientos.show', $movimiento->id) }}#devolucion"
-                                                class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600/20 text-[#1CD6CE] border border-[#1CD6CE]/30 hover:bg-blue-600/25 transition-colors">
-                                                Devolver
-                                            </a>
-                                        @endif
+                                        @can('bienes.crear')
+                                            @if (!$anulado && $pendiente > 0)
+                                                <a href="{{ route('movimientos.show', $movimiento->id) }}#devolucion"
+                                                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600/20 text-[#1CD6CE] border border-[#1CD6CE]/30 hover:bg-blue-600/25 transition-colors">
+                                                    Devolver
+                                                </a>
+                                            @endif
+                                        @endcan
                                         <a href="{{ route('movimientos.show', $movimiento->id) }}"
                                             class="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                                             title="Ver detalle">

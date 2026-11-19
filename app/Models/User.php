@@ -11,7 +11,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, \App\Traits\LogsHistory;
+    use \App\Traits\LogsHistory, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +31,30 @@ class User extends Authenticatable
     {
         return $this->belongsTo(rol::class);
     }
+
+    public function esAdmin(): bool
+    {
+        return (int) $this->rol_id === rol::ADMIN;
+    }
+
+    public function tieneRol(int ...$roles): bool
+    {
+        return in_array((int) $this->rol_id, $roles, true);
+    }
+
+    public function puedeIniciarSesion(): bool
+    {
+        return (int) $this->estado_user === 1 && ! $this->tieneRol(rol::FUNCIONARIO);
+    }
+
+    public function rutaInicio(): string
+    {
+        return match ((int) $this->rol_id) {
+            rol::TECNICO_TERCERIZADO => route('tickets.dashboard'),
+            default => '/items',
+        };
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -51,6 +75,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'rol_id' => 'integer',
+            'estado_user' => 'integer',
         ];
     }
 }
