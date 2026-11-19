@@ -6,6 +6,7 @@ use App\Http\Controllers\Tickets\TicketController;
 use App\Models\dependencias;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
+use App\Models\Informes\informes;
 use App\Models\rol;
 use App\Models\Tickets\Ticket;
 use App\Models\Tickets\TicketHistory;
@@ -634,5 +635,62 @@ class TicketTest extends TestCase
                 'tipo_problema' => $tipo,
             ]);
         }
+    }
+
+    public function test_cerrar_y_asignar_bloquean_si_el_ticket_ya_fue_cerrado_concurrentemente(): void
+    {
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
+            'rol_id' => rol::ADMIN,
+            'estado_user' => 1,
+        ]));
+        $this->be($admin);
+
+        $funcionario = funcionarios::where('estado_funcionario', 1)->first()
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+                'nombre' => 'Funcionario Lock Test',
+                'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Lock Test'])
+                ))->id,
+                'estado_funcionario' => 1,
+            ]));
+
+        $ticketEnMemoria = Ticket::create([
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => Ticket::TIPOS_PROBLEMA[0],
+            'descripcion_problema' => 'Prueba de concurrencia al cerrar',
+            'estado' => Ticket::ESTADO_ASIGNADO,
+            'asignado_a' => $admin->id,
+            'fecha_creacion' => now()->toDateString(),
+        ]);
+
+        // Simula otro request concurrente que cerró el ticket en BD mientras este modelo seguía en memoria
+        Ticket::where('id', $ticketEnMemoria->id)->update([
+            'estado' => Ticket::ESTADO_CERRADO,
+            'fecha_cierre' => now()->toDateString(),
+        ]);
+
+        $controller = new TicketController;
+
+        $respCerrar = $controller->cerrar(
+            Request::create('/', 'POST', ['observacion' => 'Segundo cierre simultáneo']),
+            $ticketEnMemoria
+        );
+
+        $this->assertSame(route('tickets.show', $ticketEnMemoria), $respCerrar->getTargetUrl());
+        $this->assertSame('El ticket ya se encuentra cerrado.', session('error'));
+        $this->assertSame(0, informes::where('funcionario_id', $funcionario->id)->where('titulo', 'Prueba de concurrencia al cerrar')->count());
+        $this->assertSame(0, TicketHistory::where('ticket_id', $ticketEnMemoria->id)->count());
+
+        session()->forget('error');
+
+        $respAsignar = $controller->asignar(
+            Request::create('/', 'POST', ['asignado_a' => $admin->id]),
+            $ticketEnMemoria
+        );
+
+        $this->assertSame(route('tickets.show', $ticketEnMemoria), $respAsignar->getTargetUrl());
+        $this->assertSame('No se puede asignar un ticket que ya se encuentra cerrado.', session('error'));
+        $this->assertSame(Ticket::ESTADO_CERRADO, $ticketEnMemoria->fresh()->estado);
+        $this->assertSame(0, TicketHistory::where('ticket_id', $ticketEnMemoria->id)->count());
     }
 }

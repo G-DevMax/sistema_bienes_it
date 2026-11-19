@@ -329,20 +329,33 @@ class TicketController extends Controller
         try {
             $tecnico = User::findOrFail($datos['asignado_a']);
 
-            DB::transaction(function () use ($ticket, $tecnico): void {
-                $ticket->update([
+            $errorEstado = DB::transaction(function () use ($ticket, $tecnico): ?string {
+                $ticketBloqueado = Ticket::lockForUpdate()->findOrFail($ticket->id);
+
+                if ($ticketBloqueado->estaCerrado()) {
+                    return 'No se puede asignar un ticket que ya se encuentra cerrado.';
+                }
+
+                $ticketBloqueado->update([
                     'asignado_a' => $tecnico->id,
                     'estado' => Ticket::ESTADO_ASIGNADO,
                 ]);
 
                 TicketHistory::create([
-                    'ticket_id' => $ticket->id,
-                    'funcionario_id' => $ticket->funcionario_id,
+                    'ticket_id' => $ticketBloqueado->id,
+                    'funcionario_id' => $ticketBloqueado->funcionario_id,
                     'accion' => 'Ticket asignado a '.$tecnico->name,
                     'responsable_id' => Auth::id(),
                     'fecha' => now()->toDateString(),
                 ]);
+
+                return null;
             });
+
+            if ($errorEstado !== null) {
+                return redirect()->route('tickets.show', $ticket)
+                    ->with('error', $errorEstado);
+            }
 
             LoggerService::info('Ticket asignado', [
                 'ticket_id' => $ticket->id,
@@ -401,12 +414,22 @@ class TicketController extends Controller
         $informe = null;
 
         try {
-            DB::transaction(function () use ($ticket, $detalleSeleccionadoId, $observacion, &$informe): void {
+            $errorEstado = DB::transaction(function () use ($ticket, $detalleSeleccionadoId, $observacion, &$informe): ?string {
+                $ticketBloqueado = Ticket::lockForUpdate()->findOrFail($ticket->id);
+
+                if ($ticketBloqueado->estaCerrado()) {
+                    return 'El ticket ya se encuentra cerrado.';
+                }
+
+                if ($ticketBloqueado->estado === Ticket::ESTADO_PENDIENTE) {
+                    return 'Debe asignar un técnico antes de cerrar el ticket.';
+                }
+
                 $detalle = $detalleSeleccionadoId !== null
                     ? detalles_problemas::find($detalleSeleccionadoId)
                     : null;
 
-                $ticket->update([
+                $ticketBloqueado->update([
                     'estado' => Ticket::ESTADO_CERRADO,
                     'fecha_cierre' => now()->toDateString(),
                     'detalle_id' => $detalle?->id,
@@ -418,15 +441,22 @@ class TicketController extends Controller
                     : 'Ticket cerrado: '.$observacion;
 
                 TicketHistory::create([
-                    'ticket_id' => $ticket->id,
-                    'funcionario_id' => $ticket->funcionario_id,
+                    'ticket_id' => $ticketBloqueado->id,
+                    'funcionario_id' => $ticketBloqueado->funcionario_id,
                     'accion' => Str::limit($accion, 250),
                     'responsable_id' => Auth::id(),
                     'fecha' => now()->toDateString(),
                 ]);
 
-                $informe = informes::create($ticket->datosParaInforme($detalle?->id, $observacion));
+                $informe = informes::create($ticketBloqueado->datosParaInforme($detalle?->id, $observacion));
+
+                return null;
             });
+
+            if ($errorEstado !== null) {
+                return redirect()->route('tickets.show', $ticket)
+                    ->with('error', $errorEstado);
+            }
 
             LoggerService::info('Ticket cerrado', [
                 'ticket_id' => $ticket->id,
