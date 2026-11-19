@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('funcionario_id')->constrained('funcionarios')->cascadeOnDelete();
-            $table->enum('tipo_problema', ['Equipo/Dispositivo', 'Programa/Sistema', 'Internet', 'Impresora/Escáner', 'Cuenta y Acceso', 'Asistencia a Reunión', 'Consulta', 'Insumos']);
+            $table->enum('tipo_problema', ['Equipo/Dispositivo', 'Programa/Sistema', 'Internet', 'Impresora/Escáner', 'Cuentas y Accesos', 'Asistencia a Reunión', 'Consulta', 'Insumos']);
             $table->foreignId('detalle_id')->nullable()->constrained('detalles_problemas')->nullOnDelete();
             $table->text('descripcion_problema');
             $table->enum('estado', ['Pendiente', 'Asignado', 'Resuelto', 'Cerrado'])->default('Pendiente');

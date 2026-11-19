@@ -9,6 +9,7 @@ use App\Models\Informes\detalles_problemas;
 use App\Models\Tickets\Ticket;
 use App\Models\Tickets\TicketHistory;
 use App\Models\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Validator;
@@ -19,6 +20,8 @@ use Tests\TestCase;
 
 class TicketTest extends TestCase
 {
+    use DatabaseTransactions;
+
     public function test_welcome_enlaza_al_dashboard_de_tickets(): void
     {
         $response = $this->get('/');
@@ -301,9 +304,6 @@ class TicketTest extends TestCase
 
     public function test_mapeo_de_tipo_para_detalles_y_validacion_observacion_en_cierre(): void
     {
-        $this->assertSame('Cuentas y Accesos', Ticket::tipoParaDetalle('Cuenta y Acceso'));
-        $this->assertSame('Hardware', Ticket::tipoParaDetalle('Hardware'));
-
         $detalle = new detalles_problemas(['detalle' => 'Fallo de red']);
         $conDetalle = new Ticket(['detalle_id' => 3]);
         $conDetalle->setRelation('detalle', $detalle);
@@ -554,7 +554,7 @@ class TicketTest extends TestCase
     {
         $ticket = new Ticket([
             'funcionario_id' => 9,
-            'tipo_problema' => 'Cuenta y Acceso',
+            'tipo_problema' => 'Cuentas y Accesos',
             'descripcion_problema' => '  Restablecer contraseña de correo institucional  ',
         ]);
 
@@ -581,5 +581,49 @@ class TicketTest extends TestCase
         $this->assertSame(Ticket::TIPO_ASISTENCIA_REUNION, $datosReunion['tipo_problema']);
         $this->assertNull($datosReunion['detalle_id']);
         $this->assertSame('Todo funcionó correctamente.', $datosReunion['observacion']);
+    }
+
+    public function test_post_tickets_acepta_cada_valor_de_tipos_problema(): void
+    {
+        $funcionario = funcionarios::where('estado_funcionario', 1)->first();
+
+        if ($funcionario === null) {
+            $dependencia = dependencias::first() ?? dependencias::withoutEvents(
+                fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Test'])
+            );
+
+            $funcionario = funcionarios::withoutEvents(
+                fn (): funcionarios => funcionarios::create([
+                    'nombre' => 'Funcionario Test',
+                    'dependencia_id' => $dependencia->id,
+                    'estado_funcionario' => 1,
+                ])
+            );
+        }
+
+        foreach (Ticket::TIPOS_PROBLEMA as $tipo) {
+            $payload = [
+                'funcionario_id' => $funcionario->id,
+                'tipo_problema' => $tipo,
+            ];
+
+            if ($tipo === Ticket::TIPO_ASISTENCIA_REUNION) {
+                $payload['fecha_reunion'] = '2026-11-20';
+                $payload['horario_reunion'] = '09:00 a 10:00';
+                $payload['detalles_reunion'] = 'Sala de reuniones - proyector';
+            } else {
+                $payload['descripcion_problema'] = 'Prueba de ticket para '.$tipo;
+            }
+
+            $response = $this->post(route('tickets.store'), $payload);
+
+            $response->assertRedirect(route('tickets.create'));
+            $response->assertSessionHas('success');
+            $response->assertSessionMissing('error');
+            $this->assertDatabaseHas('tickets', [
+                'funcionario_id' => $funcionario->id,
+                'tipo_problema' => $tipo,
+            ]);
+        }
     }
 }

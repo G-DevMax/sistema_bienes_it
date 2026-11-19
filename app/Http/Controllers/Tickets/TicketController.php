@@ -296,7 +296,7 @@ class TicketController extends Controller
     {
         $ticket->load(['funcionario.dependencia', 'tecnicoAsignado', 'detalle', 'historial.responsable', 'historial.funcionario']);
         $tecnicos = User::where('estado_user', 1)->orderBy('name')->get();
-        $detallesComunes = detalles_problemas::where('tipo_problema', Ticket::tipoParaDetalle($ticket->tipo_problema))
+        $detallesComunes = detalles_problemas::where('tipo_problema', $ticket->tipo_problema)
             ->orderBy('detalle')
             ->get();
 
@@ -376,7 +376,7 @@ class TicketController extends Controller
         $datos = $request->validate([
             'detalle_id' => [
                 'nullable',
-                Rule::exists('detalles_problemas', 'id')->where('tipo_problema', Ticket::tipoParaDetalle($ticket->tipo_problema)),
+                Rule::exists('detalles_problemas', 'id')->where('tipo_problema', $ticket->tipo_problema),
             ],
             'observacion' => [Rule::requiredIf(empty($detalleId)), 'nullable', 'string', 'max:2000'],
         ], [

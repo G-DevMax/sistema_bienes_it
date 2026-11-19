@@ -126,11 +126,6 @@ class Ticket extends Model
         return $this->detalle?->detalle ?? 'Otro (especificar)';
     }
 
-    public static function tipoParaDetalle(string $tipo): string
-    {
-        return $tipo === 'Cuenta y Acceso' ? 'Cuentas y Accesos' : $tipo;
-    }
-
     public static function badgeTipo(string $tipo): string
     {
         return self::BADGES_TIPO[$tipo] ?? 'bg-white/10 text-white border-white/20';
@@ -212,7 +207,7 @@ class Ticket extends Model
         return [
             'titulo' => Str::limit(trim((string) $this->descripcion_problema), 495, ''),
             'funcionario_id' => (int) $this->funcionario_id,
-            'tipo_problema' => self::tipoParaDetalle((string) $this->tipo_problema),
+            'tipo_problema' => (string) $this->tipo_problema,
             'detalle_id' => $detalleId,
             'observacion' => $observacion,
         ];
