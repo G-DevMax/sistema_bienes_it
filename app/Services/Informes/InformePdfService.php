@@ -45,12 +45,27 @@ class InformePdfService
             'fecha' => $informe->created_at?->format('d/m/Y') ?? now()->format('d/m/Y'),
             'usuario' => $informe->funcionario?->nombre ?? '—',
             'tecnico' => $tecnico,
-            'titulo' => $informe->titulo,
+            'titulo' => $this->formatearTitulo($informe),
             'tipo_problema' => $informe->tipo_problema,
             'detalle' => $informe->detalleTexto(),
             'observacion' => $informe->observacion ?: 'Sin observaciones registradas.',
             'logoBase64' => $this->logoBase64(),
         ];
+    }
+
+    private function formatearTitulo(informes $informe): string
+    {
+        $titulo = trim((string) $informe->titulo);
+
+        if ($informe->tipo_problema === 'Asistencia a Reunión') {
+            $titulo = preg_replace(
+                '/[ \t]*\R?[ \t]*(Fecha:|Horario aproximado:|Detalles de la reunión:)/u',
+                "\n$1",
+                $titulo
+            ) ?? $titulo;
+        }
+
+        return $titulo;
     }
 
     public function generar(informes $informe, ?string $tecnicoFallback = null): DomPdfInstance

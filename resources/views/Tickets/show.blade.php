@@ -144,6 +144,11 @@
                                 {{ ($ticket->updated_at ?? $ticket->fecha_cierre)?->format('d/m/Y H:i') }}.
                             </p>
                         </div>
+                        <div class="mb-6">
+                            <a href="{{ route('informes.show', $ticket->id) }}"
+                                class="text-white/70 hover:text-white/100 font-medium text-xs">Ir a informes para imprimir
+                                el ticket</a>
+                        </div>
                     @elseif ($ticket->estado === \App\Models\Tickets\Ticket::ESTADO_PENDIENTE)
                         <form action="{{ route('tickets.asignar', $ticket) }}" method="POST" class="space-y-4">
                             @csrf
@@ -189,10 +194,10 @@
                                             {{ $detalle->detalle }}
                                         </option>
                                     @endforeach
-                                    <option value="otro" @selected($detalleInicial === 'otro')>Otro (especificar)</option>
+                                    <option value="otro" @selected($detalleInicial === 'otro')>Otro (Leer Observaciones)</option>
                                 </select>
                                 <p class="mt-1 text-xs text-white/50">
-                                    Si no coincide con ninguno, elige <strong>Otro (especificar)</strong>.
+                                    Si no coincide con ninguno, elige <strong>Otro (Leer Observaciones)</strong>.
                                 </p>
                             </div>
                             <div>
@@ -238,7 +243,7 @@
                             </form>
                         </details>
                     @endif
-                    @if ($ticket->tipo_problema === 'Insumos' && ! $ticket->estaCerrado())
+                    @if ($ticket->tipo_problema === 'Insumos' && !$ticket->estaCerrado())
                         <div class="mb-6">
                             <a href="{{ route('movimientos.create', ['funcionario_id' => $ticket->funcionario_id]) }}"
                                 class="text-white/70 hover:text-white/100 font-medium text-xs">Ir a Movimientos para

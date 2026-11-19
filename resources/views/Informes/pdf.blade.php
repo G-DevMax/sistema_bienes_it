@@ -118,7 +118,7 @@
             <tbody>
                 <tr>
                     <td class="col-etiqueta">Título del problema:</td>
-                    <td class="col-valor">{{ $titulo }}</td>
+                    <td class="col-valor">{!! nl2br(e($titulo)) !!}</td>
                 </tr>
                 <tr>
                     <td class="col-etiqueta">Tipo de problema:</td>

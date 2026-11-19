@@ -207,4 +207,41 @@ class InformeTest extends TestCase
 
         $this->assertStringStartsWith('%PDF-', $pdfBytes);
     }
+
+    public function test_pdf_separa_en_lineas_el_titulo_de_asistencia_a_reunion(): void
+    {
+        $service = new InformePdfService;
+        $method = new \ReflectionMethod($service, 'formatearTitulo');
+
+        $conSaltos = new informes([
+            'tipo_problema' => 'Asistencia a Reunión',
+            'titulo' => "Asistencia a Reunión\nFecha: 19/11/2026\nHorario aproximado: 14:00 a 16:00\nDetalles de la reunión: Casona, se necesita pantalla",
+        ]);
+        $sinSaltos = new informes([
+            'tipo_problema' => 'Asistencia a Reunión',
+            'titulo' => 'Asistencia a Reunión Fecha: 19/11/2026 Horario aproximado: 14:00 a 16:00 Detalles de la reunión: Casona, se necesita pantalla',
+        ]);
+
+        $esperado = "Asistencia a Reunión\nFecha: 19/11/2026\nHorario aproximado: 14:00 a 16:00\nDetalles de la reunión: Casona, se necesita pantalla";
+
+        $this->assertSame($esperado, $method->invoke($service, $conSaltos));
+        $this->assertSame($esperado, $method->invoke($service, $sinSaltos));
+
+        $datos = [
+            'numero' => 2,
+            'fecha' => '19/11/2026',
+            'usuario' => 'Nacho Bogarin',
+            'tecnico' => 'Gustavo Martínez',
+            'titulo' => $esperado,
+            'tipo_problema' => 'Asistencia a Reunión',
+            'detalle' => 'Otro (especificar)',
+            'observacion' => 'Instalación realizada.',
+            'logoBase64' => null,
+        ];
+
+        $html = view('Informes.pdf', $datos)->render();
+
+        $this->assertStringContainsString("Asistencia a Reunión<br />\nFecha: 19/11/2026<br />\nHorario aproximado: 14:00 a 16:00<br />\nDetalles de la reunión: Casona, se necesita pantalla", $html);
+        $this->assertStringStartsWith('%PDF-', Pdf::loadView('Informes.pdf', $datos)->setPaper('a4', 'portrait')->output());
+    }
 }
