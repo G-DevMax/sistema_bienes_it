@@ -152,9 +152,10 @@ class UsuariosController extends Controller
         try {
             $usuario_editado->name = Str::title($request->name);
             $usuario_editado->email = strtolower($request->email);
+            $cambioPassword = $request->filled('password');
 
             // Si se envió una nueva contraseña, se actualiza
-            if ($request->filled('password')) {
+            if ($cambioPassword) {
                 $usuario_editado->password = $request->password;
             }
 
@@ -163,7 +164,17 @@ class UsuariosController extends Controller
                 $usuario_editado->rol_id = $request->rol_id;
             }
 
+            // Rotar token al cambiar contraseña o desactivar para invalidar cookies "recordarme"
+            if ($cambioPassword || (int) $usuario_editado->estado_user !== 1) {
+                $usuario_editado->setRememberToken(Str::random(60));
+            }
+
             $usuario_editado->save();
+
+            // Mantener la sesión actual del propio usuario al cambiar su propia contraseña
+            if ($esPropioUsuario && $cambioPassword) {
+                Auth::setUser($usuario_editado);
+            }
 
             LoggerService::info('Usuario actualizado', [
                 'name' => $request->name,
@@ -205,6 +216,7 @@ class UsuariosController extends Controller
 
         try {
             $usuario_eliminar->estado_user = 0;
+            $usuario_eliminar->setRememberToken(Str::random(60));
             $usuario_eliminar->save();
 
             LoggerService::info('Usuario desactivado', [

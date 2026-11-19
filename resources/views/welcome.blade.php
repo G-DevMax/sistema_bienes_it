@@ -110,7 +110,8 @@
                             <svg xmlns="http://www.w3.org/2000/svg"
                                 class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
                             </svg>
                         </div>
                     </div>
@@ -136,12 +137,14 @@
                         <h2 class="text-xl font-semibold text-white mb-2">Bienes</h2>
                         <p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Control de
                             inventario, asignación de equipos y movimientos.</p>
-                        <div class="mt-4 flex items-center text-sm font-medium text-indigo-400 group-hover:text-indigo-300">
+                        <div
+                            class="mt-4 flex items-center text-sm font-medium text-indigo-400 group-hover:text-indigo-300">
                             Acceder al módulo
                             <svg xmlns="http://www.w3.org/2000/svg"
                                 class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
                             </svg>
                         </div>
                     </div>
@@ -167,12 +170,14 @@
                         <h2 class="text-xl font-semibold text-white mb-2">Informes</h2>
                         <p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">
                             Registro de informes sobre los problemas de los usuarios.</p>
-                        <div class="mt-4 flex items-center text-sm font-medium text-indigo-400 group-hover:text-indigo-300">
+                        <div
+                            class="mt-4 flex items-center text-sm font-medium text-indigo-400 group-hover:text-indigo-300">
                             Acceder al módulo
                             <svg xmlns="http://www.w3.org/2000/svg"
                                 class="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
                             </svg>
                         </div>
                     </div>

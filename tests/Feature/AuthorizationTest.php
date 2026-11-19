@@ -17,6 +17,13 @@ class AuthorizationTest extends TestCase
 {
     use DatabaseTransactions;
 
+    private function como(User $usuario): static
+    {
+        $this->flushSession();
+
+        return $this->actingAs($usuario);
+    }
+
     private function crearUsuarioConRol(int $rolId, int $estado = 1): User
     {
         return User::withoutEvents(fn (): User => User::factory()->create([
@@ -239,9 +246,9 @@ class AuthorizationTest extends TestCase
         foreach ([rol::SUPERVISOR, rol::DIRECTOR, rol::FUNCIONARIO, rol::TECNICO_TERCERIZADO] as $rolId) {
             $usuario = $this->crearUsuarioConRol($rolId);
 
-            $this->actingAs($usuario)->get(route('usuarios.index'))->assertForbidden();
-            $this->actingAs($usuario)->post(route('usuarios.store'), [])->assertForbidden();
-            $this->actingAs($usuario)
+            $this->como($usuario)->get(route('usuarios.index'))->assertForbidden();
+            $this->como($usuario)->post(route('usuarios.store'), [])->assertForbidden();
+            $this->como($usuario)
                 ->get(route('historial.descargar', ['fecha_inicio' => '2026-01-01', 'fecha_fin' => '2026-12-31']))
                 ->assertForbidden();
         }
@@ -264,23 +271,23 @@ class AuthorizationTest extends TestCase
         $this->actingAs($supervisor)->post(route('movimientos.anular', 1), [])->assertForbidden();
 
         // Director: solo lectura en bienes y funcionarios, bloqueado en creación/edición y en tickets/informes
-        $this->actingAs($director)->get(route('items.index'))->assertOk();
-        $this->actingAs($director)->get(route('movimientos.index'))->assertOk();
-        $this->actingAs($director)->get(route('funcionarios.index'))->assertOk();
-        $this->actingAs($director)->get(route('items.create'))->assertForbidden();
-        $this->actingAs($director)->post(route('items.store'), [])->assertForbidden();
-        $this->actingAs($director)->get(route('tickets.dashboard'))->assertForbidden();
-        $this->actingAs($director)->get(route('informes.index'))->assertForbidden();
+        $this->como($director)->get(route('items.index'))->assertOk();
+        $this->como($director)->get(route('movimientos.index'))->assertOk();
+        $this->como($director)->get(route('funcionarios.index'))->assertOk();
+        $this->como($director)->get(route('items.create'))->assertForbidden();
+        $this->como($director)->post(route('items.store'), [])->assertForbidden();
+        $this->como($director)->get(route('tickets.dashboard'))->assertForbidden();
+        $this->como($director)->get(route('informes.index'))->assertForbidden();
 
         // Técnico Tercerizado: sin acceso a bienes ni funcionarios
-        $this->actingAs($tecnico)->get(route('items.index'))->assertForbidden();
-        $this->actingAs($tecnico)->get(route('movimientos.index'))->assertForbidden();
-        $this->actingAs($tecnico)->get(route('funcionarios.index'))->assertForbidden();
+        $this->como($tecnico)->get(route('items.index'))->assertForbidden();
+        $this->como($tecnico)->get(route('movimientos.index'))->assertForbidden();
+        $this->como($tecnico)->get(route('funcionarios.index'))->assertForbidden();
 
         // Funcionario: bloqueado en todos los módulos autenticados
-        $this->actingAs($funcionario)->get(route('items.index'))->assertForbidden();
-        $this->actingAs($funcionario)->get(route('tickets.dashboard'))->assertForbidden();
-        $this->actingAs($funcionario)->get(route('informes.index'))->assertForbidden();
+        $this->como($funcionario)->get(route('items.index'))->assertForbidden();
+        $this->como($funcionario)->get(route('tickets.dashboard'))->assertForbidden();
+        $this->como($funcionario)->get(route('informes.index'))->assertForbidden();
     }
 
     public function test_endpoints_de_tickets_informes_y_detalles_respetan_permisos_por_rol(): void
@@ -306,24 +313,24 @@ class AuthorizationTest extends TestCase
         $this->actingAs($supervisor)->get(route('detalles-problemas.create'))->assertForbidden();
 
         // Técnico Tercerizado: ve/crea/edita informes y opera tickets propios o pendientes, pero NO tickets ajenos ni elimina informes ni crea detalles
-        $this->actingAs($tecnico2)->get(route('tickets.dashboard'))->assertOk();
-        $this->actingAs($tecnico2)->get(route('tickets.create-manual'))->assertOk();
-        $this->actingAs($tecnico2)->post(route('tickets.asignar', $ticketAjeno), ['asignado_a' => $tecnico2->id])->assertForbidden();
-        $this->actingAs($tecnico2)->post(route('tickets.cerrar', $ticketAjeno), [])->assertForbidden();
-        $this->actingAs($tecnico2)->get(route('informes.index'))->assertOk();
-        $this->actingAs($tecnico2)->get(route('informes.create'))->assertOk();
-        $this->actingAs($tecnico2)->delete(route('informes.destroy', 1))->assertForbidden();
-        $this->actingAs($tecnico2)->get(route('detalles-problemas.index'))->assertOk();
-        $this->actingAs($tecnico2)->get(route('detalles-problemas.create'))->assertForbidden();
+        $this->como($tecnico2)->get(route('tickets.dashboard'))->assertOk();
+        $this->como($tecnico2)->get(route('tickets.create-manual'))->assertOk();
+        $this->como($tecnico2)->post(route('tickets.asignar', $ticketAjeno), ['asignado_a' => $tecnico2->id])->assertForbidden();
+        $this->como($tecnico2)->post(route('tickets.cerrar', $ticketAjeno), [])->assertForbidden();
+        $this->como($tecnico2)->get(route('informes.index'))->assertOk();
+        $this->como($tecnico2)->get(route('informes.create'))->assertOk();
+        $this->como($tecnico2)->delete(route('informes.destroy', 1))->assertForbidden();
+        $this->como($tecnico2)->get(route('detalles-problemas.index'))->assertOk();
+        $this->como($tecnico2)->get(route('detalles-problemas.create'))->assertForbidden();
 
         // Técnico Tercerizado sí puede asignar un ticket pendiente a sí mismo
-        $this->actingAs($tecnico2)
+        $this->como($tecnico2)
             ->post(route('tickets.asignar', $ticketPendiente), ['asignado_a' => $tecnico2->id])
             ->assertRedirect(route('tickets.show', $ticketPendiente));
         $this->assertSame($tecnico2->id, $ticketPendiente->fresh()->asignado_a);
 
         // Admin sí puede reasignar un ticket ajeno
-        $this->actingAs($admin)
+        $this->como($admin)
             ->post(route('tickets.asignar', $ticketAjeno), ['asignado_a' => $tecnico2->id])
             ->assertRedirect(route('tickets.show', $ticketAjeno));
         $this->assertSame($tecnico2->id, $ticketAjeno->fresh()->asignado_a);

@@ -28,7 +28,7 @@ Route::middleware('guest')->group(function () {
 });
 
 // Rutas accesibles solo con sesión activa
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'usuario.activo'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::middleware('can:acceso.sistema')->group(function () {
