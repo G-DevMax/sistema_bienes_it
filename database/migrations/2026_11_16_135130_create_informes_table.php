@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('informes', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('ticket_id')->nullable()->unique()->constrained('tickets')->restrictOnDelete();
+            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->string('titulo', 500);
             $table->foreignId('funcionario_id')->constrained('funcionarios')->cascadeOnDelete();
             $table->enum('tipo_problema', ['Equipo/Dispositivo', 'Programa/Sistema', 'Internet', 'Impresora/Escáner', 'Cuentas y Accesos', 'Asistencia a Reunión', 'Consulta', 'Insumos']);

@@ -4,12 +4,14 @@ namespace App\Models\Tickets;
 
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
+use App\Models\Informes\informes;
 use App\Models\User;
 use App\Traits\BuscadorUniversal;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -116,6 +118,11 @@ class Ticket extends Model
         return $this->hasMany(TicketHistory::class, 'ticket_id')->orderByDesc('created_at')->orderByDesc('id');
     }
 
+    public function informe(): HasOne
+    {
+        return $this->hasOne(informes::class, 'ticket_id');
+    }
+
     public function estaCerrado(): bool
     {
         return $this->estado === self::ESTADO_CERRADO;
@@ -200,11 +207,13 @@ class Ticket extends Model
     /**
      * Prepara los atributos para generar automáticamente el informe técnico al cerrar el ticket.
      *
-     * @return array{titulo: string, funcionario_id: int, tipo_problema: string, detalle_id: int|null, observacion: string|null}
+     * @return array{ticket_id: int|null, user_id: int|null, titulo: string, funcionario_id: int, tipo_problema: string, detalle_id: int|null, observacion: string|null}
      */
-    public function datosParaInforme(?int $detalleId = null, ?string $observacion = null): array
+    public function datosParaInforme(?int $detalleId = null, ?string $observacion = null, ?int $userId = null): array
     {
         return [
+            'ticket_id' => $this->id !== null ? (int) $this->id : null,
+            'user_id' => $this->asignado_a !== null ? (int) $this->asignado_a : $userId,
             'titulo' => Str::limit(trim((string) $this->descripcion_problema), 495, ''),
             'funcionario_id' => (int) $this->funcionario_id,
             'tipo_problema' => (string) $this->tipo_problema,

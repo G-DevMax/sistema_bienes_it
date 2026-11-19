@@ -295,7 +295,7 @@ class TicketController extends Controller
 
     public function show(Ticket $ticket): View
     {
-        $ticket->load(['funcionario.dependencia', 'tecnicoAsignado', 'detalle', 'historial.responsable', 'historial.funcionario']);
+        $ticket->load(['funcionario.dependencia', 'tecnicoAsignado', 'detalle', 'informe', 'historial.responsable', 'historial.funcionario']);
         $tecnicos = User::where('estado_user', 1)
             ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO])
             ->orderBy('name')
@@ -448,7 +448,7 @@ class TicketController extends Controller
                     'fecha' => now()->toDateString(),
                 ]);
 
-                $informe = informes::create($ticketBloqueado->datosParaInforme($detalle?->id, $observacion));
+                $informe = informes::create($ticketBloqueado->datosParaInforme($detalle?->id, $observacion, Auth::id()));
 
                 return null;
             });

@@ -16,7 +16,7 @@ class InformeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = informes::with(['funcionario', 'detalle'])
+        $query = informes::with(['funcionario', 'detalle', 'tecnico'])
             ->buscadorUniversal($request->search)
             ->orderByDesc('created_at')
             ->orderByDesc('id');
@@ -44,6 +44,7 @@ class InformeController extends Controller
     public function store(Request $request)
     {
         $datos = $this->validarInforme($request);
+        $datos['user_id'] = Auth::id();
 
         try {
             $informe = informes::create($datos);
@@ -70,22 +71,22 @@ class InformeController extends Controller
 
     public function show(string $id)
     {
-        $informe = informes::with(['funcionario.dependencia', 'detalle'])->findOrFail($id);
+        $informe = informes::with(['funcionario.dependencia', 'detalle', 'tecnico', 'ticket'])->findOrFail($id);
 
         return view('Informes.show', compact('informe'));
     }
 
     public function exportarPdf(string $id, InformePdfService $pdfService)
     {
-        $informe = informes::with(['funcionario.dependencia', 'detalle'])->findOrFail($id);
-        $pdf = $pdfService->generar($informe, Auth::user()?->name);
+        $informe = informes::with(['funcionario.dependencia', 'detalle', 'tecnico'])->findOrFail($id);
+        $pdf = $pdfService->generar($informe);
 
         return $pdf->stream($pdfService->nombreArchivo($informe));
     }
 
     public function edit(string $id)
     {
-        $informe = informes::findOrFail($id);
+        $informe = informes::with('ticket')->findOrFail($id);
         $funcionarios = funcionarios::where('estado_funcionario', 1)
             ->orWhere('id', $informe->funcionario_id)
             ->orderBy('nombre')
@@ -100,7 +101,16 @@ class InformeController extends Controller
     public function update(Request $request, string $id)
     {
         $informe = informes::findOrFail($id);
-        $datos = $this->validarInforme($request);
+
+        if ($informe->vieneDeTicket() && (
+            ($request->has('funcionario_id') && (int) $request->input('funcionario_id') !== (int) $informe->funcionario_id)
+            || ($request->has('tipo_problema') && $request->input('tipo_problema') !== $informe->tipo_problema)
+        )) {
+            return redirect()->route('informes.edit', $informe->id)
+                ->with('error', 'No se puede modificar el funcionario ni el tipo de problema de un informe generado desde un ticket.');
+        }
+
+        $datos = $this->validarInforme($request, $informe);
 
         try {
             $informe->update($datos);
@@ -126,8 +136,14 @@ class InformeController extends Controller
 
     public function destroy(string $id)
     {
+        $informe = informes::findOrFail($id);
+
+        if ($informe->vieneDeTicket()) {
+            return redirect()->route('informes.index')
+                ->with('error', 'No se puede eliminar un informe vinculado a un ticket.');
+        }
+
         try {
-            $informe = informes::findOrFail($id);
             $informe->delete();
 
             LoggerService::info('Informe eliminado', [
@@ -146,7 +162,7 @@ class InformeController extends Controller
         return redirect()->route('informes.index')->with('success', 'Informe eliminado exitosamente.');
     }
 
-    private function validarInforme(Request $request): array
+    private function validarInforme(Request $request, ?informes $informe = null): array
     {
         // "Otro (especificar)" puede llegar como "" o "otro" desde el select del frontend
         $detalleId = $request->input('detalle_id');
@@ -155,7 +171,10 @@ class InformeController extends Controller
             $detalleId = null;
         }
 
-        return $this->validateWithIndexRedirect($request, [
+        $vieneDeTicket = $informe?->vieneDeTicket() ?? false;
+        $tipoProblema = $vieneDeTicket ? $informe->tipo_problema : $request->input('tipo_problema');
+
+        $reglas = [
             'titulo' => [
                 'required',
                 'string',
@@ -167,14 +186,19 @@ class InformeController extends Controller
                     }
                 },
             ],
-            'funcionario_id' => ['required', 'exists:funcionarios,id'],
-            'tipo_problema' => ['required', Rule::in(informes::TIPOS_PROBLEMA)],
             'detalle_id' => [
                 'nullable',
-                Rule::exists('detalles_problemas', 'id')->where('tipo_problema', $request->input('tipo_problema')),
+                Rule::exists('detalles_problemas', 'id')->where('tipo_problema', $tipoProblema),
             ],
             'observacion' => [Rule::requiredIf(empty($detalleId)), 'nullable', 'string'],
-        ], [
+        ];
+
+        if (! $vieneDeTicket) {
+            $reglas['funcionario_id'] = ['required', 'exists:funcionarios,id'];
+            $reglas['tipo_problema'] = ['required', Rule::in(informes::TIPOS_PROBLEMA)];
+        }
+
+        return $this->validateWithIndexRedirect($request, $reglas, [
             'titulo.required' => 'El título del informe es obligatorio.',
             'titulo.max' => 'El título no puede superar los 500 caracteres.',
             'funcionario_id.required' => 'Debe seleccionar el funcionario atendido.',

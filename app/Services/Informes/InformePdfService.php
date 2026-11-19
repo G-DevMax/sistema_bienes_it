@@ -2,7 +2,6 @@
 
 namespace App\Services\Informes;
 
-use App\Models\historial_cambios;
 use App\Models\Informes\informes;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DomPdfInstance;
@@ -27,24 +26,15 @@ class InformePdfService
      *
      * @return array{numero: int, fecha: string, usuario: string, tecnico: string, titulo: string, tipo_problema: string, detalle: string, observacion: string, logoBase64: string|null}
      */
-    public function obtenerDatos(informes $informe, ?string $tecnicoFallback = null): array
+    public function obtenerDatos(informes $informe): array
     {
-        $informe->loadMissing(['funcionario.dependencia', 'detalle']);
-
-        $tecnico = historial_cambios::with('user')
-            ->where('entidad', informes::class)
-            ->where('entidad_id', $informe->id)
-            ->where('accion', 'Create')
-            ->latest('id')
-            ->first()?->user?->name
-            ?? $tecnicoFallback
-            ?? '—';
+        $informe->loadMissing(['funcionario.dependencia', 'detalle', 'tecnico']);
 
         return [
             'numero' => $informe->id,
             'fecha' => $informe->created_at?->format('d/m/Y') ?? now()->format('d/m/Y'),
             'usuario' => $informe->funcionario?->nombre ?? '—',
-            'tecnico' => $tecnico,
+            'tecnico' => $informe->tecnico?->name ?? '—',
             'titulo' => $this->formatearTitulo($informe),
             'tipo_problema' => $informe->tipo_problema,
             'detalle' => $informe->detalleTexto(),
@@ -68,9 +58,9 @@ class InformePdfService
         return $titulo;
     }
 
-    public function generar(informes $informe, ?string $tecnicoFallback = null): DomPdfInstance
+    public function generar(informes $informe): DomPdfInstance
     {
-        $datos = $this->obtenerDatos($informe, $tecnicoFallback);
+        $datos = $this->obtenerDatos($informe);
 
         return Pdf::loadView('Informes.pdf', $datos)->setPaper('a4', 'portrait');
     }

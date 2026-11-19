@@ -31,6 +31,19 @@
                             class="px-3 py-1 rounded-full text-xs font-medium border {{ $badgesTipo[$informe->tipo_problema] ?? 'bg-white/10 text-white border-white/20' }}">
                             {{ $informe->tipo_problema }}
                         </span>
+                        @if ($informe->vieneDeTicket())
+                            @can('tickets.ver')
+                                <a href="{{ route('tickets.show', $informe->ticket_id) }}"
+                                    class="px-3 py-1 rounded-full text-xs font-medium border border-[#1CD6CE]/40 bg-[#1CD6CE]/10 text-[#1CD6CE] hover:bg-[#1CD6CE]/20 transition-colors">
+                                    Ticket #{{ $informe->ticket_id }}
+                                </a>
+                            @else
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-medium border border-[#1CD6CE]/40 bg-[#1CD6CE]/10 text-[#1CD6CE]">
+                                    Ticket #{{ $informe->ticket_id }}
+                                </span>
+                            @endcan
+                        @endif
                     </div>
                     <p class="text-white/60 mt-1">
                         Registrado el {{ $informe->created_at?->format('d/m/Y \a \l\a\s H:i') }}
@@ -95,6 +108,11 @@
                 <div>
                     <span class="block text-xs font-medium text-white/50 mb-1">Detalle del Problema</span>
                     <p class="font-medium text-white">{{ $informe->detalleTexto() }}</p>
+                </div>
+
+                <div>
+                    <span class="block text-xs font-medium text-white/50 mb-1">Técnico Encargado</span>
+                    <p class="font-medium text-white">{{ $informe->tecnico?->name ?? '—' }}</p>
                 </div>
 
                 <div>

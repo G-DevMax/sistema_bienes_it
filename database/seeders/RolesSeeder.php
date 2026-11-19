@@ -13,15 +13,15 @@ class RolesSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            'Administrador IT',
-            'Supervisor IT',
-            'Director/Jefe de Área',
-            'Funcionario',
-            'Técnico Tercerizado',
+            rol::ADMIN => 'Administrador IT',
+            rol::SUPERVISOR => 'Supervisor IT',
+            rol::DIRECTOR => 'Director/Jefe de Área',
+            rol::FUNCIONARIO => 'Funcionario',
+            rol::TECNICO_TERCERIZADO => 'Técnico Tercerizado',
         ];
 
-        foreach ($roles as $nombre) {
-            rol::firstOrCreate(['nombre' => $nombre]);
+        foreach ($roles as $id => $nombre) {
+            rol::firstOrCreate(['id' => $id], ['nombre' => $nombre]);
         }
     }
 }

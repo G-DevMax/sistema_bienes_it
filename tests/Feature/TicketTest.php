@@ -566,11 +566,15 @@ class TicketTest extends TestCase
             'funcionario_id' => 9,
             'tipo_problema' => 'Cuentas y Accesos',
             'descripcion_problema' => '  Restablecer contraseña de correo institucional  ',
+            'asignado_a' => 7,
         ]);
+        $ticket->id = 42;
 
-        $datos = $ticket->datosParaInforme(5, 'Se restableció la clave.');
+        $datos = $ticket->datosParaInforme(5, 'Se restableció la clave.', 1);
 
         $this->assertSame([
+            'ticket_id' => 42,
+            'user_id' => 7,
             'titulo' => 'Restablecer contraseña de correo institucional',
             'funcionario_id' => 9,
             'tipo_problema' => 'Cuentas y Accesos',
@@ -584,8 +588,10 @@ class TicketTest extends TestCase
             'descripcion_problema' => str_repeat('a', 520),
         ]);
 
-        $datosReunion = $ticketReunion->datosParaInforme(null, 'Todo funcionó correctamente.');
+        $datosReunion = $ticketReunion->datosParaInforme(null, 'Todo funcionó correctamente.', 3);
 
+        $this->assertNull($datosReunion['ticket_id']);
+        $this->assertSame(3, $datosReunion['user_id']);
         $this->assertSame(495, strlen($datosReunion['titulo']));
         $this->assertSame(12, $datosReunion['funcionario_id']);
         $this->assertSame(Ticket::TIPO_ASISTENCIA_REUNION, $datosReunion['tipo_problema']);

@@ -11,6 +11,7 @@
     ];
 
     $esEdicion = isset($informe);
+    $bloqueadoPorTicket = $esEdicion && $informe->vieneDeTicket();
     $tipoActual = old('tipo_problema', $informe->tipo_problema ?? ($tiposProblema[0] ?? 'Hardware'));
     $funcionarioActual = old('funcionario_id', $informe->funcionario_id ?? '');
 
@@ -28,6 +29,15 @@
 @endphp
 
 <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
+    @if ($bloqueadoPorTicket)
+        <div class="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-400/30 text-sm text-blue-200 flex items-center justify-between gap-4">
+            <span>Este informe fue generado desde el <strong>Ticket #{{ $informe->ticket_id }}</strong>. El funcionario y el tipo de problema están bloqueados para mantener la coherencia.</span>
+            @can('tickets.ver')
+                <a href="{{ route('tickets.show', $informe->ticket_id) }}"
+                    class="shrink-0 text-xs font-semibold text-[#1CD6CE] hover:underline">Ver Ticket</a>
+            @endcan
+        </div>
+    @endif
     <form action="{{ $action }}" method="POST" id="form-informe">
         @csrf
         @if ($method !== 'POST')
@@ -50,7 +60,8 @@
             <!-- Funcionario atendido -->
             <div>
                 <label for="funcionario_id" class="block mb-2 text-sm font-medium text-white/90">Funcionario atendido</label>
-                <select id="funcionario_id" name="funcionario_id" class="searchable-select {{ $input }} appearance-none"
+                <select id="funcionario_id" name="funcionario_id" @disabled($bloqueadoPorTicket)
+                    class="searchable-select {{ $input }} appearance-none"
                     placeholder="Selecciona un funcionario..." required>
                     <option value="" disabled {{ $funcionarioActual ? '' : 'selected' }}>Selecciona un funcionario</option>
                     @foreach ($funcionarios as $func)
@@ -81,9 +92,9 @@
                 <div class="flex flex-col gap-2.5">
                     @foreach ($tiposProblema as $tipo)
                         @php $color = $coloresTipo[$tipo] ?? '#60a5fa'; @endphp
-                        <label class="relative cursor-pointer block">
+                        <label class="relative {{ $bloqueadoPorTicket ? 'cursor-not-allowed opacity-70' : 'cursor-pointer' }} block">
                             <input type="radio" name="tipo_problema" value="{{ $tipo }}" class="peer sr-only"
-                                {{ $tipoActual === $tipo ? 'checked' : '' }} required>
+                                {{ $tipoActual === $tipo ? 'checked' : '' }} @disabled($bloqueadoPorTicket) required>
                             <div class="flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-white/5 transition-all hover:bg-white/10 peer-checked:bg-white/10"
                                 style="--c: {{ $color }}" data-card>
                                 <span class="w-4 h-4 rounded-full border-2 border-white/40 flex items-center justify-center shrink-0 radio-ring">

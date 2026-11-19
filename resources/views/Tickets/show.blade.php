@@ -144,11 +144,13 @@
                                 {{ ($ticket->updated_at ?? $ticket->fecha_cierre)?->format('d/m/Y H:i') }}.
                             </p>
                         </div>
-                        <div class="mb-6">
-                            <a href="{{ route('informes.show', $ticket->id) }}"
-                                class="text-white/70 hover:text-white/100 font-medium text-xs">Ir a informes para imprimir
-                                el ticket</a>
-                        </div>
+                        @if ($ticket->informe)
+                            <div class="mb-6">
+                                <a href="{{ route('informes.show', $ticket->informe) }}"
+                                    class="text-white/70 hover:text-white/100 font-medium text-xs">Ir a informes para imprimir
+                                    el ticket</a>
+                            </div>
+                        @endif
                     @elseif ($ticket->estado === \App\Models\Tickets\Ticket::ESTADO_PENDIENTE)
                         @can('tickets.operar', $ticket)
                             <form action="{{ route('tickets.asignar', $ticket) }}" method="POST" class="space-y-4">
