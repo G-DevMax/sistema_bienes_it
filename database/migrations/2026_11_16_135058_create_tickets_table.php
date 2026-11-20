@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('funcionario_id')->constrained('funcionarios')->cascadeOnDelete();
+            $table->foreignId('funcionario_id')->constrained('funcionarios')->restrictOnDelete();
             $table->enum('tipo_problema', ['Equipo/Dispositivo', 'Programa/Sistema', 'Internet', 'Impresora/Escáner', 'Cuentas y Accesos', 'Asistencia a Reunión', 'Consulta', 'Insumos']);
             $table->foreignId('detalle_id')->nullable()->constrained('detalles_problemas')->restrictOnDelete();
             $table->text('descripcion_problema');
             $table->enum('estado', ['Pendiente', 'Asignado', 'Resuelto', 'Cerrado'])->default('Pendiente');
-            $table->foreignId('asignado_a')->nullable()->constrained('users')->cascadeOnDelete();
+            $table->foreignId('asignado_a')->nullable()->constrained('users')->restrictOnDelete();
             $table->date('fecha_creacion')->default(now());
             $table->date('fecha_cierre')->nullable();
             $table->text('observacion')->nullable();

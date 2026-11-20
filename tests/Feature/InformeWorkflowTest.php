@@ -8,6 +8,7 @@ use App\Models\Informes\detalles_problemas;
 use App\Models\Informes\informes;
 use App\Models\rol;
 use App\Models\Tickets\Ticket;
+use App\Models\Tickets\TicketHistory;
 use App\Models\User;
 use App\Services\Informes\InformePdfService;
 use Illuminate\Database\QueryException;
@@ -263,5 +264,50 @@ class InformeWorkflowTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertModelMissing($detalleSinUso);
+    }
+
+    public function test_eliminar_funcionario_o_usuario_con_tickets_informes_o_historial_es_restringido_por_fk(): void
+    {
+        $tecnicoTicket = $this->crearUsuario(rol::TECNICO_TERCERIZADO, 'Técnico Ticket FK');
+        $tecnicoInforme = $this->crearUsuario(rol::TECNICO_TERCERIZADO, 'Técnico Informe FK');
+        $funcionarioTicket = $this->crearFuncionario('Funcionario Ticket FK');
+        $funcionarioInforme = $this->crearFuncionario('Funcionario Informe FK');
+        $funcionarioHistorial = $this->crearFuncionario('Funcionario Historial FK');
+
+        $ticket = Ticket::create([
+            'funcionario_id' => $funcionarioTicket->id,
+            'tipo_problema' => 'Internet',
+            'descripcion_problema' => 'Prueba FK restrict',
+            'estado' => Ticket::ESTADO_ASIGNADO,
+            'asignado_a' => $tecnicoTicket->id,
+            'fecha_creacion' => now()->toDateString(),
+        ]);
+
+        TicketHistory::create([
+            'ticket_id' => $ticket->id,
+            'funcionario_id' => $funcionarioHistorial->id,
+            'accion' => 'Ticket creado',
+            'responsable_id' => null,
+            'fecha' => now()->toDateString(),
+        ]);
+
+        informes::withoutEvents(fn (): informes => informes::create([
+            'ticket_id' => null,
+            'user_id' => $tecnicoInforme->id,
+            'titulo' => 'Informe FK restrict',
+            'funcionario_id' => $funcionarioInforme->id,
+            'tipo_problema' => 'Internet',
+            'detalle_id' => null,
+            'observacion' => 'Observación.',
+        ]));
+
+        foreach ([$funcionarioTicket, $funcionarioInforme, $funcionarioHistorial, $tecnicoTicket, $tecnicoInforme] as $registroProtegido) {
+            try {
+                $registroProtegido::withoutEvents(fn () => $registroProtegido->delete());
+                $this->fail('Se esperaba QueryException por restrictOnDelete en '.$registroProtegido::class);
+            } catch (QueryException $e) {
+                $this->assertSame('23000', (string) $e->getCode());
+            }
+        }
     }
 }

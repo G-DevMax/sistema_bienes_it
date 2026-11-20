@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('ticket_history', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("ticket_id")->constrained("tickets")->cascadeOnDelete();
-            $table->foreignId("funcionario_id")->constrained("funcionarios")->cascadeOnDelete();
-            $table->string("accion");
-            $table->foreignId("responsable_id")->nullable()->constrained("users")->nullOnDelete();
-            $table->date("fecha");
+            $table->foreignId('ticket_id')->constrained('tickets')->cascadeOnDelete();
+            $table->foreignId('funcionario_id')->constrained('funcionarios')->restrictOnDelete();
+            $table->string('accion');
+            $table->foreignId('responsable_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->date('fecha');
             $table->timestamps();
         });
     }
