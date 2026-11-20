@@ -15,17 +15,6 @@ class informes extends Model
 {
     use BuscadorUniversal, HasFactory, LogsHistory;
 
-    public const TIPOS_PROBLEMA = [
-        'Equipo/Dispositivo',
-        'Programa/Sistema',
-        'Internet',
-        'Impresora/Escáner',
-        'Cuentas y Accesos',
-        'Asistencia a Reunión',
-        'Consulta',
-        'Insumos',
-    ];
-
     protected $table = 'informes';
 
     protected array $buscador = [

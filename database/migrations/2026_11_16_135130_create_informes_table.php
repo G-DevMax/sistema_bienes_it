@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->string('titulo', 500);
             $table->foreignId('funcionario_id')->constrained('funcionarios')->restrictOnDelete();
-            $table->enum('tipo_problema', ['Equipo/Dispositivo', 'Programa/Sistema', 'Internet', 'Impresora/Escáner', 'Cuentas y Accesos', 'Asistencia a Reunión', 'Consulta', 'Insumos']);
+            $table->string('tipo_problema', 60);
             $table->foreignId('detalle_id')->nullable()->constrained('detalles_problemas')->restrictOnDelete();
             $table->longText('observacion')->nullable();
             $table->timestamps();

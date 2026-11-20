@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tickets;
 
+use App\Enums\TipoProblema;
 use App\Http\Controllers\Controller;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
@@ -140,7 +141,7 @@ class TicketController extends Controller
         }
 
         $tickets = $query->paginate(10)->withQueryString();
-        $tiposProblema = Ticket::TIPOS_PROBLEMA;
+        $tiposProblema = TipoProblema::values();
 
         return view('Tickets.index', compact('tickets', 'tiposProblema'));
     }
@@ -148,7 +149,7 @@ class TicketController extends Controller
     public function create(): View
     {
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
-        $tiposProblema = Ticket::TIPOS_PROBLEMA;
+        $tiposProblema = TipoProblema::values();
 
         return view('Tickets.create', compact('funcionarios', 'tiposProblema'));
     }
@@ -156,7 +157,7 @@ class TicketController extends Controller
     public function createManual(): View
     {
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
-        $tiposProblema = Ticket::TIPOS_PROBLEMA;
+        $tiposProblema = TipoProblema::values();
 
         return view('Tickets.create_manual', compact('funcionarios', 'tiposProblema'));
     }
@@ -214,7 +215,7 @@ class TicketController extends Controller
 
         return $request->validate([
             'funcionario_id' => ['required', Rule::exists('funcionarios', 'id')->where('estado_funcionario', 1)],
-            'tipo_problema' => ['required', Rule::in(Ticket::TIPOS_PROBLEMA)],
+            'tipo_problema' => ['required', Rule::enum(TipoProblema::class)],
             'descripcion_problema' => [
                 Rule::requiredIf(! $esReunion),
                 'nullable',

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('historial_cambios', function (Blueprint $table) {
             $table->id();
             // columna fk del usuario que ha realizado los cambios
-            $table->foreignId('user_id')->constrained('users')->onUpdate('cascade')->onDelete('restrict');
+            $table->foreignId('user_id')->constrained('users')->onUpdate('cascade')->onDelete('restrict')->nullable();
             $table->string('entidad', 300)->nullable(); // tabla de donde proviene el cambio
             $table->integer('entidad_id')->nullable(); // id de la fila modificada de la tabla
             $table->string('accion', 20)->nullable(); // accion realizada (Create, Update, Delete)

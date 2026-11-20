@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Informes;
 
+use App\Enums\TipoProblema;
 use App\Http\Controllers\Controller;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
@@ -26,7 +27,7 @@ class InformeController extends Controller
         }
 
         $informes = $query->paginate(10)->withQueryString();
-        $tiposProblema = informes::TIPOS_PROBLEMA;
+        $tiposProblema = TipoProblema::values();
 
         return view('Informes.index', compact('informes', 'tiposProblema'));
     }
@@ -34,7 +35,7 @@ class InformeController extends Controller
     public function create()
     {
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
-        $tiposProblema = informes::TIPOS_PROBLEMA;
+        $tiposProblema = TipoProblema::values();
         $detalles = detalles_problemas::orderBy('detalle')->get();
         $fechaHora = now();
 
@@ -91,7 +92,7 @@ class InformeController extends Controller
             ->orWhere('id', $informe->funcionario_id)
             ->orderBy('nombre')
             ->get();
-        $tiposProblema = informes::TIPOS_PROBLEMA;
+        $tiposProblema = TipoProblema::values();
         $detalles = detalles_problemas::orderBy('detalle')->get();
         $fechaHora = $informe->created_at;
 
@@ -195,7 +196,7 @@ class InformeController extends Controller
 
         if (! $vieneDeTicket) {
             $reglas['funcionario_id'] = ['required', 'exists:funcionarios,id'];
-            $reglas['tipo_problema'] = ['required', Rule::in(informes::TIPOS_PROBLEMA)];
+            $reglas['tipo_problema'] = ['required', Rule::enum(TipoProblema::class)];
         }
 
         return $this->validateWithIndexRedirect($request, $reglas, [

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\TipoProblema;
 use App\Models\dependencias;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
@@ -114,7 +115,7 @@ class InformeTest extends TestCase
 
         $index = $this->view('Informes.index', [
             'informes' => $paginador,
-            'tiposProblema' => informes::TIPOS_PROBLEMA,
+            'tiposProblema' => TipoProblema::values(),
         ]);
         $index->assertSee('Crear nuevo informe');
         $index->assertSee('Corte de red');
@@ -122,7 +123,7 @@ class InformeTest extends TestCase
 
         $create = $this->view('Informes.create', [
             'funcionarios' => collect([$funcionario]),
-            'tiposProblema' => informes::TIPOS_PROBLEMA,
+            'tiposProblema' => TipoProblema::values(),
             'detalles' => collect([$detalle]),
             'fechaHora' => now(),
         ]);
@@ -133,7 +134,7 @@ class InformeTest extends TestCase
         $edit = $this->view('Informes.edit', [
             'informe' => $informe,
             'funcionarios' => collect([$funcionario]),
-            'tiposProblema' => informes::TIPOS_PROBLEMA,
+            'tiposProblema' => TipoProblema::values(),
             'detalles' => collect([$detalle]),
             'fechaHora' => $informe->created_at,
         ]);
@@ -150,19 +151,19 @@ class InformeTest extends TestCase
 
         $detallesIndex = $this->view('Informes.detalles_problemas.index', [
             'detalles' => new LengthAwarePaginator(collect([$detalle]), 1, 10, 1),
-            'tiposProblema' => informes::TIPOS_PROBLEMA,
+            'tiposProblema' => TipoProblema::values(),
         ]);
         $detallesIndex->assertSee('Problemas Comunes');
         $detallesIndex->assertSee('Sin acceso a red');
 
         $detallesCreate = $this->view('Informes.detalles_problemas.create', [
-            'tiposProblema' => informes::TIPOS_PROBLEMA,
+            'tiposProblema' => TipoProblema::values(),
         ]);
         $detallesCreate->assertSee('Registrar Problema Común');
 
         $detallesEdit = $this->view('Informes.detalles_problemas.edit', [
             'detalle' => $detalle,
-            'tiposProblema' => informes::TIPOS_PROBLEMA,
+            'tiposProblema' => TipoProblema::values(),
         ]);
         $detallesEdit->assertSee('Editar Problema Común #2');
 

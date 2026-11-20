@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TipoProblema;
 use App\Models\dependencias;
 use App\Models\funcionarios;
 use App\Models\rol;
@@ -53,7 +54,7 @@ class AuthorizationTest extends TestCase
 
         return Ticket::create([
             'funcionario_id' => $funcionario->id,
-            'tipo_problema' => Ticket::TIPOS_PROBLEMA[0],
+            'tipo_problema' => TipoProblema::values()[0],
             'descripcion_problema' => 'Ticket de prueba autorización',
             'estado' => $estado,
             'asignado_a' => $asignadoA,

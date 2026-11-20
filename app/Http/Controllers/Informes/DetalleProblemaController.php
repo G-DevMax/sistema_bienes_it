@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Informes;
 
+use App\Enums\TipoProblema;
 use App\Http\Controllers\Controller;
 use App\Models\Informes\detalles_problemas;
-use App\Models\Informes\informes;
 use App\Services\LoggerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,14 +23,14 @@ class DetalleProblemaController extends Controller
         }
 
         $detalles = $query->paginate(10)->withQueryString();
-        $tiposProblema = informes::TIPOS_PROBLEMA;
+        $tiposProblema = TipoProblema::values();
 
         return view('Informes.detalles_problemas.index', compact('detalles', 'tiposProblema'));
     }
 
     public function create()
     {
-        $tiposProblema = informes::TIPOS_PROBLEMA;
+        $tiposProblema = TipoProblema::values();
 
         return view('Informes.detalles_problemas.create', compact('tiposProblema'));
     }
@@ -71,7 +71,7 @@ class DetalleProblemaController extends Controller
     public function edit(string $id)
     {
         $detalle = detalles_problemas::findOrFail($id);
-        $tiposProblema = informes::TIPOS_PROBLEMA;
+        $tiposProblema = TipoProblema::values();
 
         return view('Informes.detalles_problemas.edit', compact('detalle', 'tiposProblema'));
     }
@@ -136,7 +136,7 @@ class DetalleProblemaController extends Controller
     private function validarDetalle(Request $request, ?int $ignoreId = null): array
     {
         return $this->validateWithIndexRedirect($request, [
-            'tipo_problema' => ['required', Rule::in(informes::TIPOS_PROBLEMA)],
+            'tipo_problema' => ['required', Rule::enum(TipoProblema::class)],
             'detalle' => [
                 'required',
                 'string',

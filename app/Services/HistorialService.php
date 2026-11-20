@@ -11,16 +11,16 @@ class HistorialService
     /**
      * Registra un cambio en el historial.
      *
-     * @param Model $modelo El modelo que ha sido modificado, creado o eliminado.
-     * @param string $accion Tipo de acción: 'Create', 'Update', 'Delete'
-     * @param array|null $original Los datos originales (antes del cambio). Si es null, se intenta obtener del modelo.
-     * @param array|null $cambiado Los datos nuevos (después del cambio). Si es null, se intenta obtener del modelo.
+     * @param  Model  $modelo  El modelo que ha sido modificado, creado o eliminado.
+     * @param  string  $accion  Tipo de acción: 'Create', 'Update', 'Delete'
+     * @param  array|null  $original  Los datos originales (antes del cambio). Si es null, se intenta obtener del modelo.
+     * @param  array|null  $cambiado  Los datos nuevos (después del cambio). Si es null, se intenta obtener del modelo.
      * @return void
      */
     public function registrarCambio(Model $modelo, string $accion, ?array $original = null, ?array $cambiado = null)
     {
         // Si no hay usuario logueado, podríamos registrar null o un usuario de sistema, aquí asumimos autenticado.
-        $userId = Auth::id() ?? 1; // Asumimos un fallback si no hay sesión para evitar fallos.
+        $userId = Auth::id();
 
         $detalle = [
             'original' => $original,
@@ -52,9 +52,9 @@ class HistorialService
     {
         // En Laravel, los cambios se pueden obtener más precisamente pasando los originales que obtuvimos ANTES del save.
         $this->registrarCambio(
-            $modelo, 
-            'Update', 
-            $original, 
+            $modelo,
+            'Update',
+            $original,
             $modelo->toArray() // el estado actual
         );
     }

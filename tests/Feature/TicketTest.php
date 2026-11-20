@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TipoProblema;
 use App\Http\Controllers\Tickets\TicketController;
 use App\Models\dependencias;
 use App\Models\funcionarios;
@@ -71,14 +72,14 @@ class TicketTest extends TestCase
 
         $vista = $this->view('Tickets.create', [
             'funcionarios' => collect([$funcionario]),
-            'tiposProblema' => Ticket::TIPOS_PROBLEMA,
+            'tiposProblema' => TipoProblema::values(),
         ]);
 
         $vista->assertSee('Crear Ticket de Soporte');
         $vista->assertSee('searchable-select', false);
         $vista->assertSee('Carlos Benítez');
         $vista->assertSee('type="radio"', false);
-        foreach (Ticket::TIPOS_PROBLEMA as $tipo) {
+        foreach (TipoProblema::values() as $tipo) {
             $vista->assertSee($tipo);
         }
         $vista->assertSee('0 / 100 palabras');
@@ -100,14 +101,14 @@ class TicketTest extends TestCase
 
         $vista = $this->view('Tickets.create_manual', [
             'funcionarios' => collect([$funcionario]),
-            'tiposProblema' => Ticket::TIPOS_PROBLEMA,
+            'tiposProblema' => TipoProblema::values(),
         ]);
 
         $vista->assertSee('Crear Ticket Manual');
         $vista->assertSee('searchable-select', false);
         $vista->assertSee('Carlos Benítez');
         $vista->assertSee('type="radio"', false);
-        foreach (Ticket::TIPOS_PROBLEMA as $tipo) {
+        foreach (TipoProblema::values() as $tipo) {
             $vista->assertSee($tipo);
         }
         $vista->assertSee('0 / 100 palabras');
@@ -120,7 +121,7 @@ class TicketTest extends TestCase
 
     public function test_validacion_titulo_hasta_100_palabras_y_tipos_incluyen_impresora(): void
     {
-        $tipoPrueba = Ticket::TIPOS_PROBLEMA[0];
+        $tipoPrueba = TipoProblema::values()[0];
 
         $reglaPalabras = function (string $attribute, mixed $value, \Closure $fail): void {
             $palabras = preg_split('/\s+/u', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
@@ -135,7 +136,7 @@ class TicketTest extends TestCase
                 'descripcion_problema' => implode(' ', array_fill(0, 100, 'a')),
             ],
             [
-                'tipo_problema' => ['required', Rule::in(Ticket::TIPOS_PROBLEMA)],
+                'tipo_problema' => ['required', Rule::enum(TipoProblema::class)],
                 'descripcion_problema' => ['required', 'string', 'max:255', $reglaPalabras],
             ]
         );
@@ -147,7 +148,7 @@ class TicketTest extends TestCase
                 'descripcion_problema' => implode(' ', array_fill(0, 101, 'a')),
             ],
             [
-                'tipo_problema' => ['required', Rule::in(Ticket::TIPOS_PROBLEMA)],
+                'tipo_problema' => ['required', Rule::enum(TipoProblema::class)],
                 'descripcion_problema' => ['required', 'string', 'max:255', $reglaPalabras],
             ]
         );
@@ -201,7 +202,7 @@ class TicketTest extends TestCase
         $paginador = new LengthAwarePaginator(collect([$ticketPendiente]), 1, 10, 1);
         $index = $this->view('Tickets.index', [
             'tickets' => $paginador,
-            'tiposProblema' => Ticket::TIPOS_PROBLEMA,
+            'tiposProblema' => TipoProblema::values(),
         ]);
         $index->assertSee('Listado de Tickets');
         $index->assertSee('#15');
@@ -617,7 +618,7 @@ class TicketTest extends TestCase
             );
         }
 
-        foreach (Ticket::TIPOS_PROBLEMA as $tipo) {
+        foreach (TipoProblema::values() as $tipo) {
             $payload = [
                 'funcionario_id' => $funcionario->id,
                 'tipo_problema' => $tipo,
@@ -662,7 +663,7 @@ class TicketTest extends TestCase
 
         $ticketEnMemoria = Ticket::create([
             'funcionario_id' => $funcionario->id,
-            'tipo_problema' => Ticket::TIPOS_PROBLEMA[0],
+            'tipo_problema' => TipoProblema::values()[0],
             'descripcion_problema' => 'Prueba de concurrencia al cerrar',
             'estado' => Ticket::ESTADO_ASIGNADO,
             'asignado_a' => $admin->id,
@@ -698,5 +699,73 @@ class TicketTest extends TestCase
         $this->assertSame('No se puede asignar un ticket que ya se encuentra cerrado.', session('error'));
         $this->assertSame(Ticket::ESTADO_CERRADO, $ticketEnMemoria->fresh()->estado);
         $this->assertSame(0, TicketHistory::where('ticket_id', $ticketEnMemoria->id)->count());
+    }
+
+    public function test_enum_tipo_problema_columnas_string_y_estados_sin_resuelto(): void
+    {
+        $this->assertNotContains('Resuelto', Ticket::ESTADOS);
+        $this->assertSame(
+            [
+                'Equipo/Dispositivo',
+                'Programa/Sistema',
+                'Internet',
+                'Impresora/Escáner',
+                'Cuentas y Accesos',
+                'Asistencia a Reunión',
+                'Consulta',
+                'Insumos',
+            ],
+            TipoProblema::values()
+        );
+
+        $validadorInvalido = Validator::make(
+            ['tipo_problema' => 'Tipo Inexistente'],
+            ['tipo_problema' => ['required', Rule::enum(TipoProblema::class)]]
+        );
+        $this->assertTrue($validadorInvalido->fails());
+
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
+            'rol_id' => rol::ADMIN,
+            'estado_user' => 1,
+        ]));
+        $funcionario = funcionarios::where('estado_funcionario', 1)->first()
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+                'nombre' => 'Funcionario String Test',
+                'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia String Test'])
+                ))->id,
+                'estado_funcionario' => 1,
+            ]));
+
+        // Las 3 tablas aceptan un nuevo string directamente sin alterar el esquema de BD
+        $nuevoTipo = 'Nuevo Tipo Sin Migración';
+
+        $detalle = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
+            'tipo_problema' => $nuevoTipo,
+            'detalle' => 'Detalle de prueba flexible',
+        ]));
+
+        $ticket = Ticket::create([
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => $nuevoTipo,
+            'detalle_id' => $detalle->id,
+            'descripcion_problema' => 'Ticket con tipo flexible',
+            'estado' => Ticket::ESTADO_PENDIENTE,
+            'fecha_creacion' => now()->toDateString(),
+        ]);
+
+        $informe = informes::withoutEvents(fn (): informes => informes::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $admin->id,
+            'titulo' => 'Informe con tipo flexible',
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => $nuevoTipo,
+            'detalle_id' => $detalle->id,
+            'observacion' => 'OK',
+        ]));
+
+        $this->assertSame($nuevoTipo, $detalle->fresh()->tipo_problema);
+        $this->assertSame($nuevoTipo, $ticket->fresh()->tipo_problema);
+        $this->assertSame($nuevoTipo, $informe->fresh()->tipo_problema);
     }
 }

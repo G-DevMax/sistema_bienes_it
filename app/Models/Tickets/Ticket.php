@@ -2,6 +2,7 @@
 
 namespace App\Models\Tickets;
 
+use App\Enums\TipoProblema;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
 use App\Models\Informes\informes;
@@ -21,32 +22,18 @@ class Ticket extends Model
 
     public const ANIO_MINIMO = 2026;
 
-    public const TIPO_ASISTENCIA_REUNION = 'Asistencia a Reunión';
+    public const TIPO_ASISTENCIA_REUNION = TipoProblema::AsistenciaAReunion->value;
 
     public const ESTADO_PENDIENTE = 'Pendiente';
 
     public const ESTADO_ASIGNADO = 'Asignado';
-
-    public const ESTADO_RESUELTO = 'Resuelto';
 
     public const ESTADO_CERRADO = 'Cerrado';
 
     public const ESTADOS = [
         self::ESTADO_PENDIENTE,
         self::ESTADO_ASIGNADO,
-        self::ESTADO_RESUELTO,
         self::ESTADO_CERRADO,
-    ];
-
-    public const TIPOS_PROBLEMA = [
-        'Equipo/Dispositivo',
-        'Programa/Sistema',
-        'Internet',
-        'Impresora/Escáner',
-        'Cuentas y Accesos',
-        'Asistencia a Reunión',
-        'Consulta',
-        'Insumos',
     ];
 
     private const BADGES_TIPO = [
@@ -63,7 +50,6 @@ class Ticket extends Model
     private const BADGES_ESTADO = [
         self::ESTADO_PENDIENTE => 'bg-[#FEDB39]/20 text-[#FEDB39] border-[#FEDB39]/30',
         self::ESTADO_ASIGNADO => 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-        self::ESTADO_RESUELTO => 'bg-[#1CD6CE]/20 text-[#1CD6CE] border-[#1CD6CE]/30',
         self::ESTADO_CERRADO => 'bg-green-500/20 text-green-300 border-green-500/30',
     ];
 
