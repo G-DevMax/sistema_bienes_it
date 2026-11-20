@@ -77,14 +77,13 @@
                                         </a>
 
                                         @if (auth()->id() !== $usuario->id)
-                                            <form action="{{ route('usuarios.destroy', $usuario->id) }}" method="POST"
-                                                class="inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit"
-                                                    class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
-                                                    title="Eliminar"
-                                                    onclick="return confirm('¿Estás seguro de desactivar este usuario?')">
+                                            @if ($usuario->tickets_asignados_count > 0)
+                                                <button type="button"
+                                                    data-user-id="{{ $usuario->id }}"
+                                                    data-user-name="{{ $usuario->name }}"
+                                                    onclick="abrirModalReasignar(this.dataset.userId, this.dataset.userName)"
+                                                    class="p-2 text-white/60 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors"
+                                                    title="Reasignar tickets y desactivar">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                         viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -92,7 +91,24 @@
                                                         </path>
                                                     </svg>
                                                 </button>
-                                            </form>
+                                            @else
+                                                <form action="{{ route('usuarios.destroy', $usuario->id) }}" method="POST"
+                                                    class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit"
+                                                        class="p-2 text-white/60 hover:text-[#D61C4E] hover:bg-[#D61C4E]/10 rounded-lg transition-colors"
+                                                        title="Eliminar"
+                                                        onclick="return confirm('¿Estás seguro de desactivar este usuario?')">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                            viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                            </path>
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         @endif
                                     </div>
                                 </td>
@@ -162,5 +178,93 @@
                 </div>
             </div>
         @endcan
+
+        <!-- Modal para reasignar tickets asignados antes de desactivar al técnico -->
+        <div id="modalReasignarTickets"
+            class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-[#0b1329] border border-amber-500/40 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in-up">
+                <h3 class="text-xl font-bold text-white mb-2">Reasignar tickets pendientes</h3>
+                <p class="text-sm text-white/70 mb-5">
+                    El técnico <span id="reasignarNombreTecnico" class="font-semibold text-white"></span> tiene tickets en estado Asignado.
+                    Selecciona a qué técnico activo reasignarlos antes de desactivar su cuenta.
+                </p>
+
+                <form id="formReasignarDesactivar" method="POST"
+                    data-action-template="{{ route('usuarios.destroy', '__ID__') }}">
+                    @csrf
+                    @method('DELETE')
+                    <div class="mb-6">
+                        <label for="selectReasignarTecnico" class="block text-sm font-medium text-white/90 mb-2">
+                            Técnico receptor
+                        </label>
+                        <select id="selectReasignarTecnico" name="reasignar_a" required
+                            class="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none">
+                            <option value="" class="bg-[#0b1329] text-white/70">-- Seleccione un técnico --</option>
+                            @foreach ($tecnicosActivos ?? [] as $tecnico)
+                                <option value="{{ $tecnico->id }}" class="bg-[#0b1329] text-white">
+                                    {{ $tecnico->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p id="sinTecnicosDisponibles" class="hidden mt-2 text-xs text-red-400">
+                            No hay otro técnico activo disponible para recibir los tickets.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button type="button"
+                            onclick="document.getElementById('modalReasignarTickets').classList.add('hidden')"
+                            class="px-4 py-2 rounded-xl text-white/70 hover:bg-white/10 transition-colors">
+                            Cancelar
+                        </button>
+                        <button id="btnConfirmarReasignar" type="submit"
+                            class="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-medium shadow-lg shadow-amber-500/20 transition-all">
+                            Reasignar y Desactivar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+
+    <script>
+        function abrirModalReasignar(userId, userName) {
+            const modal = document.getElementById('modalReasignarTickets');
+            const form = document.getElementById('formReasignarDesactivar');
+            const select = document.getElementById('selectReasignarTecnico');
+            const nombreSpan = document.getElementById('reasignarNombreTecnico');
+            const msgSinTecnicos = document.getElementById('sinTecnicosDisponibles');
+            const btnConfirmar = document.getElementById('btnConfirmarReasignar');
+
+            form.action = form.dataset.actionTemplate.replace('__ID__', userId);
+            nombreSpan.textContent = userName || 'seleccionado';
+            select.value = '';
+
+            let hayDisponibles = false;
+            for (const option of select.options) {
+                if (!option.value) {
+                    continue;
+                }
+                const esMismoUsuario = option.value === String(userId);
+                option.hidden = esMismoUsuario;
+                option.disabled = esMismoUsuario;
+                if (!esMismoUsuario) {
+                    hayDisponibles = true;
+                }
+            }
+
+            msgSinTecnicos.classList.toggle('hidden', hayDisponibles);
+            btnConfirmar.disabled = !hayDisponibles;
+            modal.classList.remove('hidden');
+        }
+
+        @if (session()->has('reasignar_usuario_id'))
+            document.addEventListener('DOMContentLoaded', () => {
+                abrirModalReasignar(
+                    @json((string) session('reasignar_usuario_id')),
+                    @json((string) session('reasignar_usuario_nombre', ''))
+                );
+            });
+        @endif
+    </script>
 @endsection

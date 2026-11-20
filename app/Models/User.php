@@ -3,15 +3,18 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Tickets\Ticket;
+use App\Traits\LogsHistory;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use \App\Traits\LogsHistory, HasFactory, Notifiable;
+    use HasFactory, LogsHistory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -30,6 +33,12 @@ class User extends Authenticatable
     public function rol()
     {
         return $this->belongsTo(rol::class);
+    }
+
+    public function ticketsAsignados(): HasMany
+    {
+        return $this->hasMany(Ticket::class, 'asignado_a')
+            ->where('estado', Ticket::ESTADO_ASIGNADO);
     }
 
     public function esAdmin(): bool

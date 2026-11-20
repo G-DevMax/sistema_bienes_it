@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\rol;
+use App\Models\Tickets\Ticket;
+use App\Models\Tickets\TicketHistory;
 use App\Models\User;
 use App\Services\LoggerService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class UsuariosController extends Controller
@@ -16,9 +20,17 @@ class UsuariosController extends Controller
      */
     public function index()
     {
-        $usuarios = User::with('rol')->orderBy('name', 'ASC')->paginate(10);
+        $usuarios = User::with('rol')
+            ->withCount('ticketsAsignados')
+            ->orderBy('name', 'ASC')
+            ->paginate(10);
 
-        return view('usuarios.index', compact('usuarios'));
+        $tecnicosActivos = User::where('estado_user', 1)
+            ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO])
+            ->orderBy('name', 'ASC')
+            ->get(['id', 'name']);
+
+        return view('usuarios.index', compact('usuarios', 'tecnicosActivos'));
     }
 
     /**
@@ -150,26 +162,42 @@ class UsuariosController extends Controller
         ], 'usuarios.index');
 
         try {
-            $usuario_editado->name = Str::title($request->name);
-            $usuario_editado->email = strtolower($request->email);
             $cambioPassword = $request->filled('password');
 
-            // Si se envió una nueva contraseña, se actualiza
-            if ($cambioPassword) {
-                $usuario_editado->password = $request->password;
-            }
+            $redireccion = DB::transaction(function () use ($request, $usuario_editado, $esPropioUsuario, $cambioPassword): ?RedirectResponse {
+                if (! $esPropioUsuario && (int) $request->estado_user === 0) {
+                    $redir = $this->gestionarTicketsAlDesactivar($request, $usuario_editado);
+                    if ($redir !== null) {
+                        return $redir;
+                    }
+                }
 
-            if (! $esPropioUsuario) {
-                $usuario_editado->estado_user = $request->estado_user;
-                $usuario_editado->rol_id = $request->rol_id;
-            }
+                $usuario_editado->name = Str::title($request->name);
+                $usuario_editado->email = strtolower($request->email);
 
-            // Rotar token al cambiar contraseña o desactivar para invalidar cookies "recordarme"
-            if ($cambioPassword || (int) $usuario_editado->estado_user !== 1) {
-                $usuario_editado->setRememberToken(Str::random(60));
-            }
+                // Si se envió una nueva contraseña, se actualiza
+                if ($cambioPassword) {
+                    $usuario_editado->password = $request->password;
+                }
 
-            $usuario_editado->save();
+                if (! $esPropioUsuario) {
+                    $usuario_editado->estado_user = $request->estado_user;
+                    $usuario_editado->rol_id = $request->rol_id;
+                }
+
+                // Rotar token al cambiar contraseña o desactivar para invalidar cookies "recordarme"
+                if ($cambioPassword || (int) $usuario_editado->estado_user !== 1) {
+                    $usuario_editado->setRememberToken(Str::random(60));
+                }
+
+                $usuario_editado->save();
+
+                return null;
+            });
+
+            if ($redireccion !== null) {
+                return $redireccion;
+            }
 
             // Mantener la sesión actual del propio usuario al cambiar su propia contraseña
             if ($esPropioUsuario && $cambioPassword) {
@@ -199,7 +227,7 @@ class UsuariosController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $usuario_eliminar = User::findOrFail($id);
 
@@ -215,9 +243,22 @@ class UsuariosController extends Controller
         }
 
         try {
-            $usuario_eliminar->estado_user = 0;
-            $usuario_eliminar->setRememberToken(Str::random(60));
-            $usuario_eliminar->save();
+            $redireccion = DB::transaction(function () use ($request, $usuario_eliminar): ?RedirectResponse {
+                $redir = $this->gestionarTicketsAlDesactivar($request, $usuario_eliminar);
+                if ($redir !== null) {
+                    return $redir;
+                }
+
+                $usuario_eliminar->estado_user = 0;
+                $usuario_eliminar->setRememberToken(Str::random(60));
+                $usuario_eliminar->save();
+
+                return null;
+            });
+
+            if ($redireccion !== null) {
+                return $redireccion;
+            }
 
             LoggerService::info('Usuario desactivado', [
                 'name' => $usuario_eliminar->name,
@@ -237,5 +278,52 @@ class UsuariosController extends Controller
         }
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario desactivado exitosamente.');
+    }
+
+    /**
+     * Reasigna los tickets asignados al técnico antes de desactivarlo o redirige solicitando técnico receptor.
+     */
+    private function gestionarTicketsAlDesactivar(Request $request, User $usuario): ?RedirectResponse
+    {
+        $ticketsAsignados = Ticket::where('asignado_a', $usuario->id)
+            ->where('estado', Ticket::ESTADO_ASIGNADO)
+            ->lockForUpdate()
+            ->get();
+
+        if ($ticketsAsignados->isEmpty()) {
+            return null;
+        }
+
+        $nuevoTecnicoId = $request->input('reasignar_a');
+        $nuevoTecnico = filled($nuevoTecnicoId)
+            ? User::where('id', '!=', $usuario->id)
+                ->where('estado_user', 1)
+                ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO])
+                ->find($nuevoTecnicoId)
+            : null;
+
+        if (! $nuevoTecnico) {
+            return redirect()->route('usuarios.index')
+                ->with('error', 'Este técnico tiene tickets asignados. Debe reasignarlos a otro técnico antes de desactivarlo.')
+                ->with('reasignar_usuario_id', $usuario->id)
+                ->with('reasignar_usuario_nombre', $usuario->name);
+        }
+
+        $hoy = now()->toDateString();
+        $responsableId = Auth::id();
+
+        foreach ($ticketsAsignados as $ticket) {
+            $ticket->update(['asignado_a' => $nuevoTecnico->id]);
+
+            TicketHistory::create([
+                'ticket_id' => $ticket->id,
+                'funcionario_id' => $ticket->funcionario_id,
+                'accion' => 'Ticket reasignado a '.$nuevoTecnico->name.' por desactivación de técnico',
+                'responsable_id' => $responsableId,
+                'fecha' => $hoy,
+            ]);
+        }
+
+        return null;
     }
 }

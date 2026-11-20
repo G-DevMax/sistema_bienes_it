@@ -15,6 +15,7 @@ class FuncionariosController extends Controller
     {
         $funcionarios = funcionarios::buscadorUniversal($request->search)
             ->with('dependencia')
+            ->withExists('entregasPendientes as tiene_pendientes')
             ->orderBy('nombre', 'ASC')
             ->paginate(10)
             ->withQueryString();
@@ -99,6 +100,12 @@ class FuncionariosController extends Controller
         try {
             $funcionario = funcionarios::findOrFail($id);
 
+            if ((int) $request->estado_funcionario === 0 && $funcionario->tieneEntregasPendientes()) {
+                return redirect()->route('funcionarios.index')
+                    ->with('error', funcionarios::MENSAJE_PENDIENTES)
+                    ->with('advertencia_pendientes', funcionarios::MENSAJE_PENDIENTES);
+            }
+
             $funcionario->update($request->only('nombre', 'dependencia_id', 'estado_funcionario'));
 
             LoggerService::info('Funcionario actualizado', [
@@ -121,8 +128,17 @@ class FuncionariosController extends Controller
 
     public function destroy(string $id)
     {
+        $funcionario = null;
+
         try {
             $funcionario = funcionarios::findOrFail($id);
+
+            if ($funcionario->tieneEntregasPendientes()) {
+                return redirect()->route('funcionarios.index')
+                    ->with('error', funcionarios::MENSAJE_PENDIENTES)
+                    ->with('advertencia_pendientes', funcionarios::MENSAJE_PENDIENTES);
+            }
+
             $funcionario->estado_funcionario = 0;
             $funcionario->save();
 
@@ -133,8 +149,8 @@ class FuncionariosController extends Controller
             ]);
         } catch (\Exception $e) {
             LoggerService::error('Error al dar de baja funcionario', [
-                'nombre' => $funcionario->nombre,
-                'dependencia_id' => $funcionario->dependencia_id,
+                'nombre' => $funcionario?->nombre,
+                'dependencia_id' => $funcionario?->dependencia_id,
                 'user_id' => Auth::id(),
             ], $e);
 
