@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Bienes;
 use App\Http\Controllers\Controller;
 use App\Models\Bienes\categorias;
 use App\Models\Bienes\items;
-use Illuminate\Http\Request;
 use App\Services\LoggerService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -15,6 +15,7 @@ class CategoriasController extends Controller
     public function index()
     {
         $categorias = categorias::withCount('items')->orderBy('nombre', 'ASC')->paginate(10);
+
         return view('Bienes.categorias.index', compact('categorias'));
     }
 
@@ -53,7 +54,7 @@ class CategoriasController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('categorias.index')->with('error', 'Error al crear categoría: ' . $e->getMessage());
+            return redirect()->route('categorias.index')->with('error', $this->mensajeError($e, 'No se pudo crear la categoría.'));
         }
 
         return redirect()->route('categorias.index')
@@ -63,6 +64,7 @@ class CategoriasController extends Controller
     public function edit(string $id)
     {
         $categoria = categorias::findOrFail($id);
+
         return view('Bienes.categorias.edit', compact('categoria'));
     }
 
@@ -71,7 +73,7 @@ class CategoriasController extends Controller
         $categoria = categorias::findOrFail($id);
 
         $this->validateWithIndexRedirect($request, [
-            'nombre' => 'required|string|max:120|unique:categorias,nombre,' . $categoria->id,
+            'nombre' => 'required|string|max:120|unique:categorias,nombre,'.$categoria->id,
         ], [
             'nombre.required' => 'El nombre de la categoría es obligatorio.',
             'nombre.unique' => 'Ya existe una categoría con este nombre.',
@@ -93,7 +95,7 @@ class CategoriasController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('categorias.index')->with('error', 'Error al actualizar categoría: ' . $e->getMessage());
+            return redirect()->route('categorias.index')->with('error', $this->mensajeError($e, 'No se pudo actualizar la categoría.'));
         }
 
         return redirect()->route('categorias.index')
@@ -121,7 +123,7 @@ class CategoriasController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('categorias.index')->with('error', 'Error al eliminar categoría: ' . $e->getMessage());
+            return redirect()->route('categorias.index')->with('error', $this->mensajeError($e, 'No se pudo eliminar la categoría.'));
         }
 
         return redirect()->route('categorias.index')

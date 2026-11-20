@@ -76,7 +76,7 @@ class UsuariosController extends Controller
                 'user_id' => Auth::id(),
             ], $exception);
 
-            return redirect()->route('usuarios.index')->with('error', 'Error al crear usuario.');
+            return redirect()->route('usuarios.index')->with('error', $this->mensajeError($exception, 'Error al crear usuario.'));
         }
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario creado exitosamente.');
@@ -190,7 +190,7 @@ class UsuariosController extends Controller
                 'user_id' => Auth::id(),
             ], $exception);
 
-            return redirect()->route('usuarios.index')->with('error', 'Error al actualizar usuario.');
+            return redirect()->route('usuarios.index')->with('error', $this->mensajeError($exception, 'Error al actualizar usuario.'));
         }
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado exitosamente.');
@@ -233,7 +233,7 @@ class UsuariosController extends Controller
                 'user_id' => Auth::id(),
             ], $exception);
 
-            return redirect()->route('usuarios.index')->with('error', 'Error al desactivar usuario.');
+            return redirect()->route('usuarios.index')->with('error', $this->mensajeError($exception, 'Error al desactivar usuario.'));
         }
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario desactivado exitosamente.');

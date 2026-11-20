@@ -54,7 +54,7 @@ class DetalleProblemaController extends Controller
             ], $e);
 
             return redirect()->route('detalles-problemas.index')
-                ->with('error', 'Error al registrar el detalle de problema: ' . $e->getMessage());
+                ->with('error', $this->mensajeError($e, 'No se pudo registrar el detalle de problema.'));
         }
 
         return redirect()->route('detalles-problemas.index')
@@ -96,7 +96,7 @@ class DetalleProblemaController extends Controller
             ], $e);
 
             return redirect()->route('detalles-problemas.index')
-                ->with('error', 'Error al actualizar el detalle de problema: ' . $e->getMessage());
+                ->with('error', $this->mensajeError($e, 'No se pudo actualizar el detalle de problema.'));
         }
 
         return redirect()->route('detalles-problemas.index')
@@ -126,7 +126,7 @@ class DetalleProblemaController extends Controller
             ], $e);
 
             return redirect()->route('detalles-problemas.index')
-                ->with('error', 'Error al eliminar el detalle de problema: ' . $e->getMessage());
+                ->with('error', $this->mensajeError($e, 'No se pudo eliminar el detalle de problema.'));
         }
 
         return redirect()->route('detalles-problemas.index')

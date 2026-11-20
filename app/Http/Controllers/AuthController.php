@@ -64,7 +64,7 @@ class AuthController extends Controller
                 'email' => $credenciales['email'],
             ], $e);
 
-            return redirect()->route('login')->with('error', 'Error al iniciar sesión: '.$e->getMessage());
+            return redirect()->route('login')->with('error', $this->mensajeError($e, 'No se pudo iniciar sesión. Intente nuevamente.'));
         }
 
         return back()->withInput($request->only('email'))->withErrors([

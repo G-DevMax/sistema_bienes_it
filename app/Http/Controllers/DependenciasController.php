@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\dependencias;
 use App\Models\funcionarios;
-use Illuminate\Http\Request;
 use App\Services\LoggerService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -57,7 +57,7 @@ class DependenciasController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('dependencias.index')->with('error', 'Error al crear dependencia: ' . $e->getMessage());
+            return redirect()->route('dependencias.index')->with('error', $this->mensajeError($e, 'No se pudo crear la dependencia.'));
         }
 
         return redirect()->route('dependencias.index')->with('success', 'Dependencia creada exitosamente.');
@@ -66,6 +66,7 @@ class DependenciasController extends Controller
     public function edit(string $id)
     {
         $dependencia = dependencias::findOrFail($id);
+
         return view('dependencias.edit', compact('dependencia'));
     }
 
@@ -74,7 +75,7 @@ class DependenciasController extends Controller
         $dependencia = dependencias::findOrFail($id);
 
         $this->validateWithIndexRedirect($request, [
-            'nombre' => 'required|string|max:120|unique:dependencias,nombre,' . $dependencia->id,
+            'nombre' => 'required|string|max:120|unique:dependencias,nombre,'.$dependencia->id,
         ], [
             'nombre.required' => 'El nombre de la dependencia es obligatorio.',
             'nombre.unique' => 'Ya existe una dependencia con este nombre.',
@@ -98,7 +99,7 @@ class DependenciasController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('dependencias.index')->with('error', 'Error al actualizar dependencia: ' . $e->getMessage());
+            return redirect()->route('dependencias.index')->with('error', $this->mensajeError($e, 'No se pudo actualizar la dependencia.'));
         }
     }
 
@@ -122,7 +123,7 @@ class DependenciasController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('dependencias.index')->with('error', 'Error al eliminar dependencia: ' . $e->getMessage());
+            return redirect()->route('dependencias.index')->with('error', $this->mensajeError($e, 'No se pudo eliminar la dependencia.'));
         }
 
         return redirect()->route('dependencias.index')->with('success', 'Dependencia eliminada exitosamente.');

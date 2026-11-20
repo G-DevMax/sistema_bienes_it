@@ -176,7 +176,7 @@ class TicketController extends Controller
 
             return redirect()->route('tickets.create')
                 ->withInput()
-                ->with('error', 'No se pudo registrar el ticket. Intente nuevamente.');
+                ->with('error', $this->mensajeError($e, 'No se pudo registrar el ticket. Intente nuevamente.'));
         }
 
         return redirect()->route('tickets.create')
@@ -198,7 +198,7 @@ class TicketController extends Controller
 
             return redirect()->route('tickets.create-manual')
                 ->withInput()
-                ->with('error', 'No se pudo registrar el ticket. Intente nuevamente.');
+                ->with('error', $this->mensajeError($e, 'No se pudo registrar el ticket. Intente nuevamente.'));
         }
 
         return redirect()->route('tickets.index')
@@ -369,7 +369,7 @@ class TicketController extends Controller
             ], $e);
 
             return redirect()->route('tickets.show', $ticket)
-                ->with('error', 'Error al asignar el ticket: '.$e->getMessage());
+                ->with('error', $this->mensajeError($e, 'No se pudo asignar el ticket.'));
         }
 
         return redirect()->route('tickets.show', $ticket)
@@ -471,7 +471,7 @@ class TicketController extends Controller
             ], $e);
 
             return redirect()->route('tickets.show', $ticket)
-                ->with('error', 'Error al cerrar el ticket: '.$e->getMessage());
+                ->with('error', $this->mensajeError($e, 'No se pudo cerrar el ticket.'));
         }
 
         return redirect()->route('tickets.show', $ticket)

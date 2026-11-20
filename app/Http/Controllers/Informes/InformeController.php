@@ -63,7 +63,7 @@ class InformeController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('informes.index')->with('error', 'Error al registrar el informe: '.$e->getMessage());
+            return redirect()->route('informes.index')->with('error', $this->mensajeError($e, 'No se pudo registrar el informe.'));
         }
 
         return redirect()->route('informes.index')->with('success', 'Informe registrado exitosamente.');
@@ -128,7 +128,7 @@ class InformeController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('informes.index')->with('error', 'Error al actualizar el informe: '.$e->getMessage());
+            return redirect()->route('informes.index')->with('error', $this->mensajeError($e, 'No se pudo actualizar el informe.'));
         }
 
         return redirect()->route('informes.index')->with('success', 'Informe actualizado exitosamente.');
@@ -156,7 +156,7 @@ class InformeController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('informes.index')->with('error', 'Error al eliminar el informe: '.$e->getMessage());
+            return redirect()->route('informes.index')->with('error', $this->mensajeError($e, 'No se pudo eliminar el informe.'));
         }
 
         return redirect()->route('informes.index')->with('success', 'Informe eliminado exitosamente.');

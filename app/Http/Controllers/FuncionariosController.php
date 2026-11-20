@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\funcionarios;
 use App\Models\dependencias;
+use App\Models\funcionarios;
 use App\Services\LoggerService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -27,6 +27,7 @@ class FuncionariosController extends Controller
     public function create()
     {
         $dependencias = dependencias::orderBy('nombre', 'ASC')->get();
+
         return view('funcionarios.create', compact('dependencias'));
     }
 
@@ -61,7 +62,7 @@ class FuncionariosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('funcionarios.index')->with('error', 'Error al registrar funcionario: ' . $e->getMessage());
+            return redirect()->route('funcionarios.index')->with('error', $this->mensajeError($e, 'No se pudo registrar el funcionario.'));
         }
 
         return redirect()->route('funcionarios.index')->with('success', 'Funcionario registrado exitosamente.');
@@ -112,7 +113,7 @@ class FuncionariosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('funcionarios.index')->with('error', 'Error al actualizar funcionario: ' . $e->getMessage());
+            return redirect()->route('funcionarios.index')->with('error', $this->mensajeError($e, 'No se pudo actualizar el funcionario.'));
         }
 
         return redirect()->route('funcionarios.index')->with('success', 'Funcionario actualizado exitosamente.');
@@ -137,7 +138,7 @@ class FuncionariosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('funcionarios.index')->with('error', 'Error al dar de baja funcionario: ' . $e->getMessage());
+            return redirect()->route('funcionarios.index')->with('error', $this->mensajeError($e, 'No se pudo dar de baja al funcionario.'));
         }
 
         return redirect()->route('funcionarios.index')->with('success', 'Funcionario dado de baja exitosamente.');

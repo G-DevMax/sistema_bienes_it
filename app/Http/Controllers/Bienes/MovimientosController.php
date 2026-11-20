@@ -149,7 +149,7 @@ class MovimientosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('movimientos.index')->with('error', 'Error al registrar el movimiento: '.$e->getMessage());
+            return redirect()->route('movimientos.index')->with('error', $this->mensajeError($e, 'No se pudo registrar el movimiento.'));
         }
 
         return redirect()->route('movimientos.show', $primerMovimientoId)->with('success', 'Movimiento(s) registrado(s) correctamente.');
@@ -227,7 +227,7 @@ class MovimientosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('movimientos.show', $id)->with('error', 'Error al registrar la devolución: '.$e->getMessage());
+            return redirect()->route('movimientos.show', $id)->with('error', $this->mensajeError($e, 'No se pudo registrar la devolución.'));
         }
 
         return redirect()->route('movimientos.show', $id)->with('success', 'Devolución registrada; el stock fue actualizado.');
@@ -275,7 +275,7 @@ class MovimientosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('movimientos.show', $id)->with('error', 'Error al registrar la baja desde entrega: '.$e->getMessage());
+            return redirect()->route('movimientos.show', $id)->with('error', $this->mensajeError($e, 'No se pudo registrar la baja desde entrega.'));
         }
 
         return redirect()->route('movimientos.show', $id)->with('success', 'Baja registrada con nota de responsabilidad.');
@@ -308,7 +308,7 @@ class MovimientosController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('movimientos.show', $id)->with('error', 'Error al anular el movimiento: '.$e->getMessage());
+            return redirect()->route('movimientos.show', $id)->with('error', $this->mensajeError($e, 'No se pudo anular el movimiento.'));
         }
     }
 

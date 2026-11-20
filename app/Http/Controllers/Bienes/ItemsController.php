@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Bienes;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use App\Models\Bienes\categorias;
 use App\Models\Bienes\items;
-use App\Services\LoggerService;
 use App\Services\Bienes\MovimientoService;
+use App\Services\LoggerService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class ItemsController extends Controller
 {
@@ -30,7 +29,7 @@ class ItemsController extends Controller
         // desglose de prestados / transferidos / inservibles por item (una consulta para toda la pagina)
         $resumen = $this->movimientoService->resumenPorItem($items->getCollection()->pluck('id'));
 
-        return view("Bienes.items.index", compact('items', 'resumen'));
+        return view('Bienes.items.index', compact('items', 'resumen'));
     }
 
     /**
@@ -40,7 +39,7 @@ class ItemsController extends Controller
     {
         $categorias = categorias::all();
 
-        return view("Bienes.items.create", compact('categorias'));
+        return view('Bienes.items.create', compact('categorias'));
     }
 
     /**
@@ -67,16 +66,16 @@ class ItemsController extends Controller
             'stock.min' => 'El stock inicial debe ser al menos :min.',
         ], 'items.index');
 
-        if (!$request->boolean('tiene_codigo')) {
+        if (! $request->boolean('tiene_codigo')) {
             $datos['codigo_patrimonial'] = null;
         }
 
         // se crea un candado por usuario para detener la accion durante unos segundos (evita cargar dos veces la misma petición)
-        $lock = Cache::lock('crear_item_usuario_' . Auth::id(), 10);
+        $lock = Cache::lock('crear_item_usuario_'.Auth::id(), 10);
 
-        if (!$lock->get()) {
+        if (! $lock->get()) {
             // si hay un candado, se redirige al usuario a la misma pagina pero con un mensaje de error
-            return redirect()->route('items.index')->with('error', "Ya se está procesando tu solicitud, porfavor espera....");
+            return redirect()->route('items.index')->with('error', 'Ya se está procesando tu solicitud, porfavor espera....');
         }
 
         try {
@@ -102,9 +101,10 @@ class ItemsController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('items.index')->with('error', "Error al crear item.");
+            return redirect()->route('items.index')->with('error', $this->mensajeError($e, 'Error al crear item.'));
         }
-        return redirect()->route('items.index')->with('success', "Item creado correctamente.");
+
+        return redirect()->route('items.index')->with('success', 'Item creado correctamente.');
     }
 
     /**
@@ -123,7 +123,7 @@ class ItemsController extends Controller
         $categorias = categorias::orderBy('nombre', 'ASC')->get();
         $item = items::findOrFail($id);
 
-        return view("Bienes.items.edit", compact("categorias", "item"));
+        return view('Bienes.items.edit', compact('categorias', 'item'));
     }
 
     /**
@@ -171,10 +171,10 @@ class ItemsController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('items.index')->with('error', "Error al actualizar item.");
+            return redirect()->route('items.index')->with('error', $this->mensajeError($e, 'Error al actualizar item.'));
         }
 
-        return redirect()->route('items.index')->with('success', "Item actualizado correctamente.");
+        return redirect()->route('items.index')->with('success', 'Item actualizado correctamente.');
     }
 
     /**
@@ -201,11 +201,11 @@ class ItemsController extends Controller
         ], 'items.index');
 
         // se crea un candado por usuario para detener la accion durante unos segundos (evita cargar dos veces la misma petición)
-        $lock = Cache::lock('ingresar_stock_usuario_' . Auth::id(), 10);
+        $lock = Cache::lock('ingresar_stock_usuario_'.Auth::id(), 10);
 
-        if (!$lock->get()) {
+        if (! $lock->get()) {
             // si hay un candado, se redirige al usuario a la misma pagina pero con un mensaje de error
-            return redirect()->route('items.index')->with('error', "Ya se está procesando tu solicitud, porfavor espera....");
+            return redirect()->route('items.index')->with('error', 'Ya se está procesando tu solicitud, porfavor espera....');
         }
 
         try {
@@ -226,7 +226,7 @@ class ItemsController extends Controller
                 'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('items.index')->with('error', "Error al ingresar stock.");
+            return redirect()->route('items.index')->with('error', $this->mensajeError($e, 'Error al ingresar stock.'));
         }
 
         return redirect()->route('items.index')->with('success', "Se ingresaron {$datos['cantidad']} unidad(es) al stock");
