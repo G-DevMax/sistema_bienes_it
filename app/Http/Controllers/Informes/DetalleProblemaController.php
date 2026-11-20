@@ -63,7 +63,7 @@ class DetalleProblemaController extends Controller
 
     public function show(string $id)
     {
-        $detalle = detalles_problemas::withCount('informes')->findOrFail($id);
+        $detalle = detalles_problemas::withCount(['informes', 'tickets'])->findOrFail($id);
 
         return view('Informes.detalles_problemas.show', compact('detalle'));
     }
@@ -105,8 +105,14 @@ class DetalleProblemaController extends Controller
 
     public function destroy(string $id)
     {
+        $detalle = detalles_problemas::findOrFail($id);
+
+        if ($detalle->informes()->exists() || $detalle->tickets()->exists()) {
+            return redirect()->route('detalles-problemas.index')
+                ->with('error', 'No se puede eliminar el detalle porque está siendo utilizado en informes o tickets.');
+        }
+
         try {
-            $detalle = detalles_problemas::findOrFail($id);
             $detalle->delete();
 
             LoggerService::info('Detalle de problema eliminado', [

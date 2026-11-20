@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\dependencias;
 use App\Models\funcionarios;
+use App\Models\Informes\detalles_problemas;
 use App\Models\Informes\informes;
 use App\Models\rol;
 use App\Models\Tickets\Ticket;
 use App\Models\User;
 use App\Services\Informes\InformePdfService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -191,5 +193,75 @@ class InformeWorkflowTest extends TestCase
             ->assertRedirect(route('informes.index'))
             ->assertSessionHas('success');
         $this->assertModelMissing($informeManual);
+    }
+
+    public function test_no_se_puede_eliminar_detalle_usado_en_informes_o_tickets_y_fk_restringe_borrado(): void
+    {
+        $admin = $this->crearUsuario(rol::ADMIN, 'Admin Detalles');
+        $funcionario = $this->crearFuncionario('Funcionario Detalles');
+
+        $detalleEnInforme = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
+            'tipo_problema' => 'Internet',
+            'detalle' => 'Cable de red desconectado',
+        ]));
+
+        informes::withoutEvents(fn (): informes => informes::create([
+            'ticket_id' => null,
+            'user_id' => $admin->id,
+            'titulo' => 'Fallo de red',
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => 'Internet',
+            'detalle_id' => $detalleEnInforme->id,
+            'observacion' => null,
+        ]));
+
+        $this->actingAs($admin)
+            ->delete(route('detalles-problemas.destroy', $detalleEnInforme))
+            ->assertRedirect(route('detalles-problemas.index'))
+            ->assertSessionHas('error');
+        $this->assertModelExists($detalleEnInforme);
+
+        $detalleEnTicket = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
+            'tipo_problema' => 'Internet',
+            'detalle' => 'Puerto de switch dañado',
+        ]));
+
+        Ticket::create([
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => 'Internet',
+            'detalle_id' => $detalleEnTicket->id,
+            'descripcion_problema' => 'Sin señal en oficina',
+            'estado' => Ticket::ESTADO_CERRADO,
+            'asignado_a' => $admin->id,
+            'fecha_creacion' => now()->toDateString(),
+            'fecha_cierre' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('detalles-problemas.destroy', $detalleEnTicket))
+            ->assertRedirect(route('detalles-problemas.index'))
+            ->assertSessionHas('error');
+        $this->assertModelExists($detalleEnTicket);
+
+        // La FK restrictOnDelete también impide el borrado directo en BD
+        $this->expectException(QueryException::class);
+        detalles_problemas::withoutEvents(fn () => $detalleEnTicket->delete());
+    }
+
+    public function test_se_puede_eliminar_detalle_sin_uso(): void
+    {
+        $admin = $this->crearUsuario(rol::ADMIN, 'Admin Detalles Libre');
+
+        $detalleSinUso = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
+            'tipo_problema' => 'Consulta',
+            'detalle' => 'Detalle temporal sin uso',
+        ]));
+
+        $this->actingAs($admin)
+            ->delete(route('detalles-problemas.destroy', $detalleSinUso))
+            ->assertRedirect(route('detalles-problemas.index'))
+            ->assertSessionHas('success');
+
+        $this->assertModelMissing($detalleSinUso);
     }
 }

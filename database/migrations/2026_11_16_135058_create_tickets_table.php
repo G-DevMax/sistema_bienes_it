@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('funcionario_id')->constrained('funcionarios')->cascadeOnDelete();
             $table->enum('tipo_problema', ['Equipo/Dispositivo', 'Programa/Sistema', 'Internet', 'Impresora/Escáner', 'Cuentas y Accesos', 'Asistencia a Reunión', 'Consulta', 'Insumos']);
-            $table->foreignId('detalle_id')->nullable()->constrained('detalles_problemas')->nullOnDelete();
+            $table->foreignId('detalle_id')->nullable()->constrained('detalles_problemas')->restrictOnDelete();
             $table->text('descripcion_problema');
             $table->enum('estado', ['Pendiente', 'Asignado', 'Resuelto', 'Cerrado'])->default('Pendiente');
             $table->foreignId('asignado_a')->nullable()->constrained('users')->cascadeOnDelete();

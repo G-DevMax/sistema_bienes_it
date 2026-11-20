@@ -71,6 +71,11 @@
                     <span class="block text-xs font-medium text-white/50 mb-1">Informes Vinculados</span>
                     <p class="font-medium text-white">{{ $detalle->informes_count ?? 0 }}</p>
                 </div>
+
+                <div>
+                    <span class="block text-xs font-medium text-white/50 mb-1">Tickets Vinculados</span>
+                    <p class="font-medium text-white">{{ $detalle->tickets_count ?? 0 }}</p>
+                </div>
             </div>
 
             <div>
@@ -80,15 +85,21 @@
 
             @can('detalles.gestionar')
                 <div class="pt-4 border-t border-white/10 flex justify-end">
-                    <form action="{{ route('detalles-problemas.destroy', $detalle->id) }}" method="POST">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit"
-                            onclick="return confirm('¿Eliminar este detalle común? Los informes ya registrados conservarán sus datos como Otro (especificar).')"
-                            class="px-4 py-2 rounded-xl text-sm font-semibold border border-[#D61C4E]/40 text-[#ff5c86] hover:bg-[#D61C4E]/15 transition-colors">
-                            Eliminar Detalle
-                        </button>
-                    </form>
+                    @if (($detalle->informes_count ?? 0) > 0 || ($detalle->tickets_count ?? 0) > 0)
+                        <p class="text-xs text-white/50">
+                            No se puede eliminar este detalle porque está vinculado a informes o tickets.
+                        </p>
+                    @else
+                        <form action="{{ route('detalles-problemas.destroy', $detalle->id) }}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                onclick="return confirm('¿Eliminar este detalle común?')"
+                                class="px-4 py-2 rounded-xl text-sm font-semibold border border-[#D61C4E]/40 text-[#ff5c86] hover:bg-[#D61C4E]/15 transition-colors">
+                                Eliminar Detalle
+                            </button>
+                        </form>
+                    @endif
                 </div>
             @endcan
         </div>
