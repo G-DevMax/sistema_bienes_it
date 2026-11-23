@@ -312,6 +312,64 @@ class AuthorizationTest extends TestCase
         $this->assertSame($reg1->id, $datos[1]['id']);
     }
 
+    public function test_historial_cambios_omite_campos_ocultos_remember_token_y_guarda_solo_modificados(): void
+    {
+        $admin = $this->crearUsuarioConRol(rol::ADMIN);
+        $this->actingAs($admin);
+
+        $usuario = User::create([
+            'name' => 'Nombre Original',
+            'email' => 'historial_'.uniqid().'@example.com',
+            'password' => '1234',
+            'rol_id' => rol::SUPERVISOR,
+            'estado_user' => 1,
+        ]);
+        $usuario->setRememberToken('token-inicial-123');
+        $usuario->save();
+
+        // Actualizar solo remember_token (login/logout con recordarme) no genera registro
+        $conteoAntes = historial_cambios::where('entidad', User::class)
+            ->where('entidad_id', $usuario->id)
+            ->count();
+
+        $usuario->setRememberToken('token-sesion-456');
+        $usuario->timestamps = false;
+        $usuario->save();
+        $usuario->timestamps = true;
+
+        $usuario->setRememberToken('token-cierre-789');
+        $usuario->save();
+
+        $this->assertSame(
+            $conteoAntes,
+            historial_cambios::where('entidad', User::class)->where('entidad_id', $usuario->id)->count()
+        );
+
+        // Actualizar name + password guarda únicamente campos cambiados no ocultos y nunca password/remember_token
+        $usuario->update([
+            'name' => 'Nombre Actualizado',
+            'password' => '9999',
+        ]);
+
+        $ultimoUpdate = historial_cambios::where('entidad', User::class)
+            ->where('entidad_id', $usuario->id)
+            ->where('accion', 'Update')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($ultimoUpdate);
+        $detalle = json_decode((string) $ultimoUpdate->detalle, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('Nombre Original', $detalle['original']['name'] ?? null);
+        $this->assertSame('Nombre Actualizado', $detalle['cambiado']['name'] ?? null);
+        $this->assertArrayNotHasKey('password', $detalle['original']);
+        $this->assertArrayNotHasKey('password', $detalle['cambiado']);
+        $this->assertArrayNotHasKey('remember_token', $detalle['original']);
+        $this->assertArrayNotHasKey('remember_token', $detalle['cambiado']);
+        $this->assertArrayNotHasKey('email', $detalle['original']);
+        $this->assertArrayNotHasKey('email', $detalle['cambiado']);
+    }
+
     public function test_endpoints_de_bienes_y_funcionarios_respetan_permisos_por_rol(): void
     {
         $supervisor = $this->crearUsuarioConRol(rol::SUPERVISOR);
