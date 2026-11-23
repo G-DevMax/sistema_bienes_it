@@ -193,8 +193,20 @@ class TicketController extends Controller
                 ->with('error', $this->mensajeError($e, 'No se pudo registrar el ticket. Intente nuevamente.'));
         }
 
-        return redirect()->route('tickets.create')
-            ->with('success', 'Tu ticket #'.$ticket->id.' fue enviado correctamente. En breve un técnico le asistirá con su problema.');
+        $request->session()->put('ultimo_ticket_creado_id', $ticket->id);
+
+        return redirect()->route('tickets.visual');
+    }
+
+    public function visual(Request $request): View|RedirectResponse
+    {
+        $ticketId = $request->session()->get('ultimo_ticket_creado_id');
+
+        if (! $ticketId) {
+            return redirect()->route('tickets.create');
+        }
+
+        return view('Tickets.visual_ticket', ['ticketId' => (int) $ticketId]);
     }
 
     public function storeManual(Request $request): RedirectResponse

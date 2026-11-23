@@ -640,8 +640,8 @@ class TicketTest extends TestCase
 
             $response = $this->post(route('tickets.store'), $payload);
 
-            $response->assertRedirect(route('tickets.create'));
-            $response->assertSessionHas('success');
+            $response->assertRedirect(route('tickets.visual'));
+            $response->assertSessionHas('ultimo_ticket_creado_id');
             $response->assertSessionMissing('error');
             $this->assertDatabaseHas('tickets', [
                 'funcionario_id' => $funcionario->id,
@@ -874,8 +874,8 @@ class TicketTest extends TestCase
             'tipo_problema' => 'Equipo/Dispositivo',
             'descripcion_problema' => 'Monitor con raya vertical',
             'imagen_problema' => $imagenReal,
-        ])->assertRedirect(route('tickets.create'))
-            ->assertSessionHas('success');
+        ])->assertRedirect(route('tickets.visual'))
+            ->assertSessionHas('ultimo_ticket_creado_id');
 
         $ticket = Ticket::where('funcionario_id', $funcionario->id)
             ->where('descripcion_problema', 'Monitor con raya vertical')
@@ -932,5 +932,43 @@ class TicketTest extends TestCase
                 @unlink($rutaFisica);
             }
         }
+    }
+
+    public function test_visual_ticket_muestra_confirmacion_y_redirige_si_no_hay_ticket_en_sesion(): void
+    {
+        $this->get(route('tickets.visual'))
+            ->assertRedirect(route('tickets.create'));
+
+        $funcionario = funcionarios::where('estado_funcionario', 1)->first()
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+                'nombre' => 'Funcionario Visual Test',
+                'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Visual Test'])
+                ))->id,
+                'estado_funcionario' => 1,
+            ]));
+
+        $respuesta = $this->followingRedirects()->post(route('tickets.store'), [
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => 'Consulta',
+            'descripcion_problema' => 'Consulta sobre firma digital',
+        ]);
+
+        $ticket = Ticket::where('funcionario_id', $funcionario->id)
+            ->where('descripcion_problema', 'Consulta sobre firma digital')
+            ->latest('id')
+            ->firstOrFail();
+
+        $respuesta->assertOk();
+        $respuesta->assertSee('Ticket Registrado');
+        $respuesta->assertSee('#'.$ticket->id);
+        $respuesta->assertSee('fue creado exitosamente, en breve un técnico asistirá su problema.');
+        $respuesta->assertSee('Crear otro ticket');
+        $respuesta->assertSee(route('tickets.create'), false);
+        $respuesta->assertSee('Copiar número de ticket');
+        $respuesta->assertSee('Número de ticket copiado');
+        $respuesta->assertSee('bg-neutral-950', false);
+        $respuesta->assertSee('bg-indigo-600', false);
+        $respuesta->assertDontSee('backdrop-blur', false);
     }
 }

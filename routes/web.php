@@ -19,6 +19,7 @@ Route::get('/', function () {
 
 // Formulario público de tickets para funcionarios (sin inicio de sesión)
 Route::get('tickets/crear', [TicketController::class, 'create'])->name('tickets.create');
+Route::get('tickets/creado', [TicketController::class, 'visual'])->name('tickets.visual');
 Route::post('tickets', [TicketController::class, 'store'])->name('tickets.store')->middleware('throttle:5,1');
 
 // Rutas accesibles solo cuando NO se ha iniciado sesión
