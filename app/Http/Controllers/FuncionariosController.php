@@ -128,8 +128,6 @@ class FuncionariosController extends Controller
 
     public function destroy(string $id)
     {
-        $funcionario = null;
-
         try {
             $funcionario = funcionarios::findOrFail($id);
 
@@ -149,8 +147,7 @@ class FuncionariosController extends Controller
             ]);
         } catch (\Exception $e) {
             LoggerService::error('Error al dar de baja funcionario', [
-                'nombre' => $funcionario?->nombre,
-                'dependencia_id' => $funcionario?->dependencia_id,
+                'id' => $id,
                 'user_id' => Auth::id(),
             ], $e);
 

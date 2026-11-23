@@ -119,7 +119,7 @@ class DependenciasController extends Controller
             ]);
         } catch (\Exception $e) {
             LoggerService::error('Error al eliminar dependencia', [
-                'nombre' => $dependencia->nombre,
+                'id' => $id,
                 'user_id' => Auth::id(),
             ], $e);
 

@@ -61,6 +61,9 @@ class TicketTest extends TestCase
         $this->assertStringContainsString('funcionarios', $sql);
         $this->assertStringContainsString('nombre', $sql);
         $this->assertSame(['%Carlos%'], $query->getBindings());
+
+        $queryEscapada = Ticket::query()->buscadorUniversal('100%_\\test');
+        $this->assertSame(['%100\\%\\_\\\\test%'], $queryEscapada->getBindings());
     }
 
     public function test_formulario_usuario_tickets_renderiza_tomselect_radios_contador_y_diseno_solido(): void

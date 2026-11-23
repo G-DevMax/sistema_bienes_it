@@ -5,6 +5,7 @@ namespace App\Services\Bienes;
 use App\Models\Bienes\movimientos;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -41,8 +42,8 @@ class InformeMovimientoService
             ->where('tipo_movimiento', $tipo)
             ->whereDate('fecha_movimiento', '>=', $desde)
             ->whereDate('fecha_movimiento', '<=', $hasta)
-            ->whereHas('item.categoria', fn($q) => $q->whereIn('nombre', self::CATEGORIAS_INSUMO))
-            ->when($funcionario !== 'todos', fn($q) => $q->where('funcionario_id', $funcionario))
+            ->whereHas('item.categoria', fn ($q) => $q->whereIn('nombre', self::CATEGORIAS_INSUMO))
+            ->when($funcionario !== 'todos', fn ($q) => $q->where('funcionario_id', $funcionario))
             ->orderBy('fecha_movimiento')
             ->orderBy('id')
             ->get();
@@ -55,10 +56,10 @@ class InformeMovimientoService
 
         // limpia el detalle de ejemplo conservando el estilo de la primera fila
         $ultimaFila = $hoja->getHighestRow();
-        $hoja->getStyle('A' . self::FILA_INICIO . ':D' . $ultimaFila);
+        $hoja->getStyle('A'.self::FILA_INICIO.':D'.$ultimaFila);
         for ($fila = self::FILA_INICIO; $fila <= $ultimaFila; $fila++) {
             foreach (['A', 'B', 'C', 'D'] as $col) {
-                $hoja->setCellValue($col . $fila, null);
+                $hoja->setCellValue($col.$fila, null);
             }
         }
 
@@ -66,14 +67,14 @@ class InformeMovimientoService
         foreach ($movimientos as $movimiento) {
             if ($fila > self::FILA_INICIO) {
                 foreach (['A', 'B', 'C', 'D'] as $col) {
-                    $hoja->duplicateStyle($hoja->getStyle($col . self::FILA_INICIO), $col . $fila);
+                    $hoja->duplicateStyle($hoja->getStyle($col.self::FILA_INICIO), $col.$fila);
                 }
             }
 
-            $hoja->setCellValue('A' . $fila, $movimiento->funcionario?->nombre ?? '');
-            $hoja->setCellValue('B' . $fila, $movimiento->item?->descripcion ?? '');
-            $hoja->setCellValue('C' . $fila, Date::PHPToExcel($movimiento->fecha_movimiento));
-            $hoja->setCellValue('D' . $fila, $movimiento->funcionario?->dependencia?->nombre ?? '');
+            $hoja->setCellValueExplicit('A'.$fila, $movimiento->funcionario?->nombre ?? '', DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('B'.$fila, $movimiento->item?->descripcion ?? '', DataType::TYPE_STRING);
+            $hoja->setCellValue('C'.$fila, Date::PHPToExcel($movimiento->fecha_movimiento));
+            $hoja->setCellValueExplicit('D'.$fila, $movimiento->funcionario?->dependencia?->nombre ?? '', DataType::TYPE_STRING);
             $fila++;
         }
 

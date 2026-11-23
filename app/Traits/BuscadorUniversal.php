@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
+
 /*
     @mixin \Illuminate\Database\Eloquent\Model
     @property array $buscador
@@ -20,6 +21,8 @@ trait BuscadorUniversal
         if ($term === '' || empty($this->buscador)) {
             return;
         }
+
+        $term = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term);
 
         // Agrupación de las condciones WHERE
         $query->where(function (Builder $subQuery) use ($term) {

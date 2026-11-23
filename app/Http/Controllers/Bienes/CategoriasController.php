@@ -119,7 +119,7 @@ class CategoriasController extends Controller
             ]);
         } catch (\Exception $e) {
             LoggerService::error('Error al eliminar categoría', [
-                'nombre' => $categoria->nombre,
+                'id' => $id,
                 'user_id' => Auth::id(),
             ], $e);
 
