@@ -2,45 +2,77 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
 use App\Models\historial_cambios;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HistorialController extends Controller
 {
+    private const MAX_MESES_RANGO = 3;
+
     /**
      * Descarga los registros de historial de cambios en formato JSON.
      */
-    public function descargar(Request $request)
+    public function descargar(Request $request): StreamedResponse
     {
-        $request->validate([
-            'fecha_inicio' => 'required|date|after_or_equal:2026-01-01',
-            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
-        ]);
+        $datos = $this->validateWithIndexRedirect($request, [
+            'fecha_inicio' => ['required', 'date', 'after_or_equal:2026-01-01'],
+            'fecha_fin' => [
+                'required',
+                'date',
+                'after_or_equal:fecha_inicio',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    $inicio = $request->input('fecha_inicio');
+                    if (is_string($inicio) && strtotime($inicio) !== false && strtotime((string) $value) !== false) {
+                        $limite = Carbon::parse($inicio)->addMonthsNoOverflow(self::MAX_MESES_RANGO);
+                        if (Carbon::parse((string) $value)->gt($limite)) {
+                            $fail('El rango máximo permitido para descargar el historial es de '.self::MAX_MESES_RANGO.' meses.');
+                        }
+                    }
+                },
+            ],
+        ], [
+            'fecha_inicio.required' => 'La fecha de inicio es obligatoria.',
+            'fecha_inicio.date' => 'La fecha de inicio no es válida.',
+            'fecha_inicio.after_or_equal' => 'La fecha de inicio debe ser a partir del 01/01/2026.',
+            'fecha_fin.required' => 'La fecha de fin es obligatoria.',
+            'fecha_fin.date' => 'La fecha de fin no es válida.',
+            'fecha_fin.after_or_equal' => 'La fecha de fin debe ser igual o posterior a la fecha de inicio.',
+        ], 'usuarios.index');
 
-        $fechaInicio = $request->input('fecha_inicio') . ' 00:00:00';
-        $fechaFin = $request->input('fecha_fin') . ' 23:59:59';
+        $fechaInicio = $datos['fecha_inicio'].' 00:00:00';
+        $fechaFin = $datos['fecha_fin'].' 23:59:59';
 
-        $historial = historial_cambios::with('user:id,name') // Asumiendo que users tiene campo name
+        $consulta = historial_cambios::with('user:id,name')
             ->whereBetween('fecha_cambio', [$fechaInicio, $fechaFin])
-            ->orderBy('fecha_cambio', 'desc')
-            ->get()
-            ->map(function ($registro) {
-                return [
+            ->orderByDesc('fecha_cambio')
+            ->orderByDesc('id');
+
+        $fileName = 'historial_cambios_'.date('Ymd_His').'.json';
+
+        return response()->streamDownload(function () use ($consulta): void {
+            echo "[\n";
+            $primero = true;
+
+            foreach ($consulta->lazy(500) as $registro) {
+                if (! $primero) {
+                    echo ",\n";
+                }
+                $primero = false;
+
+                echo json_encode([
                     'id' => $registro->id,
-                    'usuario' => $registro->user ? $registro->user->name : 'Sistema/Desconocido',
-                    'entidad' => class_basename($registro->entidad), // Solo el nombre corto del modelo
+                    'usuario' => $registro->user?->name ?? 'Sistema/Desconocido',
+                    'entidad' => class_basename($registro->entidad),
                     'entidad_id' => $registro->entidad_id,
                     'accion' => $registro->accion,
-                    'detalle' => json_decode($registro->detalle),
+                    'detalle' => $registro->detalle !== null ? json_decode($registro->detalle) : null,
                     'fecha_cambio' => $registro->fecha_cambio->format('Y-m-d H:i:s'),
-                ];
-            });
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            }
 
-        $fileName = 'historial_cambios_' . date('Ymd_His') . '.json';
-
-        return response()->streamDownload(function () use ($historial) {
-            echo json_encode($historial, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            echo "\n]";
         }, $fileName, [
             'Content-Type' => 'application/json',
         ]);

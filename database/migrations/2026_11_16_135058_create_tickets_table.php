@@ -22,6 +22,7 @@ return new class extends Migration
             $table->date('fecha_creacion')->useCurrent();
             $table->date('fecha_cierre')->nullable();
             $table->text('observacion')->nullable();
+            $table->index(['fecha_creacion', 'estado', 'fecha_cierre']);
             $table->timestamps();
         });
     }

@@ -16,6 +16,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -34,30 +35,40 @@ class TicketController extends Controller
 
         [$year, $month] = explode('-', $mes);
         $anioMaximo = max($anioMaximo, (int) $year);
+        [$inicioMes, $finMes] = $this->rangoMes($mes);
 
-        $pendientes = Ticket::where('estado', Ticket::ESTADO_PENDIENTE)
-            ->whereYear('fecha_creacion', $year)
-            ->whereMonth('fecha_creacion', $month)
-            ->count();
-
-        $asignados = Ticket::where('estado', Ticket::ESTADO_ASIGNADO)
-            ->whereYear('fecha_creacion', $year)
-            ->whereMonth('fecha_creacion', $month)
-            ->count();
-
-        $cerrados = Ticket::where('estado', Ticket::ESTADO_CERRADO)
-            ->where(function ($q) use ($year, $month): void {
-                $q->where(function ($sub) use ($year, $month): void {
-                    $sub->whereNotNull('fecha_cierre')
-                        ->whereYear('fecha_cierre', $year)
-                        ->whereMonth('fecha_cierre', $month);
-                })->orWhere(function ($sub) use ($year, $month): void {
-                    $sub->whereNull('fecha_cierre')
-                        ->whereYear('fecha_creacion', $year)
-                        ->whereMonth('fecha_creacion', $month);
+        /**
+         * Obtiene el número de tickets por estado.
+         * - Pendientes: tickets sin asignar y sin cerrar.
+         * - Asignados: tickets asignados y sin cerrar.
+         * - Cerrados: tickets cerrados, ya sea que se hayan cerrado en el mes o en otro mes.
+         * Se unifica todo en una sola consulta para mayor eficiencia.
+         */
+        $conteos = Ticket::query()
+            ->selectRaw('estado, COUNT(*) as total')
+            ->where(function ($q) use ($inicioMes, $finMes): void {
+                $q->where(function ($sub) use ($inicioMes, $finMes): void {
+                    $sub->whereIn('estado', [Ticket::ESTADO_PENDIENTE, Ticket::ESTADO_ASIGNADO])
+                        ->whereBetween('fecha_creacion', [$inicioMes, $finMes]);
+                })->orWhere(function ($sub) use ($inicioMes, $finMes): void {
+                    $sub->where('estado', Ticket::ESTADO_CERRADO)
+                        ->where(function ($fecha) use ($inicioMes, $finMes): void {
+                            $fecha->where(function ($conCierre) use ($inicioMes, $finMes): void {
+                                $conCierre->whereNotNull('fecha_cierre')
+                                    ->whereBetween('fecha_cierre', [$inicioMes, $finMes]);
+                            })->orWhere(function ($sinCierre) use ($inicioMes, $finMes): void {
+                                $sinCierre->whereNull('fecha_cierre')
+                                    ->whereBetween('fecha_creacion', [$inicioMes, $finMes]);
+                            });
+                        });
                 });
             })
-            ->count();
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        $pendientes = (int) ($conteos[Ticket::ESTADO_PENDIENTE] ?? 0);
+        $asignados = (int) ($conteos[Ticket::ESTADO_ASIGNADO] ?? 0);
+        $cerrados = (int) ($conteos[Ticket::ESTADO_CERRADO] ?? 0);
 
         $meses = [
             '01' => 'Enero',
@@ -107,8 +118,8 @@ class TicketController extends Controller
         $queryPendientes = Ticket::where('estado', Ticket::ESTADO_PENDIENTE);
 
         if ($mes !== null) {
-            [$year, $month] = explode('-', $mes);
-            $queryPendientes->whereYear('fecha_creacion', $year)->whereMonth('fecha_creacion', $month);
+            [$inicioMes, $finMes] = $this->rangoMes($mes);
+            $queryPendientes->whereBetween('fecha_creacion', [$inicioMes, $finMes]);
         }
 
         $pendientes = $queryPendientes->count();
@@ -477,5 +488,18 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.show', $ticket)
             ->with('success', 'Ticket cerrado exitosamente y registrado en Informes (#'.$informe->id.').');
+    }
+
+    /**
+     * Devuelve [inicioMes, finMes] en formato Y-m-d para filtrar rangos sin funciones SQL sobre columnas.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function rangoMes(string $mes): array
+    {
+        [$year, $month] = explode('-', $mes);
+        $inicio = Carbon::createFromDate((int) $year, (int) $month, 1)->startOfMonth();
+
+        return [$inicio->toDateString(), $inicio->copy()->endOfMonth()->toDateString()];
     }
 }

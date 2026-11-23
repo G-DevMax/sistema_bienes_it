@@ -768,4 +768,72 @@ class TicketTest extends TestCase
         $this->assertSame($nuevoTipo, $ticket->fresh()->tipo_problema);
         $this->assertSame($nuevoTipo, $informe->fresh()->tipo_problema);
     }
+
+    public function test_dashboard_y_estado_pendientes_filtran_por_rango_de_fechas_sin_funciones_sql(): void
+    {
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
+            'rol_id' => rol::ADMIN,
+            'estado_user' => 1,
+        ]));
+        $this->actingAs($admin);
+
+        $funcionario = funcionarios::where('estado_funcionario', 1)->first()
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+                'nombre' => 'Funcionario Dashboard E2',
+                'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia E2'])
+                ))->id,
+                'estado_funcionario' => 1,
+            ]));
+
+        // Limpiar tickets del mes objetivo dentro de la transacción para tener conteos exactos
+        Ticket::whereBetween('fecha_creacion', ['2026-02-01', '2026-02-28'])
+            ->orWhereBetween('fecha_cierre', ['2026-02-01', '2026-02-28'])
+            ->delete();
+
+        Ticket::create([
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => TipoProblema::values()[0],
+            'descripcion_problema' => 'Pendiente Febrero',
+            'estado' => Ticket::ESTADO_PENDIENTE,
+            'fecha_creacion' => '2026-02-28',
+        ]);
+
+        Ticket::create([
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => TipoProblema::values()[0],
+            'descripcion_problema' => 'Asignado Febrero',
+            'estado' => Ticket::ESTADO_ASIGNADO,
+            'asignado_a' => $admin->id,
+            'fecha_creacion' => '2026-02-01',
+        ]);
+
+        Ticket::create([
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => TipoProblema::values()[0],
+            'descripcion_problema' => 'Cerrado en Febrero',
+            'estado' => Ticket::ESTADO_CERRADO,
+            'asignado_a' => $admin->id,
+            'fecha_creacion' => '2026-01-15',
+            'fecha_cierre' => '2026-02-10',
+        ]);
+
+        Ticket::create([
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => TipoProblema::values()[0],
+            'descripcion_problema' => 'Pendiente Marzo (fuera de rango)',
+            'estado' => Ticket::ESTADO_PENDIENTE,
+            'fecha_creacion' => '2026-03-01',
+        ]);
+
+        $this->get(route('tickets.dashboard', ['mes' => '2026-02']))
+            ->assertOk()
+            ->assertViewHas('pendientes', 1)
+            ->assertViewHas('asignados', 1)
+            ->assertViewHas('cerrados', 1);
+
+        $this->getJson(route('tickets.pendientes-status', ['mes' => '2026-02']))
+            ->assertOk()
+            ->assertJsonPath('pendientes', 1);
+    }
 }

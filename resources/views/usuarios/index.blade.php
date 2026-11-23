@@ -146,7 +146,7 @@
                 class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center">
                 <div class="bg-[#0b1329] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in-up">
                     <h3 class="text-xl font-bold text-white mb-4">Descargar Historial de Cambios del SGDI</h3>
-                    <p class="text-sm text-white/60 mb-6">Seleccione el rango de fechas para descargar los registros en formato
+                    <p class="text-sm text-white/60 mb-6">Seleccione un rango de fechas (máximo 3 meses) para descargar los registros en formato
                         JSON.</p>
 
                     <form action="{{ route('historial.descargar') }}" method="GET">

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\TipoProblema;
 use App\Models\dependencias;
 use App\Models\funcionarios;
+use App\Models\historial_cambios;
 use App\Models\rol;
 use App\Models\Tickets\Ticket;
 use App\Models\User;
@@ -241,7 +242,7 @@ class AuthorizationTest extends TestCase
         $this->actingAs($admin)->get(route('usuarios.index'))->assertOk();
         $this->actingAs($admin)->get(route('usuarios.create'))->assertOk();
         $this->actingAs($admin)
-            ->get(route('historial.descargar', ['fecha_inicio' => '2026-01-01', 'fecha_fin' => '2026-12-31']))
+            ->get(route('historial.descargar', ['fecha_inicio' => '2026-01-01', 'fecha_fin' => '2026-03-31']))
             ->assertOk();
 
         foreach ([rol::SUPERVISOR, rol::DIRECTOR, rol::FUNCIONARIO, rol::TECNICO_TERCERIZADO] as $rolId) {
@@ -250,9 +251,65 @@ class AuthorizationTest extends TestCase
             $this->como($usuario)->get(route('usuarios.index'))->assertForbidden();
             $this->como($usuario)->post(route('usuarios.store'), [])->assertForbidden();
             $this->como($usuario)
-                ->get(route('historial.descargar', ['fecha_inicio' => '2026-01-01', 'fecha_fin' => '2026-12-31']))
+                ->get(route('historial.descargar', ['fecha_inicio' => '2026-01-01', 'fecha_fin' => '2026-03-31']))
                 ->assertForbidden();
         }
+    }
+
+    public function test_descarga_historial_limita_rango_a_tres_meses_y_transmite_json_valido(): void
+    {
+        $admin = $this->crearUsuarioConRol(rol::ADMIN);
+        $this->actingAs($admin);
+
+        historial_cambios::whereBetween('fecha_cambio', ['2026-01-01 00:00:00', '2026-06-30 23:59:59'])->delete();
+
+        // Rango superior a 3 meses es rechazado
+        $this->get(route('historial.descargar', [
+            'fecha_inicio' => '2026-01-01',
+            'fecha_fin' => '2026-04-02',
+        ]))
+            ->assertRedirect(route('usuarios.index'))
+            ->assertSessionHas('error', 'El rango máximo permitido para descargar el historial es de 3 meses.');
+
+        // Rango vacío válido devuelve JSON []
+        $respuestaVacia = $this->get(route('historial.descargar', [
+            'fecha_inicio' => '2026-05-01',
+            'fecha_fin' => '2026-05-31',
+        ]))->assertOk();
+
+        $this->assertSame([], json_decode($respuestaVacia->streamedContent(), true, 512, JSON_THROW_ON_ERROR));
+
+        // Rango exacto de 3 meses con registros devuelve JSON válido en orden descendente
+        $reg1 = historial_cambios::create([
+            'user_id' => $admin->id,
+            'entidad' => User::class,
+            'entidad_id' => $admin->id,
+            'accion' => 'Create',
+            'detalle' => json_encode(['campo' => 'primero']),
+            'fecha_cambio' => '2026-01-15 10:00:00',
+        ]);
+
+        $reg2 = historial_cambios::create([
+            'user_id' => $admin->id,
+            'entidad' => User::class,
+            'entidad_id' => $admin->id,
+            'accion' => 'Update',
+            'detalle' => json_encode(['campo' => 'segundo']),
+            'fecha_cambio' => '2026-04-01 12:30:00',
+        ]);
+
+        $respuesta = $this->get(route('historial.descargar', [
+            'fecha_inicio' => '2026-01-01',
+            'fecha_fin' => '2026-04-01',
+        ]))->assertOk();
+
+        $datos = json_decode($respuesta->streamedContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertCount(2, $datos);
+        $this->assertSame($reg2->id, $datos[0]['id']);
+        $this->assertSame($admin->name, $datos[0]['usuario']);
+        $this->assertSame('User', $datos[0]['entidad']);
+        $this->assertSame(['campo' => 'segundo'], $datos[0]['detalle']);
+        $this->assertSame($reg1->id, $datos[1]['id']);
     }
 
     public function test_endpoints_de_bienes_y_funcionarios_respetan_permisos_por_rol(): void

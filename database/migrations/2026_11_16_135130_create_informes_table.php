@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('tipo_problema', 60);
             $table->foreignId('detalle_id')->nullable()->constrained('detalles_problemas')->restrictOnDelete();
             $table->longText('observacion')->nullable();
+            $table->index('tipo_problema');
             $table->timestamps();
         });
     }

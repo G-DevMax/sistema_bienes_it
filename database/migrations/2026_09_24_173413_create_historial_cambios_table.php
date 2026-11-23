@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('accion', 20)->nullable(); // accion realizada (Create, Update, Delete)
             $table->json('detalle')->nullable(); // detalles de los cambios (clave:valor)
             $table->dateTime('fecha_cambio')->useCurrent(); // fecha y hora en la que se realizo el cambio
+            $table->index('fecha_cambio');
             $table->timestamps();
         });
     }
