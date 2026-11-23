@@ -12,8 +12,10 @@ use App\Models\rol;
 use App\Models\Tickets\Ticket;
 use App\Models\Tickets\TicketHistory;
 use App\Models\User;
+use App\Services\Informes\InformePdfService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\View;
@@ -584,6 +586,7 @@ class TicketTest extends TestCase
             'tipo_problema' => 'Cuentas y Accesos',
             'detalle_id' => 5,
             'observacion' => 'Se restableció la clave.',
+            'imagen_problema' => null,
         ], $datos);
 
         $ticketReunion = new Ticket([
@@ -838,5 +841,96 @@ class TicketTest extends TestCase
         $this->getJson(route('tickets.pendientes-status', ['mes' => '2026-02']))
             ->assertOk()
             ->assertJsonPath('pendientes', 1);
+    }
+
+    public function test_ticket_guarda_imagen_webp_valida_mime_y_muestra_miniatura_sin_imprimir_en_pdf(): void
+    {
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
+            'rol_id' => rol::ADMIN,
+            'estado_user' => 1,
+        ]));
+        $funcionario = funcionarios::where('estado_funcionario', 1)->first()
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+                'nombre' => 'Funcionario Foto Test',
+                'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Foto Test'])
+                ))->id,
+                'estado_funcionario' => 1,
+            ]));
+
+        // Rechaza archivo falso con contenido de texto aunque tenga extensión .webp
+        $archivoFalso = UploadedFile::fake()->createWithContent('falso.webp', 'no-es-una-imagen');
+        $this->post(route('tickets.store'), [
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => 'Equipo/Dispositivo',
+            'descripcion_problema' => 'Intento con archivo inválido',
+            'imagen_problema' => $archivoFalso,
+        ])->assertSessionHasErrors('imagen_problema');
+
+        // Acepta imagen real, le asigna nombre único .webp en public/uploads/tickets/YYYY/MM/
+        $imagenReal = UploadedFile::fake()->image('problema.webp', 320, 240);
+        $this->post(route('tickets.store'), [
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => 'Equipo/Dispositivo',
+            'descripcion_problema' => 'Monitor con raya vertical',
+            'imagen_problema' => $imagenReal,
+        ])->assertRedirect(route('tickets.create'))
+            ->assertSessionHas('success');
+
+        $ticket = Ticket::where('funcionario_id', $funcionario->id)
+            ->where('descripcion_problema', 'Monitor con raya vertical')
+            ->latest('id')
+            ->firstOrFail();
+
+        $prefijoEsperado = '/uploads/tickets/'.now()->format('Y/m').'/';
+        $this->assertNotNull($ticket->imagen_problema);
+        $this->assertStringStartsWith($prefijoEsperado, $ticket->imagen_problema);
+        $this->assertStringEndsWith('.webp', $ticket->imagen_problema);
+
+        $rutaFisica = public_path(ltrim($ticket->imagen_problema, '/'));
+        $this->assertFileExists($rutaFisica);
+
+        try {
+            $ticket->update([
+                'estado' => Ticket::ESTADO_ASIGNADO,
+                'asignado_a' => $admin->id,
+            ]);
+
+            $this->actingAs($admin)
+                ->post(route('tickets.cerrar', $ticket), [
+                    'detalle_id' => 'otro',
+                    'observacion' => 'Se reemplazó el monitor.',
+                ])
+                ->assertRedirect(route('tickets.show', $ticket));
+
+            $informe = informes::where('ticket_id', $ticket->id)->firstOrFail();
+            $this->assertSame($ticket->imagen_problema, $informe->imagen_problema);
+
+            // Vista del ticket muestra la miniatura clickeable con zoom en nueva pestaña
+            $this->actingAs($admin)
+                ->get(route('tickets.show', $ticket))
+                ->assertOk()
+                ->assertSee('src="'.$ticket->imagen_problema.'"', false)
+                ->assertSee('href="'.$ticket->imagen_problema.'"', false)
+                ->assertSee('target="_blank"', false)
+                ->assertSee('max-h-64 rounded-lg cursor-pointer', false);
+
+            // Vista del informe muestra la miniatura clickeable
+            $this->actingAs($admin)
+                ->get(route('informes.show', $informe))
+                ->assertOk()
+                ->assertSee('src="'.$informe->imagen_problema.'"', false)
+                ->assertSee('href="'.$informe->imagen_problema.'"', false)
+                ->assertSee('target="_blank"', false);
+
+            // El PDF del informe NO incluye la imagen del problema (solo texto)
+            $datosPdf = app(InformePdfService::class)->obtenerDatos($informe);
+            $htmlPdf = view('Informes.pdf', $datosPdf)->render();
+            $this->assertStringNotContainsString($informe->imagen_problema, $htmlPdf);
+        } finally {
+            if (is_file($rutaFisica)) {
+                @unlink($rutaFisica);
+            }
+        }
     }
 }

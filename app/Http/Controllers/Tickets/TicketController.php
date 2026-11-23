@@ -16,6 +16,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -178,6 +179,7 @@ class TicketController extends Controller
         $datos = $this->validarTicket($request);
 
         try {
+            $datos['imagen_problema'] = $this->guardarImagenProblema($request);
             $ticket = $this->crearTicket($datos);
         } catch (\Exception $e) {
             LoggerService::error('Error al crear ticket', [
@@ -200,6 +202,7 @@ class TicketController extends Controller
         $datos = $this->validarTicket($request);
 
         try {
+            $datos['imagen_problema'] = $this->guardarImagenProblema($request);
             $ticket = $this->crearTicket($datos);
         } catch (\Exception $e) {
             LoggerService::error('Error al crear ticket manual', [
@@ -245,6 +248,20 @@ class TicketController extends Controller
             'fecha_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'date', 'after_or_equal:2026-01-01'],
             'horario_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'string', 'max:100'],
             'detalles_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'string', 'max:500'],
+            'imagen_problema' => [
+                'nullable',
+                'file',
+                'image',
+                'mimetypes:image/webp,image/jpeg,image/png,image/gif',
+                'max:10240',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $ruta = $value instanceof UploadedFile ? $value->getRealPath() : false;
+                    $mime = $ruta !== false ? (new \finfo(FILEINFO_MIME_TYPE))->file($ruta) : false;
+                    if (! in_array($mime, ['image/webp', 'image/jpeg', 'image/png', 'image/gif'], true)) {
+                        $fail('El archivo adjunto debe ser una imagen real (WebP, JPEG, PNG o GIF).');
+                    }
+                },
+            ],
         ], [
             'funcionario_id.required' => 'Debe seleccionar un funcionario.',
             'funcionario_id.exists' => 'El funcionario seleccionado no es válido o está inactivo.',
@@ -259,7 +276,49 @@ class TicketController extends Controller
             'horario_reunion.max' => 'El horario de la reunión no puede superar los 100 caracteres.',
             'detalles_reunion.required' => 'Debe indicar dónde será la reunión y sus observaciones.',
             'detalles_reunion.max' => 'Los detalles de la reunión no pueden superar los 500 caracteres.',
+            'imagen_problema.file' => 'El archivo adjunto no es válido.',
+            'imagen_problema.image' => 'El archivo adjunto debe ser una imagen real (WebP, JPEG, PNG o GIF).',
+            'imagen_problema.mimetypes' => 'El archivo adjunto debe ser una imagen real (WebP, JPEG, PNG o GIF).',
+            'imagen_problema.max' => 'La imagen adjunta no puede superar los 10 MB.',
         ]);
+    }
+
+    /**
+     * Verifica el MIME real del archivo adjunto y lo almacena en public/uploads/tickets/YYYY/MM/.
+     */
+    private function guardarImagenProblema(Request $request): ?string
+    {
+        if (! $request->hasFile('imagen_problema')) {
+            return null;
+        }
+
+        $archivo = $request->file('imagen_problema');
+        if ($archivo === null || ! $archivo->isValid()) {
+            return null;
+        }
+
+        $rutaTemporal = $archivo->getRealPath();
+        $mimeReal = $rutaTemporal !== false ? (new \finfo(FILEINFO_MIME_TYPE))->file($rutaTemporal) : false;
+
+        if (! in_array($mimeReal, ['image/webp', 'image/jpeg', 'image/png', 'image/gif'], true)) {
+            throw new \RuntimeException('El archivo adjunto no es una imagen válida.');
+        }
+
+        $subcarpeta = 'uploads/tickets/'.now()->format('Y/m');
+        $directorio = public_path($subcarpeta);
+
+        if (! is_dir($directorio)) {
+            mkdir($directorio, 0755, true);
+        }
+
+        $nombreArchivo = uniqid().'.webp';
+        if (is_uploaded_file($rutaTemporal)) {
+            $archivo->move($directorio, $nombreArchivo);
+        } else {
+            copy($rutaTemporal, $directorio.DIRECTORY_SEPARATOR.$nombreArchivo);
+        }
+
+        return '/'.$subcarpeta.'/'.$nombreArchivo;
     }
 
     /**
@@ -280,6 +339,7 @@ class TicketController extends Controller
                 'funcionario_id' => $datos['funcionario_id'],
                 'tipo_problema' => $datos['tipo_problema'],
                 'descripcion_problema' => $descripcion,
+                'imagen_problema' => $datos['imagen_problema'] ?? null,
                 'estado' => Ticket::ESTADO_PENDIENTE,
                 'fecha_creacion' => now()->toDateString(),
             ]);

@@ -71,7 +71,8 @@
 
         <!-- Tarjeta del formulario en colores sólidos -->
         <section class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-7 shadow-xl">
-            <form action="{{ route('tickets.store') }}" method="POST" id="form-ticket-usuario" class="space-y-6">
+            <form action="{{ route('tickets.store') }}" method="POST" enctype="multipart/form-data"
+                id="form-ticket-usuario" class="space-y-6">
                 @csrf
 
                 <!-- 1. Buscador de funcionario con TomSelect -->
@@ -116,7 +117,7 @@
                 </fieldset>
 
                 <!-- 3. Título del problema (máximo 100 palabras) -->
-                <div>
+                <div id="bloque-titulo-problema" @class(['hidden' => old('tipo_problema') === \App\Models\Tickets\Ticket::TIPO_ASISTENCIA_REUNION])>
                     <div class="flex items-center justify-between gap-2 mb-2">
                         <label for="descripcion_problema" class="text-sm font-semibold text-zinc-200">
                             Título del problema
@@ -169,6 +170,25 @@
                             Indica dónde será la reunión y observaciones necesarias.
                         </p>
                     </div>
+                </div>
+
+                <!-- 5. Adjuntar foto del problema (visible en celular vía JS) -->
+                <div id="contenedor-foto-movil" class="hidden space-y-2">
+                    <input type="file" id="imagen_problema" name="imagen_problema" accept="image/*"
+                        capture="environment" class="hidden">
+                    <button type="button" id="btn-adjuntar-foto"
+                        class="w-full py-3 px-4 rounded-xl bg-neutral-950 hover:bg-zinc-800 border border-zinc-700 hover:border-indigo-500 text-zinc-200 font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                        <svg class="w-5 h-5 text-indigo-400 shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span>Adjuntar foto del problema</span>
+                    </button>
+                    <p id="estado-foto-movil" class="hidden text-xs text-emerald-400 text-center font-medium"></p>
                 </div>
 
                 <!-- Botón de envío -->

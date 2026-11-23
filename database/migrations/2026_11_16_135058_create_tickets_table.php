@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('tipo_problema', 60);
             $table->foreignId('detalle_id')->nullable()->constrained('detalles_problemas')->restrictOnDelete();
             $table->text('descripcion_problema');
+            $table->string('imagen_problema', 255)->nullable();
             $table->enum('estado', ['Pendiente', 'Asignado', 'Cerrado'])->default('Pendiente');
             $table->foreignId('asignado_a')->nullable()->constrained('users')->restrictOnDelete();
             $table->date('fecha_creacion')->useCurrent();

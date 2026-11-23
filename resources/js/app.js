@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const TITULO_REUNION = 'Asistencia a Reunión';
+    const bloqueTitulo = document.getElementById('bloque-titulo-problema') || inputTitulo.parentElement;
     const inputFecha = document.getElementById('fecha_reunion');
     const inputHorario = document.getElementById('horario_reunion');
     const inputDetalles = document.getElementById('detalles_reunion');
@@ -82,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function actualizarContador() {
         const palabras = inputTitulo.value.trim().split(/\s+/).filter(Boolean).length;
-        const excede = palabras > 100;
+        const excede = !inputTitulo.disabled && palabras > 100;
         contador.textContent = `${palabras} / 100 palabras`;
         contador.classList.toggle('text-red-400', excede);
         contador.classList.toggle(claseMuted, !excede);
@@ -101,13 +102,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        inputTitulo.readOnly = esReunion;
-        inputTitulo.classList.toggle('opacity-70', esReunion);
-        inputTitulo.classList.toggle('cursor-not-allowed', esReunion);
+        if (bloqueTitulo) {
+            bloqueTitulo.classList.toggle('hidden', esReunion);
+        }
+        inputTitulo.disabled = esReunion;
+        inputTitulo.required = !esReunion;
 
         if (esReunion) {
-            inputTitulo.value = TITULO_REUNION;
-        } else if (inputTitulo.value === TITULO_REUNION) {
             inputTitulo.value = '';
         }
 
@@ -117,4 +118,74 @@ document.addEventListener('DOMContentLoaded', () => {
     inputTitulo.addEventListener('input', actualizarContador);
     radiosTipo.forEach((radio) => radio.addEventListener('change', actualizarModoReunion));
     actualizarModoReunion();
+
+    // Adjuntar foto desde cámara trasera en dispositivos móviles y comprimir a .webp
+    const contenedorFoto = document.getElementById('contenedor-foto-movil');
+    const btnAdjuntarFoto = document.getElementById('btn-adjuntar-foto');
+    const inputFoto = document.getElementById('imagen_problema');
+    const estadoFoto = document.getElementById('estado-foto-movil');
+
+    if (contenedorFoto && btnAdjuntarFoto && inputFoto) {
+        const esCelular = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(navigator.userAgent)
+            || navigator.userAgentData?.mobile === true;
+
+        if (esCelular) {
+            contenedorFoto.classList.remove('hidden');
+        }
+
+        btnAdjuntarFoto.addEventListener('click', () => inputFoto.click());
+
+        inputFoto.addEventListener('change', async () => {
+            const archivo = inputFoto.files?.[0];
+            if (!archivo) {
+                if (estadoFoto) {
+                    estadoFoto.classList.add('hidden');
+                    estadoFoto.textContent = '';
+                }
+                return;
+            }
+
+            const form = inputFoto.closest('form');
+            const submitBtn = form?.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+            }
+
+            try {
+                const bitmap = await createImageBitmap(archivo);
+                const maxDim = 1600;
+                const escala = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(bitmap.width * escala));
+                canvas.height = Math.max(1, Math.round(bitmap.height * escala));
+                canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                bitmap.close?.();
+
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.8));
+                if (blob) {
+                    const archivoWebp = new File([blob], 'problema.webp', {
+                        type: 'image/webp',
+                        lastModified: Date.now(),
+                    });
+                    const dt = new DataTransfer();
+                    dt.items.add(archivoWebp);
+                    inputFoto.files = dt.files;
+                }
+
+                if (estadoFoto) {
+                    estadoFoto.textContent = 'Foto comprimida y lista (.webp)';
+                    estadoFoto.classList.remove('hidden');
+                }
+            } catch {
+                if (estadoFoto) {
+                    estadoFoto.textContent = 'Foto adjuntada';
+                    estadoFoto.classList.remove('hidden');
+                }
+            } finally {
+                if (submitBtn && form?.dataset.submitting !== 'true') {
+                    submitBtn.disabled = false;
+                }
+            }
+        });
+    }
 });

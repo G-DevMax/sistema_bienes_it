@@ -64,6 +64,7 @@ class Ticket extends Model
         'tipo_problema',
         'detalle_id',
         'descripcion_problema',
+        'imagen_problema',
         'estado',
         'asignado_a',
         'fecha_creacion',
@@ -193,7 +194,7 @@ class Ticket extends Model
     /**
      * Prepara los atributos para generar automáticamente el informe técnico al cerrar el ticket.
      *
-     * @return array{ticket_id: int|null, user_id: int|null, titulo: string, funcionario_id: int, tipo_problema: string, detalle_id: int|null, observacion: string|null}
+     * @return array{ticket_id: int|null, user_id: int|null, titulo: string, funcionario_id: int, tipo_problema: string, detalle_id: int|null, observacion: string|null, imagen_problema: string|null}
      */
     public function datosParaInforme(?int $detalleId = null, ?string $observacion = null, ?int $userId = null): array
     {
@@ -205,6 +206,7 @@ class Ticket extends Model
             'tipo_problema' => (string) $this->tipo_problema,
             'detalle_id' => $detalleId,
             'observacion' => $observacion,
+            'imagen_problema' => $this->imagen_problema,
         ];
     }
 }

@@ -31,6 +31,7 @@ class informes extends Model
         'tipo_problema',
         'detalle_id',
         'observacion',
+        'imagen_problema',
     ];
 
     protected function casts(): array

@@ -134,6 +134,18 @@
                     <p class="text-sm text-white/40 italic">Sin observaciones registradas.</p>
                 @endif
             </div>
+
+            @php $imagenProblema = $informe->imagen_problema ?? $informe->ticket?->imagen_problema; @endphp
+            @if ($imagenProblema)
+                @php $rutaImagen = '/' . ltrim($imagenProblema, '/'); @endphp
+                <div class="pt-4 border-t border-white/10">
+                    <span class="block text-xs font-medium text-white/50 mb-2">Foto del Problema</span>
+                    <a href="{{ $rutaImagen }}" target="_blank" rel="noopener noreferrer" class="inline-block">
+                        <img src="{{ $rutaImagen }}" alt="Foto del problema del informe #{{ $informe->id }}"
+                            loading="lazy" class="max-h-64 rounded-lg cursor-pointer">
+                    </a>
+                </div>
+            @endif
         </div>
     </div>
 @endsection

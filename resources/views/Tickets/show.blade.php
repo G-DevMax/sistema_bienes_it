@@ -79,6 +79,17 @@
                             {{ $ticket->descripcion_problema }}</div>
                     </div>
 
+                    @if ($ticket->imagen_problema)
+                        @php $rutaImagen = '/' . ltrim($ticket->imagen_problema, '/'); @endphp
+                        <div class="pt-4 border-t border-white/10">
+                            <span class="block text-xs font-medium text-white/50 mb-2">Foto del Problema</span>
+                            <a href="{{ $rutaImagen }}" target="_blank" rel="noopener noreferrer" class="inline-block">
+                                <img src="{{ $rutaImagen }}" alt="Foto del problema del ticket #{{ $ticket->id }}"
+                                    loading="lazy" class="max-h-64 rounded-lg cursor-pointer">
+                            </a>
+                        </div>
+                    @endif
+
                     @if ($ticket->estaCerrado())
                         <div class="pt-4 border-t border-white/10 space-y-4">
                             <div>

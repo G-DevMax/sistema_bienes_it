@@ -86,7 +86,7 @@
                 </fieldset>
 
                 <!-- Título del problema -->
-                <div>
+                <div id="bloque-titulo-problema" @class(['hidden' => old('tipo_problema') === \App\Models\Tickets\Ticket::TIPO_ASISTENCIA_REUNION])>
                     <div class="flex items-center justify-between mb-2">
                         <label for="descripcion_problema" class="text-sm font-medium text-white/90">
                             Título del problema
