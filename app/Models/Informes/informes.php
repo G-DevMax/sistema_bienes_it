@@ -30,6 +30,7 @@ class informes extends Model
         'funcionario_id',
         'tipo_problema',
         'detalle_id',
+        'solucion_id',
         'observacion',
         'imagen_problema',
     ];
@@ -62,6 +63,11 @@ class informes extends Model
         return $this->belongsTo(detalles_problemas::class, 'detalle_id');
     }
 
+    public function solucion(): BelongsTo
+    {
+        return $this->belongsTo(detalles_soluciones::class, 'solucion_id');
+    }
+
     public function vieneDeTicket(): bool
     {
         return $this->ticket_id !== null;
@@ -70,5 +76,10 @@ class informes extends Model
     public function detalleTexto(): string
     {
         return $this->detalle?->detalle ?? 'Otro (especificar)';
+    }
+
+    public function solucionTexto(): string
+    {
+        return $this->solucion?->solucion ?? 'Otro (especificar)';
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\TipoProblema;
 use App\Http\Controllers\Controller;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
+use App\Models\Informes\detalles_soluciones;
 use App\Models\Informes\informes;
 use App\Models\rol;
 use App\Models\Tickets\Ticket;
@@ -162,8 +163,9 @@ class TicketController extends Controller
     {
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
         $tiposProblema = TipoProblema::values();
+        $detallesProblemas = detalles_problemas::orderBy('detalle')->get(['id', 'tipo_problema', 'detalle']);
 
-        return view('Tickets.create', compact('funcionarios', 'tiposProblema'));
+        return view('Tickets.create', compact('funcionarios', 'tiposProblema', 'detallesProblemas'));
     }
 
     public function createManual(): View
@@ -239,16 +241,27 @@ class TicketController extends Controller
     {
         $esReunion = $request->input('tipo_problema') === Ticket::TIPO_ASISTENCIA_REUNION;
 
+        // "Otro (especificar)" puede llegar como "" o "otro" desde el selector de problema común
+        $detalleId = $request->input('detalle_id');
+        if ($esReunion || $detalleId === '' || $detalleId === 'otro') {
+            $request->merge(['detalle_id' => null]);
+            $detalleId = null;
+        }
+
         return $request->validate([
             'funcionario_id' => ['required', Rule::exists('funcionarios', 'id')->where('estado_funcionario', 1)],
             'tipo_problema' => ['required', Rule::enum(TipoProblema::class)],
+            'detalle_id' => [
+                'nullable',
+                Rule::exists('detalles_problemas', 'id')->where('tipo_problema', $request->input('tipo_problema')),
+            ],
             'descripcion_problema' => [
-                Rule::requiredIf(! $esReunion),
+                Rule::requiredIf(! $esReunion && empty($detalleId)),
                 'nullable',
                 'string',
                 'max:255',
-                function (string $attribute, mixed $value, \Closure $fail) use ($esReunion): void {
-                    if ($esReunion) {
+                function (string $attribute, mixed $value, \Closure $fail) use ($esReunion, $detalleId): void {
+                    if ($esReunion || ! empty($detalleId)) {
                         return;
                     }
                     $palabras = preg_split('/\s+/u', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
@@ -279,6 +292,7 @@ class TicketController extends Controller
             'funcionario_id.exists' => 'El funcionario seleccionado no es válido o está inactivo.',
             'tipo_problema.required' => 'Debe seleccionar el tipo de problema.',
             'tipo_problema.in' => 'El tipo de problema seleccionado no es válido.',
+            'detalle_id.exists' => 'El problema común seleccionado no corresponde al tipo de problema indicado.',
             'descripcion_problema.required' => 'Debe escribir un título breve para el problema.',
             'descripcion_problema.max' => 'El título del problema no puede superar los 255 caracteres.',
             'fecha_reunion.required' => 'Debe indicar la fecha de la reunión.',
@@ -338,18 +352,26 @@ class TicketController extends Controller
      */
     private function crearTicket(array $datos): Ticket
     {
-        $descripcion = Ticket::formatearDescripcion(
-            $datos['tipo_problema'],
-            $datos['descripcion_problema'] ?? null,
-            $datos['fecha_reunion'] ?? null,
-            $datos['horario_reunion'] ?? null,
-            $datos['detalles_reunion'] ?? null
-        );
+        $esReunion = $datos['tipo_problema'] === Ticket::TIPO_ASISTENCIA_REUNION;
+        $detalle = (! $esReunion && ! empty($datos['detalle_id']))
+            ? detalles_problemas::find($datos['detalle_id'])
+            : null;
 
-        $ticket = DB::transaction(function () use ($datos, $descripcion): Ticket {
+        $descripcion = $detalle !== null
+            ? $detalle->detalle
+            : Ticket::formatearDescripcion(
+                $datos['tipo_problema'],
+                $datos['descripcion_problema'] ?? null,
+                $datos['fecha_reunion'] ?? null,
+                $datos['horario_reunion'] ?? null,
+                $datos['detalles_reunion'] ?? null
+            );
+
+        $ticket = DB::transaction(function () use ($datos, $detalle, $descripcion): Ticket {
             $ticket = Ticket::create([
                 'funcionario_id' => $datos['funcionario_id'],
                 'tipo_problema' => $datos['tipo_problema'],
+                'detalle_id' => $detalle?->id,
                 'descripcion_problema' => $descripcion,
                 'imagen_problema' => $datos['imagen_problema'] ?? null,
                 'estado' => Ticket::ESTADO_PENDIENTE,
@@ -371,6 +393,7 @@ class TicketController extends Controller
             'ticket_id' => $ticket->id,
             'funcionario_id' => $ticket->funcionario_id,
             'tipo_problema' => $ticket->tipo_problema,
+            'detalle_id' => $ticket->detalle_id,
             'user_id' => Auth::id(),
         ]);
 
@@ -379,16 +402,16 @@ class TicketController extends Controller
 
     public function show(Ticket $ticket): View
     {
-        $ticket->load(['funcionario.dependencia', 'tecnicoAsignado', 'detalle', 'informe', 'historial.responsable', 'historial.funcionario']);
+        $ticket->load(['funcionario.dependencia', 'tecnicoAsignado', 'detalle', 'solucion', 'informe', 'historial.responsable', 'historial.funcionario']);
         $tecnicos = User::where('estado_user', 1)
             ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO])
             ->orderBy('name')
             ->get();
-        $detallesComunes = detalles_problemas::where('tipo_problema', $ticket->tipo_problema)
-            ->orderBy('detalle')
+        $solucionesComunes = detalles_soluciones::where('tipo_problema', $ticket->tipo_problema)
+            ->orderBy('solucion')
             ->get();
 
-        return view('Tickets.show', compact('ticket', 'tecnicos', 'detallesComunes'));
+        return view('Tickets.show', compact('ticket', 'tecnicos', 'solucionesComunes'));
     }
 
     public function asignar(Request $request, Ticket $ticket): RedirectResponse
@@ -473,32 +496,32 @@ class TicketController extends Controller
         }
 
         // "Otro (especificar)" puede llegar como "" o "otro" desde el selector
-        $detalleId = $request->input('detalle_id');
-        if ($detalleId === '' || $detalleId === 'otro') {
-            $request->merge(['detalle_id' => null]);
-            $detalleId = null;
+        $solucionId = $request->input('solucion_id');
+        if ($solucionId === '' || $solucionId === 'otro') {
+            $request->merge(['solucion_id' => null]);
+            $solucionId = null;
         }
 
         $datos = $request->validate([
-            'detalle_id' => [
+            'solucion_id' => [
                 'nullable',
-                Rule::exists('detalles_problemas', 'id')->where('tipo_problema', $ticket->tipo_problema),
+                Rule::exists('detalles_soluciones', 'id')->where('tipo_problema', $ticket->tipo_problema),
             ],
-            'observacion' => [Rule::requiredIf(empty($detalleId)), 'nullable', 'string', 'max:2000'],
+            'observacion' => [Rule::requiredIf(empty($solucionId)), 'nullable', 'string', 'max:2000'],
         ], [
-            'detalle_id.exists' => 'El problema común seleccionado no corresponde al tipo de problema del ticket.',
-            'observacion.required' => 'Debe especificar el problema y la solución en observaciones al seleccionar "Otro (especificar)".',
+            'solucion_id.exists' => 'La solución común seleccionada no corresponde al tipo de problema del ticket.',
+            'observacion.required' => 'Debe especificar la solución en observaciones al seleccionar "Otro (especificar)".',
             'observacion.max' => 'La observación no puede superar los 2000 caracteres.',
         ]);
 
         $observacion = isset($datos['observacion']) && trim($datos['observacion']) !== ''
             ? trim($datos['observacion'])
             : null;
-        $detalleSeleccionadoId = $datos['detalle_id'] ?? null;
+        $solucionSeleccionadaId = $datos['solucion_id'] ?? null;
         $informe = null;
 
         try {
-            $errorEstado = DB::transaction(function () use ($ticket, $detalleSeleccionadoId, $observacion, &$informe): ?string {
+            $errorEstado = DB::transaction(function () use ($ticket, $solucionSeleccionadaId, $observacion, &$informe): ?string {
                 $ticketBloqueado = Ticket::lockForUpdate()->findOrFail($ticket->id);
 
                 if ($ticketBloqueado->estaCerrado()) {
@@ -509,19 +532,19 @@ class TicketController extends Controller
                     return 'Debe asignar un técnico antes de cerrar el ticket.';
                 }
 
-                $detalle = $detalleSeleccionadoId !== null
-                    ? detalles_problemas::find($detalleSeleccionadoId)
+                $solucion = $solucionSeleccionadaId !== null
+                    ? detalles_soluciones::find($solucionSeleccionadaId)
                     : null;
 
                 $ticketBloqueado->update([
                     'estado' => Ticket::ESTADO_CERRADO,
                     'fecha_cierre' => now()->toDateString(),
-                    'detalle_id' => $detalle?->id,
+                    'solucion_id' => $solucion?->id,
                     'observacion' => $observacion,
                 ]);
 
-                $accion = $detalle !== null
-                    ? 'Ticket cerrado ('.$detalle->detalle.')'.($observacion !== null ? ': '.$observacion : '')
+                $accion = $solucion !== null
+                    ? 'Ticket cerrado ('.$solucion->solucion.')'.($observacion !== null ? ': '.$observacion : '')
                     : 'Ticket cerrado: '.$observacion;
 
                 TicketHistory::create([
@@ -532,7 +555,7 @@ class TicketController extends Controller
                     'fecha' => now()->toDateString(),
                 ]);
 
-                $informe = informes::create($ticketBloqueado->datosParaInforme($detalle?->id, $observacion, Auth::id()));
+                $informe = informes::create($ticketBloqueado->datosParaInforme($solucion?->id, $observacion, Auth::id()));
 
                 return null;
             });
@@ -544,7 +567,7 @@ class TicketController extends Controller
 
             LoggerService::info('Ticket cerrado', [
                 'ticket_id' => $ticket->id,
-                'detalle_id' => $detalleSeleccionadoId,
+                'solucion_id' => $solucionSeleccionadaId,
                 'informe_id' => $informe?->id,
                 'user_id' => Auth::id(),
             ]);

@@ -117,20 +117,22 @@
         <table class="tabla-informe">
             <tbody>
                 <tr>
-                    <td class="col-etiqueta">Título del problema:</td>
+                    <td class="col-etiqueta">Problema:</td>
                     <td class="col-valor">{!! nl2br(e($titulo)) !!}</td>
                 </tr>
                 <tr>
                     <td class="col-etiqueta">Tipo de problema:</td>
                     <td class="col-valor">{{ $tipo_problema }}</td>
                 </tr>
-                <tr>
-                    <td class="col-etiqueta">Detalle del problema:</td>
-                    <td class="col-valor">{{ $detalle }}</td>
-                </tr>
+                @if (!empty($solucion))
+                    <tr>
+                        <td class="col-etiqueta">Solución:</td>
+                        <td class="col-valor">{{ $solucion }}</td>
+                    </tr>
+                @endif
                 <tr>
                     <td colspan="2">
-                        <div class="observaciones-titulo">Observaciones:</div>
+                        <div class="observaciones-titulo">Observaciones de Solución:</div>
                         <div class="observaciones-texto">{{ $observacion }}</div>
                     </td>
                 </tr>

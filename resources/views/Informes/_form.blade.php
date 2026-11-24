@@ -17,14 +17,22 @@
 
     if ($esEdicion) {
         $detalleInicial = old('detalle_id', $informe->detalle_id ?? 'otro');
+        $solucionInicial = old('solucion_id', $informe->solucion_id ?? 'otro');
     } else {
         $detalleInicial = old('detalle_id', '');
+        $solucionInicial = old('solucion_id', '');
     }
 
     $detallesJson = $detalles->map(fn ($d) => [
         'id' => $d->id,
         'tipo_problema' => $d->tipo_problema,
         'detalle' => $d->detalle,
+    ])->values();
+
+    $solucionesJson = ($soluciones ?? collect())->map(fn ($s) => [
+        'id' => $s->id,
+        'tipo_problema' => $s->tipo_problema,
+        'solucion' => $s->solucion,
     ])->values();
 @endphp
 
@@ -120,6 +128,17 @@
                     </p>
                 </div>
 
+                <div>
+                    <label for="solucion_id" class="block mb-2 text-sm font-medium text-white/90">Solución común</label>
+                    <select id="solucion_id" name="solucion_id" class="{{ $input }} appearance-none"
+                        placeholder="Escribe para buscar una solución o elige Otro...">
+                        <option value="">Selecciona o busca una solución...</option>
+                    </select>
+                    <p class="mt-1 text-xs text-white/50">
+                        Si no existe una solución común para el caso, selecciona <strong>Otro (especificar)</strong>.
+                    </p>
+                </div>
+
                 <div class="flex-1 flex flex-col">
                     <label for="observacion" class="block mb-2 text-sm font-medium text-white/90">
                         Observaciones y solución
@@ -172,11 +191,14 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const detallesData = @json($detallesJson);
+        const solucionesData = @json($solucionesJson);
         const detalleInicial = @json((string) $detalleInicial);
+        const solucionInicial = @json((string) $solucionInicial);
 
         const tituloInput = document.getElementById('titulo');
         const contadorPalabras = document.getElementById('contador-palabras');
         const detalleSelect = document.getElementById('detalle_id');
+        const solucionSelect = document.getElementById('solucion_id');
         const observacionInput = document.getElementById('observacion');
         const badgeObservacion = document.getElementById('badge-observacion');
         const ayudaObservacion = document.getElementById('ayuda-observacion');
@@ -194,7 +216,7 @@
         tituloInput.addEventListener('input', actualizarPalabras);
         actualizarPalabras();
 
-        // TomSelect para detalle del problema (buscable al escribir)
+        // TomSelect para detalle del problema y solución común (buscables al escribir)
         const tsDetalle = window.TomSelect
             ? new window.TomSelect(detalleSelect, {
                 create: false,
@@ -203,16 +225,25 @@
             })
             : null;
 
-        function valorDetalleActual() {
-            return tsDetalle ? tsDetalle.getValue() : detalleSelect.value;
+        const tsSolucion = window.TomSelect
+            ? new window.TomSelect(solucionSelect, {
+                create: false,
+                placeholder: 'Escribe para buscar una solución o elige Otro...',
+                sortField: [{ field: '$order' }]
+            })
+            : null;
+
+        function valorSelect(ts, el) {
+            return ts ? ts.getValue() : el.value;
         }
 
         function actualizarEstadoObservacion() {
-            const val = valorDetalleActual();
-            const esOtro = val === 'otro' || val === '';
-            observacionInput.required = esOtro;
+            const valDetalle = valorSelect(tsDetalle, detalleSelect);
+            const valSolucion = valorSelect(tsSolucion, solucionSelect);
+            const ambosOtro = (valDetalle === 'otro' || valDetalle === '') && (valSolucion === 'otro' || valSolucion === '');
+            observacionInput.required = ambosOtro;
 
-            if (esOtro) {
+            if (ambosOtro) {
                 badgeObservacion.textContent = '(Obligatorio para Otro)';
                 badgeObservacion.className = 'ml-1 text-xs font-medium text-[#FEDB39]';
                 ayudaObservacion.textContent = 'Especifica tanto el problema ocurrido como la solución aplicada.';
@@ -225,52 +256,56 @@
             }
         }
 
-        function cargarDetallesPorTipo(tipo, valorPorSeleccionar) {
-            const filtrados = detallesData.filter(d => d.tipo_problema === tipo);
+        function cargarOpcionesPorTipo(selectEl, ts, items, textoKey, placeholder, tipo, valorPorSeleccionar) {
+            const filtrados = items.filter(item => item.tipo_problema === tipo);
 
-            if (tsDetalle) {
-                tsDetalle.clear(true);
-                tsDetalle.clearOptions();
-                filtrados.forEach(d => tsDetalle.addOption({ value: String(d.id), text: d.detalle }));
-                tsDetalle.addOption({ value: 'otro', text: 'Otro (especificar)' });
-                tsDetalle.refreshOptions(false);
+            if (ts) {
+                ts.clear(true);
+                ts.clearOptions();
+                filtrados.forEach(item => ts.addOption({ value: String(item.id), text: item[textoKey] }));
+                ts.addOption({ value: 'otro', text: 'Otro (especificar)' });
+                ts.refreshOptions(false);
 
                 const existe = valorPorSeleccionar && (
                     valorPorSeleccionar === 'otro' ||
-                    filtrados.some(d => String(d.id) === String(valorPorSeleccionar))
+                    filtrados.some(item => String(item.id) === String(valorPorSeleccionar))
                 );
 
                 if (existe) {
-                    tsDetalle.setValue(String(valorPorSeleccionar), true);
+                    ts.setValue(String(valorPorSeleccionar), true);
                 } else if (filtrados.length === 0) {
-                    tsDetalle.setValue('otro', true);
+                    ts.setValue('otro', true);
                 }
             } else {
-                detalleSelect.innerHTML = '<option value="">Selecciona o busca un detalle...</option>';
-                filtrados.forEach(d => {
+                selectEl.innerHTML = `<option value="">${placeholder}</option>`;
+                filtrados.forEach(item => {
                     const opt = document.createElement('option');
-                    opt.value = String(d.id);
-                    opt.textContent = d.detalle;
-                    detalleSelect.appendChild(opt);
+                    opt.value = String(item.id);
+                    opt.textContent = item[textoKey];
+                    selectEl.appendChild(opt);
                 });
                 const optOtro = document.createElement('option');
                 optOtro.value = 'otro';
                 optOtro.textContent = 'Otro (especificar)';
-                detalleSelect.appendChild(optOtro);
+                selectEl.appendChild(optOtro);
 
                 if (valorPorSeleccionar) {
-                    detalleSelect.value = String(valorPorSeleccionar);
+                    selectEl.value = String(valorPorSeleccionar);
                 } else if (filtrados.length === 0) {
-                    detalleSelect.value = 'otro';
+                    selectEl.value = 'otro';
                 }
             }
+        }
 
+        function cargarCatalogosPorTipo(tipo, valDetalle, valSolucion) {
+            cargarOpcionesPorTipo(detalleSelect, tsDetalle, detallesData, 'detalle', 'Selecciona o busca un detalle...', tipo, valDetalle);
+            cargarOpcionesPorTipo(solucionSelect, tsSolucion, solucionesData, 'solucion', 'Selecciona o busca una solución...', tipo, valSolucion);
             actualizarEstadoObservacion();
         }
 
         radiosTipo.forEach(radio => {
             radio.addEventListener('change', () => {
-                cargarDetallesPorTipo(radio.value, null);
+                cargarCatalogosPorTipo(radio.value, null, null);
             });
         });
 
@@ -280,9 +315,15 @@
             detalleSelect.addEventListener('change', actualizarEstadoObservacion);
         }
 
+        if (tsSolucion) {
+            tsSolucion.on('change', actualizarEstadoObservacion);
+        } else {
+            solucionSelect.addEventListener('change', actualizarEstadoObservacion);
+        }
+
         const tipoMarcado = document.querySelector('input[name="tipo_problema"]:checked')?.value;
         if (tipoMarcado) {
-            cargarDetallesPorTipo(tipoMarcado, detalleInicial);
+            cargarCatalogosPorTipo(tipoMarcado, detalleInicial, solucionInicial);
         }
     });
 </script>

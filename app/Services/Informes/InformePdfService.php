@@ -24,11 +24,11 @@ class InformePdfService
     /**
      * Captura la información del informe y genera el documento PDF en tamaño A4.
      *
-     * @return array{numero: int, fecha: string, usuario: string, tecnico: string, titulo: string, tipo_problema: string, detalle: string, observacion: string, logoBase64: string|null}
+     * @return array{numero: int, fecha: string, usuario: string, tecnico: string, titulo: string, tipo_problema: string, detalle: string, solucion: string, observacion: string, logoBase64: string|null}
      */
     public function obtenerDatos(informes $informe): array
     {
-        $informe->loadMissing(['funcionario.dependencia', 'detalle', 'tecnico']);
+        $informe->loadMissing(['funcionario.dependencia', 'detalle', 'solucion', 'tecnico']);
 
         return [
             'numero' => $informe->id,
@@ -38,6 +38,7 @@ class InformePdfService
             'titulo' => $this->formatearTitulo($informe),
             'tipo_problema' => $informe->tipo_problema,
             'detalle' => $informe->detalleTexto(),
+            'solucion' => $informe->solucionTexto(),
             'observacion' => $informe->observacion ?: 'Sin observaciones registradas.',
             'logoBase64' => $this->logoBase64(),
         ];

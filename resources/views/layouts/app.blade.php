@@ -24,7 +24,7 @@
     <!-- Navbar -->
     @if (auth()->check())
         @php
-            $esModuloInformes = request()->routeIs('informes.*', 'detalles-problemas.*');
+            $esModuloInformes = request()->routeIs('informes.*', 'detalles-problemas.*', 'detalles-soluciones.*');
             $esModuloTickets = request()->routeIs('tickets.*');
             $tituloModulo = match (true) {
                 $esModuloInformes => 'InfraDesk - Informes IT',
@@ -50,6 +50,10 @@
                         <a href="{{ route('detalles-problemas.index') }}"
                             class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/15 text-blue-300 border border-blue-400/30 hover:bg-blue-500/25 hover:text-white transition-all">
                             Registrar Problema Común
+                        </a>
+                        <a href="{{ route('detalles-soluciones.index') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/25 hover:text-white transition-all">
+                            Registrar Solución Común
                         </a>
                     @endcan
                 @elseif ($esModuloTickets)

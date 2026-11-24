@@ -58,7 +58,7 @@ class InformeWorkflowTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('tickets.cerrar', $ticket), [
-                'detalle_id' => 'otro',
+                'solucion_id' => 'otro',
                 'observacion' => 'Se reconectó el cable de red.',
             ])
             ->assertRedirect(route('tickets.show', $ticket))

@@ -76,6 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const TITULO_REUNION = 'Asistencia a Reunión';
     const bloqueTitulo = document.getElementById('bloque-titulo-problema') || inputTitulo.parentElement;
+    const selectDetalle = document.getElementById('detalle_id');
+    const bloqueDescripcionOtro = document.getElementById('bloque-descripcion-otro');
+    const detallesData = selectDetalle ? JSON.parse(selectDetalle.dataset.detalles || '[]') : [];
+    let detalleInicial = selectDetalle ? (selectDetalle.dataset.oldDetalle || '') : '';
     const inputFecha = document.getElementById('fecha_reunion');
     const inputHorario = document.getElementById('horario_reunion');
     const inputDetalles = document.getElementById('detalles_reunion');
@@ -90,7 +94,81 @@ document.addEventListener('DOMContentLoaded', () => {
         inputTitulo.setCustomValidity(excede ? 'El título del problema no puede superar las 100 palabras.' : '');
     }
 
-    function actualizarModoReunion() {
+    function actualizarDescripcionOtro() {
+        if (!selectDetalle || !bloqueDescripcionOtro) {
+            return;
+        }
+
+        const esOtro = !selectDetalle.disabled && selectDetalle.value === 'otro';
+        bloqueDescripcionOtro.classList.toggle('hidden', !esOtro);
+        inputTitulo.disabled = !esOtro;
+        inputTitulo.required = esOtro;
+
+        if (!esOtro) {
+            inputTitulo.value = '';
+        }
+
+        actualizarContador();
+    }
+
+    function cargarOpcionesProblema(tipo, valorPorSeleccionar) {
+        if (!selectDetalle) {
+            return;
+        }
+
+        selectDetalle.innerHTML = '';
+
+        if (!tipo) {
+            selectDetalle.disabled = true;
+            selectDetalle.required = false;
+            const optPlaceholder = document.createElement('option');
+            optPlaceholder.value = '';
+            optPlaceholder.textContent = 'Primero selecciona un tipo de problema...';
+            selectDetalle.appendChild(optPlaceholder);
+            actualizarDescripcionOtro();
+            return;
+        }
+
+        const filtrados = detallesData.filter((d) => d.tipo_problema === tipo);
+        selectDetalle.disabled = false;
+        selectDetalle.required = true;
+
+        if (filtrados.length > 0) {
+            const optPlaceholder = document.createElement('option');
+            optPlaceholder.value = '';
+            optPlaceholder.disabled = true;
+            optPlaceholder.selected = true;
+            optPlaceholder.textContent = 'Selecciona el problema...';
+            selectDetalle.appendChild(optPlaceholder);
+
+            filtrados.forEach((d) => {
+                const opt = document.createElement('option');
+                opt.value = String(d.id);
+                opt.textContent = d.detalle;
+                selectDetalle.appendChild(opt);
+            });
+        }
+
+        const optOtro = document.createElement('option');
+        optOtro.value = 'otro';
+        optOtro.textContent = 'Otro (especificar)';
+        selectDetalle.appendChild(optOtro);
+
+        const existe = valorPorSeleccionar && (
+            valorPorSeleccionar === 'otro' ||
+            filtrados.some((d) => String(d.id) === String(valorPorSeleccionar))
+        );
+
+        if (existe) {
+            selectDetalle.value = String(valorPorSeleccionar);
+        } else if (filtrados.length === 0) {
+            selectDetalle.value = 'otro';
+        }
+
+        actualizarDescripcionOtro();
+    }
+
+    function actualizarModoReunion(usarInicial = false) {
         const seleccionado = document.querySelector('input[name="tipo_problema"]:checked')?.value;
         const esReunion = seleccionado === TITULO_REUNION;
 
@@ -105,6 +183,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bloqueTitulo) {
             bloqueTitulo.classList.toggle('hidden', esReunion);
         }
+
+        if (selectDetalle) {
+            if (esReunion) {
+                selectDetalle.disabled = true;
+                selectDetalle.required = false;
+                if (bloqueDescripcionOtro) {
+                    bloqueDescripcionOtro.classList.add('hidden');
+                }
+                inputTitulo.disabled = true;
+                inputTitulo.required = false;
+                inputTitulo.value = '';
+                actualizarContador();
+            } else {
+                const valor = usarInicial ? detalleInicial : '';
+                detalleInicial = '';
+                cargarOpcionesProblema(seleccionado, valor);
+            }
+            return;
+        }
+
         inputTitulo.disabled = esReunion;
         inputTitulo.required = !esReunion;
 
@@ -116,8 +214,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     inputTitulo.addEventListener('input', actualizarContador);
-    radiosTipo.forEach((radio) => radio.addEventListener('change', actualizarModoReunion));
-    actualizarModoReunion();
+    if (selectDetalle) {
+        selectDetalle.addEventListener('change', actualizarDescripcionOtro);
+    }
+    radiosTipo.forEach((radio) => radio.addEventListener('change', () => actualizarModoReunion(false)));
+    actualizarModoReunion(true);
 
     // Adjuntar foto desde cámara trasera en dispositivos móviles y comprimir a .webp
     const contenedorFoto = document.getElementById('contenedor-foto-movil');

@@ -7,6 +7,7 @@ use App\Http\Controllers\Tickets\TicketController;
 use App\Models\dependencias;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
+use App\Models\Informes\detalles_soluciones;
 use App\Models\Informes\informes;
 use App\Models\rol;
 use App\Models\Tickets\Ticket;
@@ -78,6 +79,7 @@ class TicketTest extends TestCase
         $vista = $this->view('Tickets.create', [
             'funcionarios' => collect([$funcionario]),
             'tiposProblema' => TipoProblema::values(),
+            'detallesProblemas' => collect([new detalles_problemas(['tipo_problema' => 'Internet', 'detalle' => 'Sin acceso Wi-Fi'])]),
         ]);
 
         $vista->assertSee('Crear Ticket de Soporte');
@@ -87,6 +89,9 @@ class TicketTest extends TestCase
         foreach (TipoProblema::values() as $tipo) {
             $vista->assertSee($tipo);
         }
+        $vista->assertSee('name="detalle_id"', false);
+        $vista->assertSee('Otro (especificar)');
+        $vista->assertSee('Sin acceso Wi-Fi');
         $vista->assertSee('0 / 100 palabras');
         $vista->assertSee('campos-reunion', false);
         $vista->assertSee('type="date"', false);
@@ -220,7 +225,7 @@ class TicketTest extends TestCase
         $showPendiente = $this->view('Tickets.show', [
             'ticket' => $ticketPendiente,
             'tecnicos' => collect([$tecnico]),
-            'detallesComunes' => collect(),
+            'solucionesComunes' => collect(),
         ]);
         $showPendiente->assertSee('Ticket #15');
         $showPendiente->assertSee($ticketPendiente->created_at->format('d/m/Y H:i'));
@@ -228,8 +233,8 @@ class TicketTest extends TestCase
         $showPendiente->assertSee('Ana Soporte');
         $showPendiente->assertSee(route('tickets.asignar', 15));
 
-        $detalleComun = new detalles_problemas(['tipo_problema' => 'Hardware', 'detalle' => 'Cable HDMI defectuoso']);
-        $detalleComun->id = 7;
+        $solucionComun = new detalles_soluciones(['tipo_problema' => 'Hardware', 'solucion' => 'Cambio de cable HDMI']);
+        $solucionComun->id = 7;
 
         $ticketAsignado = new Ticket([
             'funcionario_id' => 4,
@@ -247,10 +252,10 @@ class TicketTest extends TestCase
         $showAsignado = $this->view('Tickets.show', [
             'ticket' => $ticketAsignado,
             'tecnicos' => collect([$tecnico]),
-            'detallesComunes' => collect([$detalleComun]),
+            'solucionesComunes' => collect([$solucionComun]),
         ]);
-        $showAsignado->assertSee('Problema Común (Hardware)');
-        $showAsignado->assertSee('Cable HDMI defectuoso');
+        $showAsignado->assertSee('Solución Común (Hardware)');
+        $showAsignado->assertSee('Cambio de cable HDMI');
         $showAsignado->assertSee('Otro (especificar)');
         $showAsignado->assertSee(route('tickets.cerrar', 17));
 
@@ -281,7 +286,7 @@ class TicketTest extends TestCase
         $ticketCerrado = new Ticket([
             'funcionario_id' => 4,
             'tipo_problema' => 'Hardware',
-            'detalle_id' => 7,
+            'solucion_id' => 7,
             'descripcion_problema' => 'Monitor sin señal HDMI',
             'estado' => Ticket::ESTADO_CERRADO,
             'asignado_a' => 2,
@@ -294,20 +299,20 @@ class TicketTest extends TestCase
         $ticketCerrado->updated_at = $eventoCierre->created_at;
         $ticketCerrado->setRelation('funcionario', $funcionario);
         $ticketCerrado->setRelation('tecnicoAsignado', $tecnico);
-        $ticketCerrado->setRelation('detalle', $detalleComun);
+        $ticketCerrado->setRelation('solucion', $solucionComun);
         $ticketCerrado->setRelation('historial', collect([$eventoCierre, $eventoAsignacion, $eventoCreacion]));
 
         $showCerrado = $this->view('Tickets.show', [
             'ticket' => $ticketCerrado,
             'tecnicos' => collect([$tecnico]),
-            'detallesComunes' => collect([$detalleComun]),
+            'solucionesComunes' => collect([$solucionComun]),
         ]);
         $showCerrado->assertSee('Ticket Cerrado');
         $showCerrado->assertSee('Fecha y Hora de Cierre');
         $showCerrado->assertSee($eventoCreacion->created_at->format('d/m/Y H:i'));
         $showCerrado->assertSee($eventoAsignacion->created_at->format('d/m/Y H:i'));
         $showCerrado->assertSee($eventoCierre->created_at->format('d/m/Y H:i'));
-        $showCerrado->assertSee('Cable HDMI defectuoso');
+        $showCerrado->assertSee('Cambio de cable HDMI');
         $showCerrado->assertSee('Se cambió el cable HDMI.');
         $showCerrado->assertSee('Ana Soporte');
         $showCerrado->assertSee('Ticket creado');
@@ -489,7 +494,7 @@ class TicketTest extends TestCase
         $showAbierto = $this->view('Tickets.show', [
             'ticket' => $ticketAbierto,
             'tecnicos' => collect(),
-            'detallesComunes' => collect(),
+            'solucionesComunes' => collect(),
         ]);
         $showAbierto->assertSee(route('movimientos.create', ['funcionario_id' => 4]), false);
         $showAbierto->assertSee('Ir a Movimientos para');
@@ -500,7 +505,7 @@ class TicketTest extends TestCase
         $showCerrado = $this->view('Tickets.show', [
             'ticket' => $ticketCerrado,
             'tecnicos' => collect(),
-            'detallesComunes' => collect(),
+            'solucionesComunes' => collect(),
         ]);
         $showCerrado->assertDontSee('Ir a Movimientos para');
 
@@ -571,6 +576,7 @@ class TicketTest extends TestCase
         $ticket = new Ticket([
             'funcionario_id' => 9,
             'tipo_problema' => 'Cuentas y Accesos',
+            'detalle_id' => 3,
             'descripcion_problema' => '  Restablecer contraseña de correo institucional  ',
             'asignado_a' => 7,
         ]);
@@ -584,7 +590,8 @@ class TicketTest extends TestCase
             'titulo' => 'Restablecer contraseña de correo institucional',
             'funcionario_id' => 9,
             'tipo_problema' => 'Cuentas y Accesos',
-            'detalle_id' => 5,
+            'detalle_id' => 3,
+            'solucion_id' => 5,
             'observacion' => 'Se restableció la clave.',
             'imagen_problema' => null,
         ], $datos);
@@ -603,6 +610,7 @@ class TicketTest extends TestCase
         $this->assertSame(12, $datosReunion['funcionario_id']);
         $this->assertSame(Ticket::TIPO_ASISTENCIA_REUNION, $datosReunion['tipo_problema']);
         $this->assertNull($datosReunion['detalle_id']);
+        $this->assertNull($datosReunion['solucion_id']);
         $this->assertSame('Todo funcionó correctamente.', $datosReunion['observacion']);
     }
 
@@ -898,7 +906,7 @@ class TicketTest extends TestCase
 
             $this->actingAs($admin)
                 ->post(route('tickets.cerrar', $ticket), [
-                    'detalle_id' => 'otro',
+                    'solucion_id' => 'otro',
                     'observacion' => 'Se reemplazó el monitor.',
                 ])
                 ->assertRedirect(route('tickets.show', $ticket));
@@ -970,5 +978,83 @@ class TicketTest extends TestCase
         $respuesta->assertSee('bg-neutral-950', false);
         $respuesta->assertSee('bg-indigo-600', false);
         $respuesta->assertDontSee('backdrop-blur', false);
+    }
+
+    public function test_crear_ticket_con_problema_comun_y_cerrar_con_solucion_comun(): void
+    {
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
+            'rol_id' => rol::ADMIN,
+            'estado_user' => 1,
+        ]));
+
+        $funcionario = funcionarios::where('estado_funcionario', 1)->first()
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+                'nombre' => 'Funcionario Solucion Test',
+                'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Solucion Test'])
+                ))->id,
+                'estado_funcionario' => 1,
+            ]));
+
+        $detalleComun = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
+            'tipo_problema' => 'Internet',
+            'detalle' => 'Sin conexión a internet por cable',
+        ]));
+
+        $solucionComun = detalles_soluciones::withoutEvents(fn (): detalles_soluciones => detalles_soluciones::create([
+            'tipo_problema' => 'Internet',
+            'solucion' => 'Se reconectó el cable de red y se renovó la IP',
+        ]));
+
+        // 1. Funcionario selecciona un problema común (sin escribir descripcion_problema)
+        $this->post(route('tickets.store'), [
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => 'Internet',
+            'detalle_id' => $detalleComun->id,
+        ])->assertRedirect(route('tickets.visual'));
+
+        $ticket = Ticket::where('funcionario_id', $funcionario->id)
+            ->where('detalle_id', $detalleComun->id)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame('Sin conexión a internet por cable', $ticket->descripcion_problema);
+
+        // 2. Si elige "otro", exige descripcion_problema
+        $this->post(route('tickets.store'), [
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => 'Internet',
+            'detalle_id' => 'otro',
+            'descripcion_problema' => '',
+        ])->assertSessionHasErrors('descripcion_problema');
+
+        // 3. Técnico asigna y cierra usando la solución común (sin observación obligatoria)
+        $ticket->update([
+            'estado' => Ticket::ESTADO_ASIGNADO,
+            'asignado_a' => $admin->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('tickets.cerrar', $ticket), [
+                'solucion_id' => $solucionComun->id,
+            ])
+            ->assertRedirect(route('tickets.show', $ticket))
+            ->assertSessionHas('success');
+
+        $ticket->refresh();
+        $this->assertSame(Ticket::ESTADO_CERRADO, $ticket->estado);
+        $this->assertSame($detalleComun->id, $ticket->detalle_id);
+        $this->assertSame($solucionComun->id, $ticket->solucion_id);
+
+        $informe = informes::where('ticket_id', $ticket->id)->firstOrFail();
+        $this->assertSame($detalleComun->id, $informe->detalle_id);
+        $this->assertSame($solucionComun->id, $informe->solucion_id);
+
+        // 4. No se puede eliminar una solución común en uso
+        $this->actingAs($admin)
+            ->delete(route('detalles-soluciones.destroy', $solucionComun))
+            ->assertRedirect(route('detalles-soluciones.index'))
+            ->assertSessionHas('error');
+        $this->assertModelExists($solucionComun);
     }
 }

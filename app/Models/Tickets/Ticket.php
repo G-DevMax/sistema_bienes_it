@@ -5,6 +5,7 @@ namespace App\Models\Tickets;
 use App\Enums\TipoProblema;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
+use App\Models\Informes\detalles_soluciones;
 use App\Models\Informes\informes;
 use App\Models\User;
 use App\Traits\BuscadorUniversal;
@@ -63,6 +64,7 @@ class Ticket extends Model
         'funcionario_id',
         'tipo_problema',
         'detalle_id',
+        'solucion_id',
         'descripcion_problema',
         'imagen_problema',
         'estado',
@@ -100,6 +102,11 @@ class Ticket extends Model
         return $this->belongsTo(detalles_problemas::class, 'detalle_id');
     }
 
+    public function solucion(): BelongsTo
+    {
+        return $this->belongsTo(detalles_soluciones::class, 'solucion_id');
+    }
+
     public function historial(): HasMany
     {
         return $this->hasMany(TicketHistory::class, 'ticket_id')->orderByDesc('created_at')->orderByDesc('id');
@@ -118,6 +125,11 @@ class Ticket extends Model
     public function detalleTexto(): string
     {
         return $this->detalle?->detalle ?? 'Otro (especificar)';
+    }
+
+    public function solucionTexto(): string
+    {
+        return $this->solucion?->solucion ?? 'Otro (especificar)';
     }
 
     public static function badgeTipo(string $tipo): string
@@ -194,9 +206,9 @@ class Ticket extends Model
     /**
      * Prepara los atributos para generar automáticamente el informe técnico al cerrar el ticket.
      *
-     * @return array{ticket_id: int|null, user_id: int|null, titulo: string, funcionario_id: int, tipo_problema: string, detalle_id: int|null, observacion: string|null, imagen_problema: string|null}
+     * @return array{ticket_id: int|null, user_id: int|null, titulo: string, funcionario_id: int, tipo_problema: string, detalle_id: int|null, solucion_id: int|null, observacion: string|null, imagen_problema: string|null}
      */
-    public function datosParaInforme(?int $detalleId = null, ?string $observacion = null, ?int $userId = null): array
+    public function datosParaInforme(?int $solucionId = null, ?string $observacion = null, ?int $userId = null): array
     {
         return [
             'ticket_id' => $this->id !== null ? (int) $this->id : null,
@@ -204,7 +216,8 @@ class Ticket extends Model
             'titulo' => Str::limit(trim((string) $this->descripcion_problema), 495, ''),
             'funcionario_id' => (int) $this->funcionario_id,
             'tipo_problema' => (string) $this->tipo_problema,
-            'detalle_id' => $detalleId,
+            'detalle_id' => $this->detalle_id !== null ? (int) $this->detalle_id : null,
+            'solucion_id' => $solucionId,
             'observacion' => $observacion,
             'imagen_problema' => $this->imagen_problema,
         ];

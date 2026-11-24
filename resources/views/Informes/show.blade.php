@@ -111,6 +111,11 @@
                 </div>
 
                 <div>
+                    <span class="block text-xs font-medium text-white/50 mb-1">Solución Común</span>
+                    <p class="font-medium text-white">{{ $informe->solucionTexto() }}</p>
+                </div>
+
+                <div>
                     <span class="block text-xs font-medium text-white/50 mb-1">Técnico Encargado</span>
                     <p class="font-medium text-white">{{ $informe->tecnico?->name ?? '—' }}</p>
                 </div>

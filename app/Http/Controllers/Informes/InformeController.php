@@ -6,6 +6,7 @@ use App\Enums\TipoProblema;
 use App\Http\Controllers\Controller;
 use App\Models\funcionarios;
 use App\Models\Informes\detalles_problemas;
+use App\Models\Informes\detalles_soluciones;
 use App\Models\Informes\informes;
 use App\Services\Informes\InformePdfService;
 use App\Services\LoggerService;
@@ -17,7 +18,7 @@ class InformeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = informes::with(['funcionario', 'detalle', 'tecnico'])
+        $query = informes::with(['funcionario', 'detalle', 'solucion', 'tecnico'])
             ->buscadorUniversal($request->search)
             ->orderByDesc('created_at')
             ->orderByDesc('id');
@@ -37,9 +38,10 @@ class InformeController extends Controller
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
         $tiposProblema = TipoProblema::values();
         $detalles = detalles_problemas::orderBy('detalle')->get();
+        $soluciones = detalles_soluciones::orderBy('solucion')->get();
         $fechaHora = now();
 
-        return view('Informes.create', compact('funcionarios', 'tiposProblema', 'detalles', 'fechaHora'));
+        return view('Informes.create', compact('funcionarios', 'tiposProblema', 'detalles', 'soluciones', 'fechaHora'));
     }
 
     public function store(Request $request)
@@ -55,6 +57,7 @@ class InformeController extends Controller
                 'funcionario_id' => $informe->funcionario_id,
                 'tipo_problema' => $informe->tipo_problema,
                 'detalle_id' => $informe->detalle_id,
+                'solucion_id' => $informe->solucion_id,
                 'user_id' => Auth::id(),
             ]);
         } catch (\Exception $e) {
@@ -72,14 +75,14 @@ class InformeController extends Controller
 
     public function show(string $id)
     {
-        $informe = informes::with(['funcionario.dependencia', 'detalle', 'tecnico', 'ticket'])->findOrFail($id);
+        $informe = informes::with(['funcionario.dependencia', 'detalle', 'solucion', 'tecnico', 'ticket'])->findOrFail($id);
 
         return view('Informes.show', compact('informe'));
     }
 
     public function exportarPdf(string $id, InformePdfService $pdfService)
     {
-        $informe = informes::with(['funcionario.dependencia', 'detalle', 'tecnico'])->findOrFail($id);
+        $informe = informes::with(['funcionario.dependencia', 'detalle', 'solucion', 'tecnico'])->findOrFail($id);
         $pdf = $pdfService->generar($informe);
 
         return $pdf->stream($pdfService->nombreArchivo($informe));
@@ -94,9 +97,10 @@ class InformeController extends Controller
             ->get();
         $tiposProblema = TipoProblema::values();
         $detalles = detalles_problemas::orderBy('detalle')->get();
+        $soluciones = detalles_soluciones::orderBy('solucion')->get();
         $fechaHora = $informe->created_at;
 
-        return view('Informes.edit', compact('informe', 'funcionarios', 'tiposProblema', 'detalles', 'fechaHora'));
+        return view('Informes.edit', compact('informe', 'funcionarios', 'tiposProblema', 'detalles', 'soluciones', 'fechaHora'));
     }
 
     public function update(Request $request, string $id)
@@ -121,6 +125,7 @@ class InformeController extends Controller
                 'funcionario_id' => $informe->funcionario_id,
                 'tipo_problema' => $informe->tipo_problema,
                 'detalle_id' => $informe->detalle_id,
+                'solucion_id' => $informe->solucion_id,
                 'user_id' => Auth::id(),
             ]);
         } catch (\Exception $e) {
@@ -165,11 +170,17 @@ class InformeController extends Controller
 
     private function validarInforme(Request $request, ?informes $informe = null): array
     {
-        // "Otro (especificar)" puede llegar como "" o "otro" desde el select del frontend
+        // "Otro (especificar)" puede llegar como "" o "otro" desde los selects del frontend
         $detalleId = $request->input('detalle_id');
         if ($detalleId === '' || $detalleId === 'otro') {
             $request->merge(['detalle_id' => null]);
             $detalleId = null;
+        }
+
+        $solucionId = $request->input('solucion_id');
+        if ($solucionId === '' || $solucionId === 'otro') {
+            $request->merge(['solucion_id' => null]);
+            $solucionId = null;
         }
 
         $vieneDeTicket = $informe?->vieneDeTicket() ?? false;
@@ -191,7 +202,11 @@ class InformeController extends Controller
                 'nullable',
                 Rule::exists('detalles_problemas', 'id')->where('tipo_problema', $tipoProblema),
             ],
-            'observacion' => [Rule::requiredIf(empty($detalleId)), 'nullable', 'string'],
+            'solucion_id' => [
+                'nullable',
+                Rule::exists('detalles_soluciones', 'id')->where('tipo_problema', $tipoProblema),
+            ],
+            'observacion' => [Rule::requiredIf(empty($detalleId) && empty($solucionId)), 'nullable', 'string'],
         ];
 
         if (! $vieneDeTicket) {
@@ -207,6 +222,7 @@ class InformeController extends Controller
             'tipo_problema.required' => 'Debe seleccionar el tipo de problema.',
             'tipo_problema.in' => 'El tipo de problema seleccionado no es válido.',
             'detalle_id.exists' => 'El detalle seleccionado no corresponde al tipo de problema indicado.',
+            'solucion_id.exists' => 'La solución común seleccionada no corresponde al tipo de problema indicado.',
             'observacion.required' => 'Debe especificar el problema y la solución en observaciones al seleccionar "Otro (especificar)".',
         ], 'informes.index');
     }

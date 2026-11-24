@@ -116,23 +116,60 @@
                     </div>
                 </fieldset>
 
-                <!-- 3. Título del problema (máximo 100 palabras) -->
-                <div id="bloque-titulo-problema" @class(['hidden' => old('tipo_problema') === \App\Models\Tickets\Ticket::TIPO_ASISTENCIA_REUNION])>
-                    <div class="flex items-center justify-between gap-2 mb-2">
-                        <label for="descripcion_problema" class="text-sm font-semibold text-zinc-200">
-                            Título del problema
+                <!-- 3. Problema común o descripción personalizada -->
+                @php
+                    $detallesJson = ($detallesProblemas ?? collect())
+                        ->map(
+                            fn($d) => [
+                                'id' => $d->id,
+                                'tipo_problema' => $d->tipo_problema,
+                                'detalle' => $d->detalle,
+                            ],
+                        )
+                        ->values();
+                    $detalleOld = old('detalle_id', old('descripcion_problema') ? 'otro' : '');
+                @endphp
+                <div id="bloque-titulo-problema" @class([
+                    'space-y-4',
+                    'hidden' =>
+                        old('tipo_problema') ===
+                        \App\Models\Tickets\Ticket::TIPO_ASISTENCIA_REUNION,
+                ])>
+                    <div>
+                        <label for="detalle_id" class="block mb-2 text-sm font-semibold text-zinc-200">
+                            ¿Cuál es tu problema?
                         </label>
-                        <span id="contador-palabras" class="text-xs font-medium text-zinc-400">
-                            0 / 100 palabras
-                        </span>
+                        <select id="detalle_id" name="detalle_id" data-detalles='@json($detallesJson)'
+                            data-old-detalle="{{ $detalleOld }}"
+                            class="w-full px-4 py-3 bg-neutral-950 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            required>
+                            <option value="">Primero selecciona un tipo de problema...</option>
+                            <option value="otro" @selected($detalleOld === 'otro')>Otro (especificar)</option>
+                        </select>
+                        <p class="mt-1.5 text-xs text-zinc-400">
+                            Selecciona una opción común o elige <strong>Otro (especificar)</strong> para describir tu
+                            problema.
+                        </p>
                     </div>
-                    <input type="text" id="descripcion_problema" name="descripcion_problema" maxlength="255"
-                        value="{{ old('descripcion_problema') }}" placeholder="Ej. Mi impresora no imprime documentos"
-                        class="w-full px-4 py-3 bg-neutral-950 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-600 transition-colors"
-                        required>
-                    <p class="mt-1.5 text-xs text-zinc-400">
-                        Describe brevemente lo que ocurre (máximo 100 palabras).
-                    </p>
+
+                    <div id="bloque-descripcion-otro" @class(['hidden' => $detalleOld !== 'otro'])>
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <label for="descripcion_problema" class="text-sm font-semibold text-zinc-200">
+                                Describe brevemente tu problema
+                            </label>
+                            <span id="contador-palabras" class="text-xs font-medium text-zinc-400">
+                                0 / 100 palabras
+                            </span>
+                        </div>
+                        <input type="text" id="descripcion_problema" name="descripcion_problema" maxlength="255"
+                            value="{{ old('descripcion_problema') }}"
+                            placeholder="Ej. Mi impresora no imprime documentos"
+                            class="w-full px-4 py-3 bg-neutral-950 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-600 transition-colors"
+                            @disabled($detalleOld !== 'otro')>
+                        <p class="mt-1.5 text-xs text-zinc-400">
+                            Describe brevemente lo que ocurre (máximo 100 palabras).
+                        </p>
+                    </div>
                 </div>
 
                 <!-- 4. Campos adicionales para Asistencia a Reunión -->

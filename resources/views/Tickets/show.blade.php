@@ -93,8 +93,8 @@
                     @if ($ticket->estaCerrado())
                         <div class="pt-4 border-t border-white/10 space-y-4">
                             <div>
-                                <span class="block text-xs font-medium text-white/50 mb-1">Problema Común / Detalle</span>
-                                <p class="font-medium text-white">{{ $ticket->detalleTexto() }}</p>
+                                <span class="block text-xs font-medium text-white/50 mb-1">Solución Común</span>
+                                <p class="font-medium text-white">{{ $ticket->solucionTexto() }}</p>
                             </div>
                             <div>
                                 <span class="block text-xs font-medium text-white/50 mb-2">Observación de Cierre</span>
@@ -158,7 +158,8 @@
                         @if ($ticket->informe)
                             <div class="mb-6">
                                 <a href="{{ route('informes.show', $ticket->informe) }}"
-                                    class="text-white/70 hover:text-white/100 font-medium text-xs">Ir a informes para imprimir
+                                    class="text-white/70 hover:text-white/100 font-medium text-xs">Ir a informes para
+                                    imprimir
                                     el ticket</a>
                             </div>
                         @endif
@@ -192,32 +193,34 @@
                         @endcan
                     @else
                         @can('tickets.operar', $ticket)
-                            <!-- Ticket Asignado / Resuelto: permite cerrar y opcionalmente reasignar -->
+                            <!-- Ticket Asignado: permite cerrar con una solución común y opcionalmente reasignar -->
                             @php
-                                $detalleInicial = old('detalle_id', $detallesComunes->isEmpty() ? 'otro' : '');
+                                $solucionesDisponibles = $solucionesComunes ?? collect();
+                                $solucionInicial = old('solucion_id', $solucionesDisponibles->isEmpty() ? 'otro' : '');
                             @endphp
                             <form action="{{ route('tickets.cerrar', $ticket) }}" method="POST" class="space-y-4">
                                 @csrf
                                 <div>
-                                    <label for="detalle_id" class="block text-sm font-medium text-white/90 mb-2">
-                                        Problema Común ({{ $ticket->tipo_problema }})
+                                    <label for="solucion_id" class="block text-sm font-medium text-white/90 mb-2">
+                                        Solución Común ({{ $ticket->tipo_problema }})
                                     </label>
-                                    <select name="detalle_id" id="detalle_id" data-sort="none"
-                                        placeholder="Selecciona o busca un detalle..."
+                                    <select name="solucion_id" id="solucion_id" data-sort="none"
+                                        placeholder="Selecciona o busca una solución..."
                                         class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 outline-none">
-                                        @if ($detallesComunes->isNotEmpty())
-                                            <option value="" @selected($detalleInicial === '')>Selecciona o busca un detalle...
+                                        @if ($solucionesDisponibles->isNotEmpty())
+                                            <option value="" @selected($solucionInicial === '')>Selecciona o busca una
+                                                solución...
                                             </option>
                                         @endif
-                                        @foreach ($detallesComunes as $detalle)
-                                            <option value="{{ $detalle->id }}" @selected((string) $detalleInicial === (string) $detalle->id)>
-                                                {{ $detalle->detalle }}
+                                        @foreach ($solucionesDisponibles as $solucion)
+                                            <option value="{{ $solucion->id }}" @selected((string) $solucionInicial === (string) $solucion->id)>
+                                                {{ $solucion->solucion }}
                                             </option>
                                         @endforeach
-                                        <option value="otro" @selected($detalleInicial === 'otro')>Otro (Leer Observaciones)</option>
+                                        <option value="otro" @selected($solucionInicial === 'otro')>Otro (especificar)</option>
                                     </select>
                                     <p class="mt-1 text-xs text-white/50">
-                                        Si no coincide con ninguno, elige <strong>Otro (Leer Observaciones)</strong>.
+                                        Si no coincide con ninguna, elige <strong>Otro (especificar)</strong>.
                                     </p>
                                 </div>
                                 <div>
@@ -226,7 +229,8 @@
                                         <span id="badge-observacion"
                                             class="ml-1 text-xs font-normal text-white/50">(Opcional)</span>
                                     </label>
-                                    <textarea name="observacion" id="observacion" rows="4" placeholder="Describe brevemente la solución aplicada..."
+                                    <textarea name="observacion" id="observacion" rows="4"
+                                        placeholder="Describe brevemente la solución aplicada..."
                                         class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all">{{ old('observacion') }}</textarea>
                                 </div>
                                 <button type="submit"
@@ -284,22 +288,22 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const detalleSelect = document.getElementById('detalle_id');
+            const solucionSelect = document.getElementById('solucion_id');
             const observacion = document.getElementById('observacion');
             const badge = document.getElementById('badge-observacion');
 
-            if (!detalleSelect || !observacion || !badge) {
+            if (!solucionSelect || !observacion || !badge) {
                 return;
             }
 
             function actualizarObservacion() {
-                const esOtro = detalleSelect.value === 'otro' || detalleSelect.value === '';
+                const esOtro = solucionSelect.value === 'otro' || solucionSelect.value === '';
                 observacion.required = esOtro;
 
                 if (esOtro) {
                     badge.textContent = '(Obligatorio para Otro)';
                     badge.className = 'ml-1 text-xs font-medium text-[#FEDB39]';
-                    observacion.placeholder = 'Especifica el problema ocurrido y la solución aplicada...';
+                    observacion.placeholder = 'Especifica la solución aplicada...';
                 } else {
                     badge.textContent = '(Opcional)';
                     badge.className = 'ml-1 text-xs font-normal text-white/50';
@@ -307,7 +311,7 @@
                 }
             }
 
-            detalleSelect.addEventListener('change', actualizarObservacion);
+            solucionSelect.addEventListener('change', actualizarObservacion);
             actualizarObservacion();
         });
     </script>

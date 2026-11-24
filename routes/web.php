@@ -8,6 +8,7 @@ use App\Http\Controllers\DependenciasController;
 use App\Http\Controllers\FuncionariosController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\Informes\DetalleProblemaController;
+use App\Http\Controllers\Informes\DetalleSolucionController;
 use App\Http\Controllers\Informes\InformeController;
 use App\Http\Controllers\Tickets\TicketController;
 use App\Http\Controllers\UsuariosController;
@@ -86,6 +87,7 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
             ->name('informes.pdf')
             ->middleware('can:informes.ver');
         $recursoPorAccion('detalles-problemas', DetalleProblemaController::class, 'detalles.ver', 'detalles.gestionar', 'detalles.gestionar', 'detalles.gestionar');
+        $recursoPorAccion('detalles-soluciones', DetalleSolucionController::class, 'detalles.ver', 'detalles.gestionar', 'detalles.gestionar', 'detalles.gestionar');
 
         // Módulo de Tickets (área técnica)
         Route::middleware('can:tickets.ver')->group(function () {
