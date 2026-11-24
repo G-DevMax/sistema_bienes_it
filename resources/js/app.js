@@ -75,9 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const TITULO_REUNION = 'Asistencia a Reunión';
+    const TITULO_CONSULTA = 'Consulta';
+    const TITULO_INSUMOS = 'Insumos';
     const bloqueTitulo = document.getElementById('bloque-titulo-problema') || inputTitulo.parentElement;
+    const bloqueSelectDetalle = document.getElementById('bloque-select-detalle');
     const selectDetalle = document.getElementById('detalle_id');
     const bloqueDescripcionOtro = document.getElementById('bloque-descripcion-otro');
+    const bloqueCantidadInsumo = document.getElementById('bloque-cantidad-insumo');
+    const inputCantidadInsumo = document.getElementById('cantidad_insumo');
     const detallesData = selectDetalle ? JSON.parse(selectDetalle.dataset.detalles || '[]') : [];
     let detalleInicial = selectDetalle ? (selectDetalle.dataset.oldDetalle || '') : '';
     const inputFecha = document.getElementById('fecha_reunion');
@@ -94,11 +99,33 @@ document.addEventListener('DOMContentLoaded', () => {
         inputTitulo.setCustomValidity(excede ? 'El título del problema no puede superar las 100 palabras.' : '');
     }
 
+    function actualizarCantidadInsumo(tipo) {
+        if (!bloqueCantidadInsumo || !inputCantidadInsumo || !selectDetalle) {
+            return;
+        }
+
+        const mostrar = tipo === TITULO_INSUMOS && !selectDetalle.disabled && selectDetalle.value !== '';
+        bloqueCantidadInsumo.classList.toggle('hidden', !mostrar);
+        inputCantidadInsumo.disabled = !mostrar;
+        inputCantidadInsumo.required = mostrar;
+
+        if (!mostrar) {
+            inputCantidadInsumo.value = '1';
+            inputCantidadInsumo.setCustomValidity('');
+            return;
+        }
+
+        if (inputCantidadInsumo.value === '') {
+            inputCantidadInsumo.value = '1';
+        }
+    }
+
     function actualizarDescripcionOtro() {
         if (!selectDetalle || !bloqueDescripcionOtro) {
             return;
         }
 
+        const seleccionado = document.querySelector('input[name="tipo_problema"]:checked')?.value;
         const esOtro = !selectDetalle.disabled && selectDetalle.value === 'otro';
         bloqueDescripcionOtro.classList.toggle('hidden', !esOtro);
         inputTitulo.disabled = !esOtro;
@@ -109,11 +136,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         actualizarContador();
+        actualizarCantidadInsumo(seleccionado);
     }
 
     function cargarOpcionesProblema(tipo, valorPorSeleccionar) {
         if (!selectDetalle) {
             return;
+        }
+
+        const esConsulta = tipo === TITULO_CONSULTA;
+        if (bloqueSelectDetalle) {
+            bloqueSelectDetalle.classList.toggle('hidden', esConsulta);
         }
 
         selectDetalle.innerHTML = '';
@@ -125,6 +158,19 @@ document.addEventListener('DOMContentLoaded', () => {
             optPlaceholder.value = '';
             optPlaceholder.textContent = 'Primero selecciona un tipo de problema...';
             selectDetalle.appendChild(optPlaceholder);
+            actualizarDescripcionOtro();
+            return;
+        }
+
+        if (esConsulta) {
+            selectDetalle.disabled = false;
+            selectDetalle.required = true;
+            const optOtro = document.createElement('option');
+            optOtro.value = 'otro';
+            optOtro.textContent = 'Otro (especificar)';
+            optOtro.selected = true;
+            selectDetalle.appendChild(optOtro);
+            selectDetalle.value = 'otro';
             actualizarDescripcionOtro();
             return;
         }
@@ -188,6 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (esReunion) {
                 selectDetalle.disabled = true;
                 selectDetalle.required = false;
+                if (bloqueSelectDetalle) {
+                    bloqueSelectDetalle.classList.remove('hidden');
+                }
                 if (bloqueDescripcionOtro) {
                     bloqueDescripcionOtro.classList.add('hidden');
                 }
@@ -195,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 inputTitulo.required = false;
                 inputTitulo.value = '';
                 actualizarContador();
+                actualizarCantidadInsumo(seleccionado);
             } else {
                 const valor = usarInicial ? detalleInicial : '';
                 detalleInicial = '';
@@ -214,6 +264,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     inputTitulo.addEventListener('input', actualizarContador);
+    if (inputCantidadInsumo) {
+        inputCantidadInsumo.addEventListener('change', () => {
+            const num = parseInt(inputCantidadInsumo.value, 10);
+            inputCantidadInsumo.value = String(Number.isNaN(num) ? 1 : Math.min(12, Math.max(1, num)));
+        });
+    }
     if (selectDetalle) {
         selectDetalle.addEventListener('change', actualizarDescripcionOtro);
     }

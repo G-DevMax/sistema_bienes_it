@@ -239,11 +239,15 @@ class TicketController extends Controller
      */
     private function validarTicket(Request $request): array
     {
-        $esReunion = $request->input('tipo_problema') === Ticket::TIPO_ASISTENCIA_REUNION;
+        $tipoProblema = $request->input('tipo_problema');
+        $esReunion = $tipoProblema === Ticket::TIPO_ASISTENCIA_REUNION;
+        $esConsulta = $tipoProblema === Ticket::TIPO_CONSULTA;
+        $esInsumos = $tipoProblema === Ticket::TIPO_INSUMOS;
 
         // "Otro (especificar)" puede llegar como "" o "otro" desde el selector de problema común
+        // Para Consulta se fuerza siempre el modo descripción directa ("otro")
         $detalleId = $request->input('detalle_id');
-        if ($esReunion || $detalleId === '' || $detalleId === 'otro') {
+        if ($esReunion || $esConsulta || $detalleId === '' || $detalleId === 'otro') {
             $request->merge(['detalle_id' => null]);
             $detalleId = null;
         }
@@ -253,7 +257,7 @@ class TicketController extends Controller
             'tipo_problema' => ['required', Rule::enum(TipoProblema::class)],
             'detalle_id' => [
                 'nullable',
-                Rule::exists('detalles_problemas', 'id')->where('tipo_problema', $request->input('tipo_problema')),
+                Rule::exists('detalles_problemas', 'id')->where('tipo_problema', $tipoProblema),
             ],
             'descripcion_problema' => [
                 Rule::requiredIf(! $esReunion && empty($detalleId)),
@@ -269,6 +273,13 @@ class TicketController extends Controller
                         $fail('El título del problema no puede superar las 100 palabras.');
                     }
                 },
+            ],
+            'cantidad_insumo' => [
+                Rule::requiredIf($esInsumos && $request->routeIs('tickets.store')),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:12',
             ],
             'fecha_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'date', 'after_or_equal:2026-01-01'],
             'horario_reunion' => [Rule::requiredIf($esReunion), 'nullable', 'string', 'max:100'],
@@ -295,6 +306,10 @@ class TicketController extends Controller
             'detalle_id.exists' => 'El problema común seleccionado no corresponde al tipo de problema indicado.',
             'descripcion_problema.required' => 'Debe escribir un título breve para el problema.',
             'descripcion_problema.max' => 'El título del problema no puede superar los 255 caracteres.',
+            'cantidad_insumo.required' => 'Debe especificar la cantidad solicitada.',
+            'cantidad_insumo.integer' => 'La cantidad debe ser un número entero.',
+            'cantidad_insumo.min' => 'La cantidad mínima permitida es 1.',
+            'cantidad_insumo.max' => 'La cantidad máxima permitida es 12.',
             'fecha_reunion.required' => 'Debe indicar la fecha de la reunión.',
             'fecha_reunion.date' => 'La fecha de la reunión no es válida.',
             'fecha_reunion.after_or_equal' => 'La fecha de la reunión debe ser a partir del 01/01/2026.',
@@ -357,15 +372,14 @@ class TicketController extends Controller
             ? detalles_problemas::find($datos['detalle_id'])
             : null;
 
-        $descripcion = $detalle !== null
-            ? $detalle->detalle
-            : Ticket::formatearDescripcion(
-                $datos['tipo_problema'],
-                $datos['descripcion_problema'] ?? null,
-                $datos['fecha_reunion'] ?? null,
-                $datos['horario_reunion'] ?? null,
-                $datos['detalles_reunion'] ?? null
-            );
+        $descripcion = Ticket::formatearDescripcion(
+            $datos['tipo_problema'],
+            $detalle !== null ? $detalle->detalle : ($datos['descripcion_problema'] ?? null),
+            $datos['fecha_reunion'] ?? null,
+            $datos['horario_reunion'] ?? null,
+            $datos['detalles_reunion'] ?? null,
+            isset($datos['cantidad_insumo']) ? (int) $datos['cantidad_insumo'] : null
+        );
 
         $ticket = DB::transaction(function () use ($datos, $detalle, $descripcion): Ticket {
             $ticket = Ticket::create([

@@ -23,6 +23,8 @@ class DatabaseSeeder extends Seeder
             FuncionariosSeeder::class,
             UserSeeder::class, // antes de items: el ingreso inicial registra al usuario
             ItemSeender::class,
+            detalles_problemasSeeder::class,
+            detalles_solucionesSeeder::class,
         ]);
     }
 }

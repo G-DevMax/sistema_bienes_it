@@ -25,6 +25,10 @@ class Ticket extends Model
 
     public const TIPO_ASISTENCIA_REUNION = TipoProblema::AsistenciaAReunion->value;
 
+    public const TIPO_CONSULTA = TipoProblema::Consulta->value;
+
+    public const TIPO_INSUMOS = TipoProblema::Insumos->value;
+
     public const ESTADO_PENDIENTE = 'Pendiente';
 
     public const ESTADO_ASIGNADO = 'Asignado';
@@ -182,25 +186,32 @@ class Ticket extends Model
     }
 
     /**
-     * Construye la descripción final del ticket, anexando fecha, horario y detalles si es asistencia a reunión.
+     * Construye la descripción final del ticket, anexando datos de reunión o cantidad de insumo según el tipo.
      */
     public static function formatearDescripcion(
         string $tipoProblema,
         ?string $descripcion,
         ?string $fechaReunion = null,
         ?string $horarioReunion = null,
-        ?string $detallesReunion = null
+        ?string $detallesReunion = null,
+        ?int $cantidadInsumo = null
     ): string {
-        if ($tipoProblema !== self::TIPO_ASISTENCIA_REUNION) {
-            return trim((string) $descripcion);
+        if ($tipoProblema === self::TIPO_ASISTENCIA_REUNION) {
+            $fechaFormateada = Carbon::parse((string) $fechaReunion)->format('d/m/Y');
+
+            return self::TIPO_ASISTENCIA_REUNION
+                ."\nFecha: ".$fechaFormateada
+                ."\nHorario aproximado: ".trim((string) $horarioReunion)
+                ."\nDetalles de la reunión: ".trim((string) $detallesReunion);
         }
 
-        $fechaFormateada = Carbon::parse((string) $fechaReunion)->format('d/m/Y');
+        $texto = trim((string) $descripcion);
 
-        return self::TIPO_ASISTENCIA_REUNION
-            ."\nFecha: ".$fechaFormateada
-            ."\nHorario aproximado: ".trim((string) $horarioReunion)
-            ."\nDetalles de la reunión: ".trim((string) $detallesReunion);
+        if ($tipoProblema === self::TIPO_INSUMOS && $cantidadInsumo !== null) {
+            return $texto.' (Cantidad: '.$cantidadInsumo.')';
+        }
+
+        return $texto;
     }
 
     /**

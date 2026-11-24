@@ -1,5 +1,6 @@
 @php
-    $input = 'w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed';
+    $input =
+        'w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed';
 
     $coloresTipo = [
         'Hardware' => '#60a5fa',
@@ -23,23 +24,33 @@
         $solucionInicial = old('solucion_id', '');
     }
 
-    $detallesJson = $detalles->map(fn ($d) => [
-        'id' => $d->id,
-        'tipo_problema' => $d->tipo_problema,
-        'detalle' => $d->detalle,
-    ])->values();
+    $detallesJson = $detalles
+        ->map(
+            fn($d) => [
+                'id' => $d->id,
+                'tipo_problema' => $d->tipo_problema,
+                'detalle' => $d->detalle,
+            ],
+        )
+        ->values();
 
-    $solucionesJson = ($soluciones ?? collect())->map(fn ($s) => [
-        'id' => $s->id,
-        'tipo_problema' => $s->tipo_problema,
-        'solucion' => $s->solucion,
-    ])->values();
+    $solucionesJson = ($soluciones ?? collect())
+        ->map(
+            fn($s) => [
+                'id' => $s->id,
+                'tipo_problema' => $s->tipo_problema,
+                'solucion' => $s->solucion,
+            ],
+        )
+        ->values();
 @endphp
 
 <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
     @if ($bloqueadoPorTicket)
-        <div class="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-400/30 text-sm text-blue-200 flex items-center justify-between gap-4">
-            <span>Este informe fue generado desde el <strong>Ticket #{{ $informe->ticket_id }}</strong>. El funcionario y el tipo de problema están bloqueados para mantener la coherencia.</span>
+        <div
+            class="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-400/30 text-sm text-blue-200 flex items-center justify-between gap-4">
+            <span>Este informe fue generado desde el <strong>Ticket #{{ $informe->ticket_id }}</strong>. El funcionario
+                y el tipo de problema están bloqueados para mantener la coherencia.</span>
             @can('tickets.ver')
                 <a href="{{ route('tickets.show', $informe->ticket_id) }}"
                     class="shrink-0 text-xs font-semibold text-[#1CD6CE] hover:underline">Ver Ticket</a>
@@ -61,19 +72,21 @@
                 </div>
                 <input type="text" id="titulo" name="titulo" maxlength="500"
                     value="{{ old('titulo', $informe->titulo ?? '') }}"
-                    placeholder="Ej. PC no enciende en Dirección Administrativa"
-                    class="{{ $input }}" required>
+                    placeholder="Ej. PC no enciende en Dirección Administrativa" class="{{ $input }}" required>
             </div>
 
             <!-- Funcionario atendido -->
             <div>
-                <label for="funcionario_id" class="block mb-2 text-sm font-medium text-white/90">Funcionario atendido</label>
+                <label for="funcionario_id" class="block mb-2 text-sm font-medium text-white/90">Funcionario
+                    atendido</label>
                 <select id="funcionario_id" name="funcionario_id" @disabled($bloqueadoPorTicket)
                     class="searchable-select {{ $input }} appearance-none"
                     placeholder="Selecciona un funcionario..." required>
-                    <option value="" disabled {{ $funcionarioActual ? '' : 'selected' }}>Selecciona un funcionario</option>
+                    <option value="" disabled {{ $funcionarioActual ? '' : 'selected' }}>Selecciona un funcionario
+                    </option>
                     @foreach ($funcionarios as $func)
-                        <option value="{{ $func->id }}" {{ (string) $funcionarioActual === (string) $func->id ? 'selected' : '' }}>
+                        <option value="{{ $func->id }}"
+                            {{ (string) $funcionarioActual === (string) $func->id ? 'selected' : '' }}>
                             {{ $func->nombre }}
                         </option>
                     @endforeach
@@ -85,9 +98,7 @@
                 <label for="fecha_hora" class="block mb-2 text-sm font-medium text-white/90">
                     Fecha y hora de registro <span class="text-xs font-normal text-white/50">(No editable)</span>
                 </label>
-                <input type="datetime-local" id="fecha_hora"
-                    value="{{ $fechaHora?->format('Y-m-d\TH:i') }}"
-                    disabled
+                <input type="datetime-local" id="fecha_hora" value="{{ $fechaHora?->format('Y-m-d\TH:i') }}" disabled
                     class="{{ $input }}">
                 <p class="mt-1 text-xs text-white/50">
                     {{ $esEdicion ? 'Se conserva la fecha y hora original del informe.' : 'Se registra automáticamente con tu fecha y hora actual.' }}
@@ -100,12 +111,14 @@
                 <div class="flex flex-col gap-2.5">
                     @foreach ($tiposProblema as $tipo)
                         @php $color = $coloresTipo[$tipo] ?? '#60a5fa'; @endphp
-                        <label class="relative {{ $bloqueadoPorTicket ? 'cursor-not-allowed opacity-70' : 'cursor-pointer' }} block">
+                        <label
+                            class="relative {{ $bloqueadoPorTicket ? 'cursor-not-allowed opacity-70' : 'cursor-pointer' }} block">
                             <input type="radio" name="tipo_problema" value="{{ $tipo }}" class="peer sr-only"
                                 {{ $tipoActual === $tipo ? 'checked' : '' }} @disabled($bloqueadoPorTicket) required>
                             <div class="flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-white/5 transition-all hover:bg-white/10 peer-checked:bg-white/10"
                                 style="--c: {{ $color }}" data-card>
-                                <span class="w-4 h-4 rounded-full border-2 border-white/40 flex items-center justify-center shrink-0 radio-ring">
+                                <span
+                                    class="w-4 h-4 rounded-full border-2 border-white/40 flex items-center justify-center shrink-0 radio-ring">
                                     <span class="w-2 h-2 rounded-full transition-colors radio-dot"></span>
                                 </span>
                                 <span class="text-sm font-medium text-white">{{ $tipo }}</span>
@@ -118,7 +131,8 @@
             <!-- Detalle del problema y Observaciones -->
             <div class="col-span-1 flex flex-col gap-6">
                 <div>
-                    <label for="detalle_id" class="block mb-2 text-sm font-medium text-white/90">Detalle del problema</label>
+                    <label for="detalle_id" class="block mb-2 text-sm font-medium text-white/90">Detalle del
+                        problema</label>
                     <select id="detalle_id" name="detalle_id" class="{{ $input }} appearance-none"
                         placeholder="Escribe para buscar un detalle o elige Otro...">
                         <option value="">Selecciona o busca un detalle...</option>
@@ -158,7 +172,8 @@
             <a href="{{ route('informes.index') }}"
                 class="px-8 py-3 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold rounded-xl transition-all flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
                 </svg>
                 Cancelar
             </a>
@@ -174,16 +189,16 @@
 </div>
 
 <style>
-    input:checked + [data-card] {
+    input:checked+[data-card] {
         border-color: var(--c);
         box-shadow: 0 0 16px color-mix(in srgb, var(--c) 35%, transparent);
     }
 
-    input:checked + [data-card] .radio-ring {
+    input:checked+[data-card] .radio-ring {
         border-color: var(--c);
     }
 
-    input:checked + [data-card] .radio-dot {
+    input:checked+[data-card] .radio-dot {
         background-color: var(--c);
     }
 </style>
@@ -217,21 +232,25 @@
         actualizarPalabras();
 
         // TomSelect para detalle del problema y solución común (buscables al escribir)
-        const tsDetalle = window.TomSelect
-            ? new window.TomSelect(detalleSelect, {
+        const tsDetalle = window.TomSelect ?
+            new window.TomSelect(detalleSelect, {
                 create: false,
                 placeholder: 'Escribe para buscar un detalle o elige Otro...',
-                sortField: [{ field: '$order' }]
-            })
-            : null;
+                sortField: [{
+                    field: '$order'
+                }]
+            }) :
+            null;
 
-        const tsSolucion = window.TomSelect
-            ? new window.TomSelect(solucionSelect, {
+        const tsSolucion = window.TomSelect ?
+            new window.TomSelect(solucionSelect, {
                 create: false,
                 placeholder: 'Escribe para buscar una solución o elige Otro...',
-                sortField: [{ field: '$order' }]
-            })
-            : null;
+                sortField: [{
+                    field: '$order'
+                }]
+            }) :
+            null;
 
         function valorSelect(ts, el) {
             return ts ? ts.getValue() : el.value;
@@ -240,13 +259,15 @@
         function actualizarEstadoObservacion() {
             const valDetalle = valorSelect(tsDetalle, detalleSelect);
             const valSolucion = valorSelect(tsSolucion, solucionSelect);
-            const ambosOtro = (valDetalle === 'otro' || valDetalle === '') && (valSolucion === 'otro' || valSolucion === '');
+            const ambosOtro = (valDetalle === 'otro' || valDetalle === '') && (valSolucion === 'otro' ||
+                valSolucion === '');
             observacionInput.required = ambosOtro;
 
             if (ambosOtro) {
                 badgeObservacion.textContent = '(Obligatorio para Otro)';
                 badgeObservacion.className = 'ml-1 text-xs font-medium text-[#FEDB39]';
-                ayudaObservacion.textContent = 'Especifica tanto el problema ocurrido como la solución aplicada.';
+                ayudaObservacion.textContent =
+                    'Especifica tanto el problema ocurrido como la solución aplicada.';
                 observacionInput.placeholder = 'Describe el problema y cómo lo solucionaste...';
             } else {
                 badgeObservacion.textContent = '(Opcional)';
@@ -262,8 +283,14 @@
             if (ts) {
                 ts.clear(true);
                 ts.clearOptions();
-                filtrados.forEach(item => ts.addOption({ value: String(item.id), text: item[textoKey] }));
-                ts.addOption({ value: 'otro', text: 'Otro (especificar)' });
+                filtrados.forEach(item => ts.addOption({
+                    value: String(item.id),
+                    text: item[textoKey]
+                }));
+                ts.addOption({
+                    value: 'otro',
+                    text: 'Otro (especificar)'
+                });
                 ts.refreshOptions(false);
 
                 const existe = valorPorSeleccionar && (
@@ -298,8 +325,10 @@
         }
 
         function cargarCatalogosPorTipo(tipo, valDetalle, valSolucion) {
-            cargarOpcionesPorTipo(detalleSelect, tsDetalle, detallesData, 'detalle', 'Selecciona o busca un detalle...', tipo, valDetalle);
-            cargarOpcionesPorTipo(solucionSelect, tsSolucion, solucionesData, 'solucion', 'Selecciona o busca una solución...', tipo, valSolucion);
+            cargarOpcionesPorTipo(detalleSelect, tsDetalle, detallesData, 'detalle',
+                'Selecciona o busca un detalle...', tipo, valDetalle);
+            cargarOpcionesPorTipo(solucionSelect, tsSolucion, solucionesData, 'solucion',
+                'Selecciona o busca una solución...', tipo, valSolucion);
             actualizarEstadoObservacion();
         }
 
