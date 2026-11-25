@@ -230,7 +230,7 @@ class InformeWorkflowTest extends TestCase
         Ticket::create([
             'funcionario_id' => $funcionario->id,
             'tipo_problema' => 'Internet',
-            'detalle_id' => $detalleEnTicket->id,
+            'detalles_id' => $detalleEnTicket->id,
             'descripcion_problema' => 'Sin señal en oficina',
             'estado' => Ticket::ESTADO_CERRADO,
             'asignado_a' => $admin->id,

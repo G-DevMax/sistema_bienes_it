@@ -68,6 +68,10 @@
                             class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.index', 'tickets.show') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
                             Listado de Tickets
                         </a>
+                        <a href="{{ route('tickets.estadisticas') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.estadisticas') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
+                            Estadísticas
+                        </a>
                     @endcan
                     @can('tickets.crear')
                         <a href="{{ route('tickets.create-manual') }}"

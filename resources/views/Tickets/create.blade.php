@@ -173,14 +173,14 @@
                         </p>
                     </div>
 
-                    <div id="bloque-cantidad-insumo" @class(['hidden' => ! $mostrarCantidadOld])>
+                    <div id="bloque-cantidad-insumo" @class(['hidden' => !$mostrarCantidadOld])>
                         <label for="cantidad_insumo" class="block mb-2 text-sm font-semibold text-zinc-200">
                             Especificar cantidad
                         </label>
                         <input type="number" id="cantidad_insumo" name="cantidad_insumo" min="1" max="12"
                             step="1" value="{{ old('cantidad_insumo', 1) }}"
                             class="w-full px-4 py-3 bg-neutral-950 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-600 transition-colors"
-                            @disabled(! $mostrarCantidadOld)>
+                            @disabled(!$mostrarCantidadOld)>
                         <p class="mt-1.5 text-xs text-zinc-400">
                             Cantidad solicitada (entre 1 y 12).
                         </p>
@@ -211,7 +211,7 @@
 
                     <div>
                         <label for="detalles_reunion" class="block mb-2 text-sm font-semibold text-zinc-200">
-                            Detalles de la reunión
+                            Detalles de la reunión/evento
                         </label>
                         <input type="text" id="detalles_reunion" name="detalles_reunion" maxlength="500"
                             value="{{ old('detalles_reunion') }}"

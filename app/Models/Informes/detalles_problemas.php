@@ -40,6 +40,6 @@ class detalles_problemas extends Model
 
     public function tickets(): HasMany
     {
-        return $this->hasMany(Ticket::class, 'detalle_id');
+        return $this->hasMany(Ticket::class, 'detalles_id');
     }
 }

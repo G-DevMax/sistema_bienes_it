@@ -52,6 +52,17 @@ class Ticket extends Model
         'Insumos' => 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     ];
 
+    private const COLORES_TIPO = [
+        'Equipo/Dispositivo' => '#60a5fa',
+        'Programa/Sistema' => '#818cf8',
+        'Internet' => '#1CD6CE',
+        'Impresora/Escáner' => '#FEDB39',
+        'Cuentas y Accesos' => '#a78bfa',
+        'Asistencia a Reunión' => '#f472b6',
+        'Consulta' => '#4ade80',
+        'Insumos' => '#fbbf24',
+    ];
+
     private const BADGES_ESTADO = [
         self::ESTADO_PENDIENTE => 'bg-[#FEDB39]/20 text-[#FEDB39] border-[#FEDB39]/30',
         self::ESTADO_ASIGNADO => 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -67,7 +78,7 @@ class Ticket extends Model
     protected $fillable = [
         'funcionario_id',
         'tipo_problema',
-        'detalle_id',
+        'detalles_id',
         'solucion_id',
         'descripcion_problema',
         'imagen_problema',
@@ -103,7 +114,7 @@ class Ticket extends Model
 
     public function detalle(): BelongsTo
     {
-        return $this->belongsTo(detalles_problemas::class, 'detalle_id');
+        return $this->belongsTo(detalles_problemas::class, 'detalles_id');
     }
 
     public function solucion(): BelongsTo
@@ -139,6 +150,11 @@ class Ticket extends Model
     public static function badgeTipo(string $tipo): string
     {
         return self::BADGES_TIPO[$tipo] ?? 'bg-white/10 text-white border-white/20';
+    }
+
+    public static function colorTipo(string $tipo): string
+    {
+        return self::COLORES_TIPO[$tipo] ?? '#60a5fa';
     }
 
     public static function badgeEstado(string $estado): string
@@ -227,7 +243,7 @@ class Ticket extends Model
             'titulo' => Str::limit(trim((string) $this->descripcion_problema), 495, ''),
             'funcionario_id' => (int) $this->funcionario_id,
             'tipo_problema' => (string) $this->tipo_problema,
-            'detalle_id' => $this->detalle_id !== null ? (int) $this->detalle_id : null,
+            'detalle_id' => $this->detalles_id !== null ? (int) $this->detalles_id : null,
             'solucion_id' => $solucionId,
             'observacion' => $observacion,
             'imagen_problema' => $this->imagen_problema,

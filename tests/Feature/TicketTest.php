@@ -328,11 +328,11 @@ class TicketTest extends TestCase
     public function test_mapeo_de_tipo_para_detalles_y_validacion_observacion_en_cierre(): void
     {
         $detalle = new detalles_problemas(['detalle' => 'Fallo de red']);
-        $conDetalle = new Ticket(['detalle_id' => 3]);
+        $conDetalle = new Ticket(['detalles_id' => 3]);
         $conDetalle->setRelation('detalle', $detalle);
         $this->assertSame('Fallo de red', $conDetalle->detalleTexto());
 
-        $sinDetalle = new Ticket(['detalle_id' => null]);
+        $sinDetalle = new Ticket(['detalles_id' => null]);
         $this->assertSame('Otro (especificar)', $sinDetalle->detalleTexto());
 
         $valOtroSinObservacion = Validator::make(
@@ -378,7 +378,7 @@ class TicketTest extends TestCase
 
         $route = app('router')->getRoutes()->getByName('tickets.dashboard');
         $request = Request::create('/tickets', 'GET');
-        $request->setRouteResolver(fn() => $route);
+        $request->setRouteResolver(fn () => $route);
         app()->instance('request', $request);
 
         $html = view('layouts.app', ['pendientes' => 4])->render();
@@ -394,7 +394,7 @@ class TicketTest extends TestCase
 
         $routeIndex = app('router')->getRoutes()->getByName('tickets.index');
         $requestIndex = Request::create('/tickets/listado', 'GET');
-        $requestIndex->setRouteResolver(fn() => $routeIndex);
+        $requestIndex->setRouteResolver(fn () => $routeIndex);
         app()->instance('request', $requestIndex);
 
         $htmlIndex = view('layouts.app', ['pendientes' => 4])->render();
@@ -425,13 +425,13 @@ class TicketTest extends TestCase
         $vistaActual->assertSee('Mes de Noviembre');
         $vistaActual->assertSee('type="month"', false);
         $vistaActual->assertSee('name="mes"', false);
-        $vistaActual->assertSee('value="' . $mesActual . '"', false);
+        $vistaActual->assertSee('value="'.$mesActual.'"', false);
         $vistaActual->assertSee('min="2026-01"', false);
-        $vistaActual->assertSee('max="' . $anioActual . '-12"', false);
+        $vistaActual->assertSee('max="'.$anioActual.'-12"', false);
         $vistaActual->assertDontSee('Volver al mes actual');
 
         // Vista en un mes filtrado diferente dentro del rango permitido
-        $mesDistinto = now()->month === 1 ? $anioActual . '-02' : $anioActual . '-01';
+        $mesDistinto = now()->month === 1 ? $anioActual.'-02' : $anioActual.'-01';
         $vistaOtroMes = $this->view('Tickets.dashboard', [
             'pendientes' => 0,
             'asignados' => 0,
@@ -439,7 +439,7 @@ class TicketTest extends TestCase
             'ticketsRecientes' => collect(),
             'ultimoPendienteId' => 10,
             'mes' => $mesDistinto,
-            'nombreMes' => 'Enero ' . $anioActual,
+            'nombreMes' => 'Enero '.$anioActual,
             'nombreMesSimple' => 'Enero',
             'anio' => (string) $anioActual,
             'anioMinimo' => 2026,
@@ -447,9 +447,9 @@ class TicketTest extends TestCase
         ]);
 
         $vistaOtroMes->assertSee('Mes de Enero');
-        $vistaOtroMes->assertSee('value="' . $mesDistinto . '"', false);
+        $vistaOtroMes->assertSee('value="'.$mesDistinto.'"', false);
         $vistaOtroMes->assertSee('min="2026-01"', false);
-        $vistaOtroMes->assertSee('max="' . max(2028, $anioActual) . '-12"', false);
+        $vistaOtroMes->assertSee('max="'.max(2028, $anioActual).'-12"', false);
         $vistaOtroMes->assertSee('Volver al mes actual');
 
         // Comprobación de consulta para filtrado de estadísticas por mes y año
@@ -582,7 +582,7 @@ class TicketTest extends TestCase
         $ticket = new Ticket([
             'funcionario_id' => 9,
             'tipo_problema' => 'Cuentas y Accesos',
-            'detalle_id' => 3,
+            'detalles_id' => 3,
             'descripcion_problema' => '  Restablecer contraseña de correo institucional  ',
             'asignado_a' => 7,
         ]);
@@ -626,11 +626,11 @@ class TicketTest extends TestCase
 
         if ($funcionario === null) {
             $dependencia = dependencias::first() ?? dependencias::withoutEvents(
-                fn(): dependencias => dependencias::create(['nombre' => 'Dependencia Test'])
+                fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Test'])
             );
 
             $funcionario = funcionarios::withoutEvents(
-                fn(): funcionarios => funcionarios::create([
+                fn (): funcionarios => funcionarios::create([
                     'nombre' => 'Funcionario Test',
                     'dependencia_id' => $dependencia->id,
                     'estado_funcionario' => 1,
@@ -649,7 +649,7 @@ class TicketTest extends TestCase
                 $payload['horario_reunion'] = '09:00 a 10:00';
                 $payload['detalles_reunion'] = 'Sala de reuniones - proyector';
             } else {
-                $payload['descripcion_problema'] = 'Prueba de ticket para ' . $tipo;
+                $payload['descripcion_problema'] = 'Prueba de ticket para '.$tipo;
             }
 
             $response = $this->post(route('tickets.store'), $payload);
@@ -666,17 +666,17 @@ class TicketTest extends TestCase
 
     public function test_cerrar_y_asignar_bloquean_si_el_ticket_ya_fue_cerrado_concurrentemente(): void
     {
-        $admin = User::withoutEvents(fn(): User => User::factory()->create([
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
             'rol_id' => rol::ADMIN,
             'estado_user' => 1,
         ]));
         $this->be($admin);
 
         $funcionario = funcionarios::where('estado_funcionario', 1)->first()
-            ?? funcionarios::withoutEvents(fn(): funcionarios => funcionarios::create([
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
                 'nombre' => 'Funcionario Lock Test',
                 'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
-                    fn(): dependencias => dependencias::create(['nombre' => 'Dependencia Lock Test'])
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Lock Test'])
                 ))->id,
                 'estado_funcionario' => 1,
             ]));
@@ -744,15 +744,15 @@ class TicketTest extends TestCase
         );
         $this->assertTrue($validadorInvalido->fails());
 
-        $admin = User::withoutEvents(fn(): User => User::factory()->create([
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
             'rol_id' => rol::ADMIN,
             'estado_user' => 1,
         ]));
         $funcionario = funcionarios::where('estado_funcionario', 1)->first()
-            ?? funcionarios::withoutEvents(fn(): funcionarios => funcionarios::create([
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
                 'nombre' => 'Funcionario String Test',
                 'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
-                    fn(): dependencias => dependencias::create(['nombre' => 'Dependencia String Test'])
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia String Test'])
                 ))->id,
                 'estado_funcionario' => 1,
             ]));
@@ -760,7 +760,7 @@ class TicketTest extends TestCase
         // Las 3 tablas aceptan un nuevo string directamente sin alterar el esquema de BD
         $nuevoTipo = 'Nuevo Tipo Sin Migración';
 
-        $detalle = detalles_problemas::withoutEvents(fn(): detalles_problemas => detalles_problemas::create([
+        $detalle = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
             'tipo_problema' => $nuevoTipo,
             'detalle' => 'Detalle de prueba flexible',
         ]));
@@ -768,13 +768,13 @@ class TicketTest extends TestCase
         $ticket = Ticket::create([
             'funcionario_id' => $funcionario->id,
             'tipo_problema' => $nuevoTipo,
-            'detalle_id' => $detalle->id,
+            'detalles_id' => $detalle->id,
             'descripcion_problema' => 'Ticket con tipo flexible',
             'estado' => Ticket::ESTADO_PENDIENTE,
             'fecha_creacion' => now()->toDateString(),
         ]);
 
-        $informe = informes::withoutEvents(fn(): informes => informes::create([
+        $informe = informes::withoutEvents(fn (): informes => informes::create([
             'ticket_id' => $ticket->id,
             'user_id' => $admin->id,
             'titulo' => 'Informe con tipo flexible',
@@ -791,17 +791,17 @@ class TicketTest extends TestCase
 
     public function test_dashboard_y_estado_pendientes_filtran_por_rango_de_fechas_sin_funciones_sql(): void
     {
-        $admin = User::withoutEvents(fn(): User => User::factory()->create([
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
             'rol_id' => rol::ADMIN,
             'estado_user' => 1,
         ]));
         $this->actingAs($admin);
 
         $funcionario = funcionarios::where('estado_funcionario', 1)->first()
-            ?? funcionarios::withoutEvents(fn(): funcionarios => funcionarios::create([
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
                 'nombre' => 'Funcionario Dashboard E2',
                 'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
-                    fn(): dependencias => dependencias::create(['nombre' => 'Dependencia E2'])
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia E2'])
                 ))->id,
                 'estado_funcionario' => 1,
             ]));
@@ -859,15 +859,15 @@ class TicketTest extends TestCase
 
     public function test_ticket_guarda_imagen_webp_valida_mime_y_muestra_miniatura_sin_imprimir_en_pdf(): void
     {
-        $admin = User::withoutEvents(fn(): User => User::factory()->create([
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
             'rol_id' => rol::ADMIN,
             'estado_user' => 1,
         ]));
         $funcionario = funcionarios::where('estado_funcionario', 1)->first()
-            ?? funcionarios::withoutEvents(fn(): funcionarios => funcionarios::create([
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
                 'nombre' => 'Funcionario Foto Test',
                 'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
-                    fn(): dependencias => dependencias::create(['nombre' => 'Dependencia Foto Test'])
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Foto Test'])
                 ))->id,
                 'estado_funcionario' => 1,
             ]));
@@ -896,7 +896,7 @@ class TicketTest extends TestCase
             ->latest('id')
             ->firstOrFail();
 
-        $prefijoEsperado = '/uploads/tickets/' . now()->format('Y/m') . '/';
+        $prefijoEsperado = '/uploads/tickets/'.now()->format('Y/m').'/';
         $this->assertNotNull($ticket->imagen_problema);
         $this->assertStringStartsWith($prefijoEsperado, $ticket->imagen_problema);
         $this->assertStringEndsWith('.webp', $ticket->imagen_problema);
@@ -924,8 +924,8 @@ class TicketTest extends TestCase
             $this->actingAs($admin)
                 ->get(route('tickets.show', $ticket))
                 ->assertOk()
-                ->assertSee('src="' . $ticket->imagen_problema . '"', false)
-                ->assertSee('href="' . $ticket->imagen_problema . '"', false)
+                ->assertSee('src="'.$ticket->imagen_problema.'"', false)
+                ->assertSee('href="'.$ticket->imagen_problema.'"', false)
                 ->assertSee('target="_blank"', false)
                 ->assertSee('max-h-64 rounded-lg cursor-pointer', false);
 
@@ -933,8 +933,8 @@ class TicketTest extends TestCase
             $this->actingAs($admin)
                 ->get(route('informes.show', $informe))
                 ->assertOk()
-                ->assertSee('src="' . $informe->imagen_problema . '"', false)
-                ->assertSee('href="' . $informe->imagen_problema . '"', false)
+                ->assertSee('src="'.$informe->imagen_problema.'"', false)
+                ->assertSee('href="'.$informe->imagen_problema.'"', false)
                 ->assertSee('target="_blank"', false);
 
             // El PDF del informe NO incluye la imagen del problema (solo texto)
@@ -954,10 +954,10 @@ class TicketTest extends TestCase
             ->assertRedirect(route('tickets.create'));
 
         $funcionario = funcionarios::where('estado_funcionario', 1)->first()
-            ?? funcionarios::withoutEvents(fn(): funcionarios => funcionarios::create([
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
                 'nombre' => 'Funcionario Visual Test',
                 'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
-                    fn(): dependencias => dependencias::create(['nombre' => 'Dependencia Visual Test'])
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Visual Test'])
                 ))->id,
                 'estado_funcionario' => 1,
             ]));
@@ -975,7 +975,7 @@ class TicketTest extends TestCase
 
         $respuesta->assertOk();
         $respuesta->assertSee('Ticket Registrado');
-        $respuesta->assertSee('#' . $ticket->id);
+        $respuesta->assertSee('#'.$ticket->id);
         $respuesta->assertSee('fue creado exitosamente, en breve un técnico asistirá su problema.');
         $respuesta->assertSee('Crear otro ticket');
         $respuesta->assertSee(route('tickets.create'), false);
@@ -988,26 +988,26 @@ class TicketTest extends TestCase
 
     public function test_crear_ticket_con_problema_comun_y_cerrar_con_solucion_comun(): void
     {
-        $admin = User::withoutEvents(fn(): User => User::factory()->create([
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
             'rol_id' => rol::ADMIN,
             'estado_user' => 1,
         ]));
 
         $funcionario = funcionarios::where('estado_funcionario', 1)->first()
-            ?? funcionarios::withoutEvents(fn(): funcionarios => funcionarios::create([
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
                 'nombre' => 'Funcionario Solucion Test',
                 'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
-                    fn(): dependencias => dependencias::create(['nombre' => 'Dependencia Solucion Test'])
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Solucion Test'])
                 ))->id,
                 'estado_funcionario' => 1,
             ]));
 
-        $detalleComun = detalles_problemas::withoutEvents(fn(): detalles_problemas => detalles_problemas::create([
+        $detalleComun = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
             'tipo_problema' => 'Internet',
             'detalle' => 'Sin conexión a internet por cable',
         ]));
 
-        $solucionComun = detalles_soluciones::withoutEvents(fn(): detalles_soluciones => detalles_soluciones::create([
+        $solucionComun = detalles_soluciones::withoutEvents(fn (): detalles_soluciones => detalles_soluciones::create([
             'tipo_problema' => 'Internet',
             'solucion' => 'Se reconectó el cable de red y se renovó la IP',
         ]));
@@ -1020,7 +1020,7 @@ class TicketTest extends TestCase
         ])->assertRedirect(route('tickets.visual'));
 
         $ticket = Ticket::where('funcionario_id', $funcionario->id)
-            ->where('detalle_id', $detalleComun->id)
+            ->where('detalles_id', $detalleComun->id)
             ->latest('id')
             ->firstOrFail();
 
@@ -1049,7 +1049,7 @@ class TicketTest extends TestCase
 
         $ticket->refresh();
         $this->assertSame(Ticket::ESTADO_CERRADO, $ticket->estado);
-        $this->assertSame($detalleComun->id, $ticket->detalle_id);
+        $this->assertSame($detalleComun->id, $ticket->detalles_id);
         $this->assertSame($solucionComun->id, $ticket->solucion_id);
 
         $informe = informes::where('ticket_id', $ticket->id)->firstOrFail();
@@ -1069,20 +1069,20 @@ class TicketTest extends TestCase
         $this->withoutMiddleware(ThrottleRequests::class);
 
         $funcionario = funcionarios::where('estado_funcionario', 1)->first()
-            ?? funcionarios::withoutEvents(fn(): funcionarios => funcionarios::create([
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
                 'nombre' => 'Funcionario Especiales Test',
                 'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
-                    fn(): dependencias => dependencias::create(['nombre' => 'Dependencia Especiales Test'])
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Especiales Test'])
                 ))->id,
                 'estado_funcionario' => 1,
             ]));
 
-        $detalleConsulta = detalles_problemas::withoutEvents(fn(): detalles_problemas => detalles_problemas::create([
+        $detalleConsulta = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
             'tipo_problema' => Ticket::TIPO_CONSULTA,
             'detalle' => 'Detalle que debe ignorarse en Consulta',
         ]));
 
-        $detalleInsumo = detalles_problemas::withoutEvents(fn(): detalles_problemas => detalles_problemas::create([
+        $detalleInsumo = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
             'tipo_problema' => Ticket::TIPO_INSUMOS,
             'detalle' => 'Tóner láser negro',
         ]));
@@ -1107,7 +1107,7 @@ class TicketTest extends TestCase
             ->latest('id')
             ->firstOrFail();
 
-        $this->assertNull($ticketConsulta->detalle_id);
+        $this->assertNull($ticketConsulta->detalles_id);
         $this->assertSame('Consulta sobre acceso VPN', $ticketConsulta->descripcion_problema);
 
         // Insumos exige cantidad entre 1 y 12 en el formulario público
@@ -1137,84 +1137,7 @@ class TicketTest extends TestCase
             ->latest('id')
             ->firstOrFail();
 
-        $this->assertSame($detalleInsumo->id, $ticketInsumo->detalle_id);
-        $this->assertSame('Tóner láser negro (Cantidad: 4)', $ticketInsumo->descripcion_problema);
-    }
-
-    public function test_tipos_especiales_consulta_e_insumos_validan_y_formatean_correctamente(): void
-    {
-        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
-
-        $funcionario = funcionarios::where('estado_funcionario', 1)->first()
-            ?? funcionarios::withoutEvents(fn(): funcionarios => funcionarios::create([
-                'nombre' => 'Funcionario Especiales Test',
-                'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
-                    fn(): dependencias => dependencias::create(['nombre' => 'Dependencia Especiales Test'])
-                ))->id,
-                'estado_funcionario' => 1,
-            ]));
-
-        $detalleConsulta = detalles_problemas::withoutEvents(fn(): detalles_problemas => detalles_problemas::create([
-            'tipo_problema' => Ticket::TIPO_CONSULTA,
-            'detalle' => 'Detalle que debe ignorarse en Consulta',
-        ]));
-
-        $detalleInsumo = detalles_problemas::withoutEvents(fn(): detalles_problemas => detalles_problemas::create([
-            'tipo_problema' => Ticket::TIPO_INSUMOS,
-            'detalle' => 'Tóner láser negro',
-        ]));
-
-        // Consulta fuerza modo "Otro" (detalle_id = null) y exige descripción
-        $this->post(route('tickets.store'), [
-            'funcionario_id' => $funcionario->id,
-            'tipo_problema' => Ticket::TIPO_CONSULTA,
-            'detalle_id' => $detalleConsulta->id,
-            'descripcion_problema' => '',
-        ])->assertSessionHasErrors('descripcion_problema');
-
-        $this->post(route('tickets.store'), [
-            'funcionario_id' => $funcionario->id,
-            'tipo_problema' => Ticket::TIPO_CONSULTA,
-            'detalle_id' => $detalleConsulta->id,
-            'descripcion_problema' => 'Consulta sobre acceso VPN',
-        ])->assertRedirect(route('tickets.visual'));
-
-        $ticketConsulta = Ticket::where('funcionario_id', $funcionario->id)
-            ->where('tipo_problema', Ticket::TIPO_CONSULTA)
-            ->latest('id')
-            ->firstOrFail();
-
-        $this->assertNull($ticketConsulta->detalle_id);
-        $this->assertSame('Consulta sobre acceso VPN', $ticketConsulta->descripcion_problema);
-
-        // Insumos exige cantidad entre 1 y 12 en el formulario público
-        $this->post(route('tickets.store'), [
-            'funcionario_id' => $funcionario->id,
-            'tipo_problema' => Ticket::TIPO_INSUMOS,
-            'detalle_id' => $detalleInsumo->id,
-            'cantidad_insumo' => 0,
-        ])->assertSessionHasErrors('cantidad_insumo');
-
-        $this->post(route('tickets.store'), [
-            'funcionario_id' => $funcionario->id,
-            'tipo_problema' => Ticket::TIPO_INSUMOS,
-            'detalle_id' => $detalleInsumo->id,
-            'cantidad_insumo' => 13,
-        ])->assertSessionHasErrors('cantidad_insumo');
-
-        $this->post(route('tickets.store'), [
-            'funcionario_id' => $funcionario->id,
-            'tipo_problema' => Ticket::TIPO_INSUMOS,
-            'detalle_id' => $detalleInsumo->id,
-            'cantidad_insumo' => 4,
-        ])->assertRedirect(route('tickets.visual'));
-
-        $ticketInsumo = Ticket::where('funcionario_id', $funcionario->id)
-            ->where('tipo_problema', Ticket::TIPO_INSUMOS)
-            ->latest('id')
-            ->firstOrFail();
-
-        $this->assertSame($detalleInsumo->id, $ticketInsumo->detalle_id);
+        $this->assertSame($detalleInsumo->id, $ticketInsumo->detalles_id);
         $this->assertSame('Tóner láser negro (Cantidad: 4)', $ticketInsumo->descripcion_problema);
     }
 }

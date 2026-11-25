@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('funcionario_id')->constrained('funcionarios')->restrictOnDelete();
             $table->string('tipo_problema', 60);
-            $table->foreignId('detalles_problema_id')->nullable()->constrained('detalles_problemas')->restrictOnDelete();
+            $table->foreignId('detalles_id')->nullable()->constrained('detalles_problemas')->restrictOnDelete();
             $table->foreignId('solucion_id')->nullable()->constrained('detalles_soluciones')->restrictOnDelete();
             $table->text('descripcion_problema');
             $table->string('imagen_problema', 255)->nullable();

@@ -94,6 +94,8 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
             Route::get('tickets', [TicketController::class, 'dashboard'])->name('tickets.dashboard');
             Route::get('tickets/estado-pendientes', [TicketController::class, 'estadoPendientes'])->name('tickets.pendientes-status');
             Route::get('tickets/listado', [TicketController::class, 'index'])->name('tickets.index');
+            Route::get('tickets/estadisticas', [TicketController::class, 'estadisticas'])->name('tickets.estadisticas');
+            Route::get('tickets/estadisticas/datos', [TicketController::class, 'estadisticasDatos'])->name('tickets.estadisticas.datos');
         });
 
         Route::middleware('can:tickets.crear')->group(function () {

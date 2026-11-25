@@ -28,16 +28,9 @@ class TicketController extends Controller
 {
     public function dashboard(Request $request): View
     {
-        $rangoAnios = Ticket::rangoAniosDashboard();
-        $anioMinimo = $rangoAnios['min'];
-        $anioMaximo = $rangoAnios['max'];
-
-        $mes = Ticket::mesValidoEnRango($request->query('mes'), $anioMinimo, max($anioMaximo, now()->addDay()->year))
-            ?? sprintf('%04d-%02d', max(now()->year, $anioMinimo), now()->month);
-
-        [$year, $month] = explode('-', $mes);
-        $anioMaximo = max($anioMaximo, (int) $year);
-        [$inicioMes, $finMes] = $this->rangoMes($mes);
+        $datosMes = $this->resolverMes($request);
+        $inicioMes = $datosMes['inicioMes'];
+        $finMes = $datosMes['finMes'];
 
         /**
          * Obtiene el número de tickets por estado.
@@ -72,25 +65,6 @@ class TicketController extends Controller
         $asignados = (int) ($conteos[Ticket::ESTADO_ASIGNADO] ?? 0);
         $cerrados = (int) ($conteos[Ticket::ESTADO_CERRADO] ?? 0);
 
-        $meses = [
-            '01' => 'Enero',
-            '02' => 'Febrero',
-            '03' => 'Marzo',
-            '04' => 'Abril',
-            '05' => 'Mayo',
-            '06' => 'Junio',
-            '07' => 'Julio',
-            '08' => 'Agosto',
-            '09' => 'Septiembre',
-            '10' => 'Octubre',
-            '11' => 'Noviembre',
-            '12' => 'Diciembre',
-        ];
-
-        $nombreMesSimple = $meses[$month] ?? 'Mes';
-        $nombreMes = $nombreMesSimple.' '.$year;
-        $anio = $year;
-
         $ticketsRecientes = Ticket::with('funcionario')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -99,19 +73,61 @@ class TicketController extends Controller
 
         $ultimoPendienteId = (int) (Ticket::where('estado', Ticket::ESTADO_PENDIENTE)->max('id') ?? 0);
 
-        return view('Tickets.dashboard', compact(
-            'pendientes',
-            'asignados',
-            'cerrados',
-            'ticketsRecientes',
-            'ultimoPendienteId',
-            'mes',
-            'nombreMes',
-            'nombreMesSimple',
-            'anio',
-            'anioMinimo',
-            'anioMaximo'
-        ));
+        return view('Tickets.dashboard', [
+            'pendientes' => $pendientes,
+            'asignados' => $asignados,
+            'cerrados' => $cerrados,
+            'ticketsRecientes' => $ticketsRecientes,
+            'ultimoPendienteId' => $ultimoPendienteId,
+            'mes' => $datosMes['mes'],
+            'nombreMes' => $datosMes['nombreMes'],
+            'nombreMesSimple' => $datosMes['nombreMesSimple'],
+            'anio' => $datosMes['anio'],
+            'anioMinimo' => $datosMes['anioMinimo'],
+            'anioMaximo' => $datosMes['anioMaximo'],
+        ]);
+    }
+
+    public function estadisticas(Request $request): View
+    {
+        $datosMes = $this->resolverMes($request);
+        $vista = $request->query('vista') === 'usuarios' ? 'usuarios' : 'problemas';
+        $estadisticas = $this->calcularEstadisticas($datosMes['inicioMes'], $datosMes['finMes'], $vista);
+
+        return view('Tickets.estadisticas', [
+            'vista' => $vista,
+            'filasTabla' => $estadisticas['filas'],
+            'totalMes' => $estadisticas['totalMes'],
+            'mes' => $datosMes['mes'],
+            'nombreMes' => $datosMes['nombreMes'],
+            'nombreMesSimple' => $datosMes['nombreMesSimple'],
+            'anio' => $datosMes['anio'],
+            'anioMinimo' => $datosMes['anioMinimo'],
+            'anioMaximo' => $datosMes['anioMaximo'],
+        ]);
+    }
+
+    public function estadisticasDatos(Request $request): JsonResponse
+    {
+        $datosMes = $this->resolverMes($request);
+        $vista = $request->query('vista') === 'usuarios' ? 'usuarios' : 'problemas';
+        $estadisticas = $this->calcularEstadisticas($datosMes['inicioMes'], $datosMes['finMes'], $vista);
+
+        $labels = array_column($estadisticas['filas'], 'label');
+        $colores = $vista === 'usuarios'
+            ? array_fill(0, count($labels), '#1CD6CE')
+            : array_map(static fn (string $tipo): string => Ticket::colorTipo($tipo), $labels);
+
+        return response()->json([
+            'vista' => $vista,
+            'mes' => $datosMes['mes'],
+            'nombre_mes' => $datosMes['nombreMes'],
+            'total_mes' => $estadisticas['totalMes'],
+            'labels' => $labels,
+            'valores' => array_column($estadisticas['filas'], 'total'),
+            'colores' => $colores,
+            'filas' => $estadisticas['filas'],
+        ]);
     }
 
     public function estadoPendientes(Request $request): JsonResponse
@@ -385,7 +401,7 @@ class TicketController extends Controller
             $ticket = Ticket::create([
                 'funcionario_id' => $datos['funcionario_id'],
                 'tipo_problema' => $datos['tipo_problema'],
-                'detalle_id' => $detalle?->id,
+                'detalles_id' => $detalle?->id,
                 'descripcion_problema' => $descripcion,
                 'imagen_problema' => $datos['imagen_problema'] ?? null,
                 'estado' => Ticket::ESTADO_PENDIENTE,
@@ -407,7 +423,7 @@ class TicketController extends Controller
             'ticket_id' => $ticket->id,
             'funcionario_id' => $ticket->funcionario_id,
             'tipo_problema' => $ticket->tipo_problema,
-            'detalle_id' => $ticket->detalle_id,
+            'detalles_id' => $ticket->detalles_id,
             'user_id' => Auth::id(),
         ]);
 
@@ -597,6 +613,101 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.show', $ticket)
             ->with('success', 'Ticket cerrado exitosamente y registrado en Informes (#'.$informe->id.').');
+    }
+
+    /**
+     * Resuelve el mes seleccionado y sus límites en formato Y-m-d junto a etiquetas para la vista.
+     *
+     * @return array{mes: string, inicioMes: string, finMes: string, nombreMes: string, nombreMesSimple: string, anio: string, anioMinimo: int, anioMaximo: int}
+     */
+    private function resolverMes(Request $request): array
+    {
+        $rangoAnios = Ticket::rangoAniosDashboard();
+        $anioMinimo = $rangoAnios['min'];
+        $anioMaximo = $rangoAnios['max'];
+
+        $mes = Ticket::mesValidoEnRango($request->query('mes'), $anioMinimo, max($anioMaximo, now()->addDay()->year))
+            ?? sprintf('%04d-%02d', max(now()->year, $anioMinimo), now()->month);
+
+        [$year, $month] = explode('-', $mes);
+        $anioMaximo = max($anioMaximo, (int) $year);
+        [$inicioMes, $finMes] = $this->rangoMes($mes);
+
+        $meses = [
+            '01' => 'Enero',
+            '02' => 'Febrero',
+            '03' => 'Marzo',
+            '04' => 'Abril',
+            '05' => 'Mayo',
+            '06' => 'Junio',
+            '07' => 'Julio',
+            '08' => 'Agosto',
+            '09' => 'Septiembre',
+            '10' => 'Octubre',
+            '11' => 'Noviembre',
+            '12' => 'Diciembre',
+        ];
+
+        $nombreMesSimple = $meses[$month] ?? 'Mes';
+
+        return [
+            'mes' => $mes,
+            'inicioMes' => $inicioMes,
+            'finMes' => $finMes,
+            'nombreMes' => $nombreMesSimple.' '.$year,
+            'nombreMesSimple' => $nombreMesSimple,
+            'anio' => $year,
+            'anioMinimo' => $anioMinimo,
+            'anioMaximo' => $anioMaximo,
+        ];
+    }
+
+    /**
+     * Calcula los conteos mensuales ordenados de mayor a menor para tipos de problema o top 8 usuarios.
+     *
+     * @return array{filas: list<array{label: string, total: int}>, totalMes: int}
+     */
+    private function calcularEstadisticas(string $inicioMes, string $finMes, string $vista): array
+    {
+        if ($vista === 'usuarios') {
+            $filas = Ticket::query()
+                ->join('funcionarios', 'funcionarios.id', '=', 'tickets.funcionario_id')
+                ->selectRaw('funcionarios.nombre as label, COUNT(tickets.id) as total')
+                ->whereBetween('tickets.fecha_creacion', [$inicioMes, $finMes])
+                ->groupBy('tickets.funcionario_id', 'funcionarios.nombre')
+                ->orderByDesc('total')
+                ->orderBy('funcionarios.nombre')
+                ->limit(8)
+                ->get()
+                ->map(fn ($fila): array => [
+                    'label' => (string) $fila->label,
+                    'total' => (int) $fila->total,
+                ])
+                ->all();
+
+            return [
+                'filas' => $filas,
+                'totalMes' => Ticket::whereBetween('fecha_creacion', [$inicioMes, $finMes])->count(),
+            ];
+        }
+
+        $conteos = Ticket::query()
+            ->selectRaw('tipo_problema, COUNT(*) as total')
+            ->whereBetween('fecha_creacion', [$inicioMes, $finMes])
+            ->groupBy('tipo_problema')
+            ->pluck('total', 'tipo_problema');
+
+        $filas = array_map(fn (string $tipo): array => [
+            'label' => $tipo,
+            'total' => (int) ($conteos[$tipo] ?? 0),
+        ], TipoProblema::values());
+
+        usort($filas, static fn (array $a, array $b): int => $b['total'] <=> $a['total']);
+
+        return [
+            'filas' => $filas,
+            'totalMes' => array_sum(array_column($filas, 'total')),
+        ];
     }
 
     /**
