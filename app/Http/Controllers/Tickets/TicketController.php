@@ -165,6 +165,12 @@ class TicketController extends Controller
             $query->where('tipo_problema', $tipo);
         }
 
+        if ($estado = $request->query('estado')) {
+            if (in_array($estado, Ticket::ESTADOS, true)) {
+                $query->where('estado', $estado);
+            }
+        }
+
         $tickets = $query->paginate(10)->withQueryString();
         $tiposProblema = TipoProblema::values();
 

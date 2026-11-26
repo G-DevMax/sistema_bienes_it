@@ -34,92 +34,31 @@
             };
         @endphp
         <nav
-            class="sticky top-0 z-50 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex justify-between items-center shadow-lg">
+            class="sticky top-0 z-50 backdrop-blur-xl bg-white/5 border-b border-white/10 px-4 sm:px-6 py-4 flex justify-between items-center gap-3 shadow-lg">
             <a href="/"
-                class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
+                class="min-w-0 truncate text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
                 {{ $tituloModulo }}
             </a>
-            <div class="flex items-center space-x-2 sm:space-x-4">
-                @if ($esModuloInformes)
-                    @can('informes.ver')
-                        <a href="{{ route('informes.index') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                            Informes
-                        </a>
-                    @endcan
-                    @can('detalles.ver')
-                        <a href="{{ route('detalles-problemas.index') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/15 text-blue-300 border border-blue-400/30 hover:bg-blue-500/25 hover:text-white transition-all">
-                            Registrar Problema Común
-                        </a>
-                        <a href="{{ route('detalles-soluciones.index') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/25 hover:text-white transition-all">
-                            Registrar Solución Común
-                        </a>
-                    @endcan
-                @elseif ($esModuloTickets)
-                    @can('tickets.ver')
-                        <a href="{{ route('tickets.dashboard') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.dashboard') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
-                            Inicio
-                        </a>
-                        <a href="{{ route('tickets.index') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.index', 'tickets.show') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
-                            Listado de Tickets
-                        </a>
-                        <a href="{{ route('tickets.estadisticas') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.estadisticas') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
-                            Estadísticas
-                        </a>
-                    @endcan
-                    @can('tickets.crear')
-                        <a href="{{ route('tickets.create-manual') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('tickets.create-manual') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
-                            Crear Ticket
-                        </a>
-                    @endcan
-                @else
-                    @can('bienes.ver')
-                        <a href="{{ route('menu_bientes') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('menu_bientes') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
-                            Inicio
-                        </a>
-                        <a href="{{ route('items.index') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                            Items
-                        </a>
-                        <a href="{{ route('movimientos.index') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                            Movimientos
-                        </a>
-                    @endcan
-                    @can('funcionarios.ver')
-                        <a href="{{ route('funcionarios.index') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                            Funcionarios
-                        </a>
-                    @endcan
-                    @can('usuarios.gestionar')
-                        <a href="{{ route('usuarios.index') }}"
-                            class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                            Usuarios
-                        </a>
-                    @endcan
-                @endif
 
-                <form action="{{ route('logout') }}" method="POST" class="inline">
-                    @csrf
-                    <button type="submit"
-                        class="px-4 py-2 rounded-lg text-sm font-medium text-red-500 hover:text-red-400 hover:bg-white/10 transition-all">
-                        Cerrar Sesión
-                    </button>
-                </form>
+            <div class="hidden md:flex items-center gap-2 lg:gap-4 shrink-0">
+                @include('layouts.nav-links')
             </div>
 
+            <details class="md:hidden relative shrink-0">
+                <summary
+                    class="list-none [&::-webkit-details-marker]:hidden cursor-pointer px-3 py-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all select-none"
+                    aria-label="Abrir menú de navegación">
+                    <span class="text-xl leading-none" aria-hidden="true">☰</span>
+                </summary>
+                <div
+                    class="absolute right-0 mt-2 w-60 rounded-xl bg-slate-900 border border-white/15 shadow-2xl p-2 flex flex-col gap-1 z-50">
+                    @include('layouts.nav-links')
+                </div>
+            </details>
         </nav>
     @endif
     <!-- Contenido Principal -->
-    <main class="flex-1 flex flex-col items-center justify-center p-6 md:p-10 w-full max-w-7xl mx-auto">
+    <main class="flex-1 flex flex-col items-center justify-center p-4 md:p-10 w-full max-w-7xl mx-auto">
         @yield('content')
     </main>
 </body>

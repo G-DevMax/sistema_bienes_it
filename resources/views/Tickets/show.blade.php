@@ -3,7 +3,7 @@
 @section('title', 'Detalle del Ticket #' . $ticket->id)
 
 @section('content')
-    <div class="w-full max-w-5xl animate-fade-in-up">
+    <div class="w-full max-w-5xl">
         <!-- Encabezado -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div class="flex items-center gap-4">
@@ -17,7 +17,7 @@
                 </a>
                 <div>
                     <div class="flex flex-wrap items-center gap-3">
-                        <h1 class="text-3xl font-bold text-white">Ticket #{{ $ticket->id }}</h1>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-white">Ticket #{{ $ticket->id }}</h1>
                         <span
                             class="px-3 py-1 rounded-full text-xs font-medium border {{ \App\Models\Tickets\Ticket::badgeEstado($ticket->estado) }}">
                             {{ $ticket->estado }}
@@ -33,111 +33,86 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Información del Ticket -->
-            <div class="md:col-span-2 space-y-6">
-                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-lg space-y-6">
-                    <h2 class="text-lg font-bold text-white border-b border-white/10 pb-3">Información General</h2>
+            <div class="md:col-span-2 bg-slate-900/60 border border-white/10 rounded-2xl p-6 shadow-xl space-y-6">
+                <h2 class="text-lg font-bold text-white border-b border-white/10 pb-3">Información General</h2>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                            <span class="block text-xs font-medium text-white/50 mb-1">Funcionario Solicitante</span>
-                            <p class="font-medium text-white">{{ $ticket->funcionario->nombre ?? '—' }}</p>
-                            @if ($ticket->funcionario?->dependencia)
-                                <span
-                                    class="block text-xs text-white/50 mt-0.5">{{ $ticket->funcionario->dependencia->nombre }}</span>
-                            @endif
-                        </div>
-
-                        <div>
-                            <span class="block text-xs font-medium text-white/50 mb-1">Técnico Asignado</span>
-                            <p class="font-medium text-white">{{ $ticket->tecnicoAsignado->name ?? 'Sin asignar' }}</p>
-                        </div>
-
-                        <div>
-                            <span class="block text-xs font-medium text-white/50 mb-1">Fecha y Hora de Creación</span>
-                            <p class="font-medium text-white">
-                                {{ ($ticket->created_at ?? $ticket->fecha_creacion)?->format('d/m/Y H:i') }}</p>
-                        </div>
-
-                        @if ($ticket->fecha_cierre)
-                            <div>
-                                <span class="block text-xs font-medium text-white/50 mb-1">Fecha y Hora de Cierre</span>
-                                <p class="font-medium text-white">
-                                    {{ ($ticket->updated_at ?? $ticket->fecha_cierre)->format('d/m/Y H:i') }}</p>
-                            </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <span class="block text-xs font-medium text-white/50 mb-1">Funcionario Solicitante</span>
+                        <p class="font-medium text-white">{{ $ticket->funcionario->nombre ?? '—' }}</p>
+                        @if ($ticket->funcionario?->dependencia)
+                            <span
+                                class="block text-xs text-white/50 mt-0.5">{{ $ticket->funcionario->dependencia->nombre }}</span>
                         @endif
                     </div>
 
                     <div>
-                        <span class="block text-xs font-medium text-white/50 mb-1">Tipo de Problema</span>
-                        <p class="font-medium text-white">{{ $ticket->tipo_problema }}</p>
+                        <span class="block text-xs font-medium text-white/50 mb-1">Técnico Asignado</span>
+                        <p class="font-medium text-white">{{ $ticket->tecnicoAsignado->name ?? 'Sin asignar' }}</p>
                     </div>
 
+                    <div>
+                        <span class="block text-xs font-medium text-white/50 mb-1">Fecha y Hora de Creación</span>
+                        <p class="font-medium text-white">
+                            {{ ($ticket->created_at ?? $ticket->fecha_creacion)?->format('d/m/Y H:i') }}</p>
+                    </div>
+
+                    @if ($ticket->fecha_cierre)
+                        <div>
+                            <span class="block text-xs font-medium text-white/50 mb-1">Fecha y Hora de Cierre</span>
+                            <p class="font-medium text-white">
+                                {{ ($ticket->updated_at ?? $ticket->fecha_cierre)->format('d/m/Y H:i') }}</p>
+                        </div>
+                    @endif
+                </div>
+
+                <div>
+                    <span class="block text-xs font-medium text-white/50 mb-1">Tipo de Problema</span>
+                    <p class="font-medium text-white">{{ $ticket->tipo_problema }}</p>
+                </div>
+
+                <div class="pt-4 border-t border-white/10">
+                    <span class="block text-xs font-medium text-white/50 mb-2">Descripción del Problema</span>
+                    <div
+                        class="text-sm text-white/90 bg-white/5 border border-white/10 p-4 rounded-xl whitespace-pre-line">
+                        {{ $ticket->descripcion_problema }}</div>
+                </div>
+
+                @if ($ticket->imagen_problema)
+                    @php $rutaImagen = '/' . ltrim($ticket->imagen_problema, '/'); @endphp
                     <div class="pt-4 border-t border-white/10">
-                        <span class="block text-xs font-medium text-white/50 mb-2">Descripción del Problema</span>
-                        <div
-                            class="text-sm text-white/90 bg-white/5 border border-white/10 p-4 rounded-xl whitespace-pre-line">
-                            {{ $ticket->descripcion_problema }}</div>
+                        <span class="block text-xs font-medium text-white/50 mb-2">Foto del Problema</span>
+                        <a href="{{ $rutaImagen }}" target="_blank" rel="noopener noreferrer" class="inline-block max-w-full">
+                            <img src="{{ $rutaImagen }}" alt="Foto del problema del ticket #{{ $ticket->id }}"
+                                loading="lazy" class="max-w-full max-h-64 rounded-lg cursor-pointer">
+                        </a>
                     </div>
+                @endif
 
-                    @if ($ticket->imagen_problema)
-                        @php $rutaImagen = '/' . ltrim($ticket->imagen_problema, '/'); @endphp
-                        <div class="pt-4 border-t border-white/10">
-                            <span class="block text-xs font-medium text-white/50 mb-2">Foto del Problema</span>
-                            <a href="{{ $rutaImagen }}" target="_blank" rel="noopener noreferrer" class="inline-block">
-                                <img src="{{ $rutaImagen }}" alt="Foto del problema del ticket #{{ $ticket->id }}"
-                                    loading="lazy" class="max-h-64 rounded-lg cursor-pointer">
-                            </a>
+                @if ($ticket->estaCerrado())
+                    <div class="pt-4 border-t border-white/10 space-y-4">
+                        <div>
+                            <span class="block text-xs font-medium text-white/50 mb-1">Solución Común</span>
+                            <p class="font-medium text-white">{{ $ticket->solucionTexto() }}</p>
                         </div>
-                    @endif
-
-                    @if ($ticket->estaCerrado())
-                        <div class="pt-4 border-t border-white/10 space-y-4">
-                            <div>
-                                <span class="block text-xs font-medium text-white/50 mb-1">Solución Común</span>
-                                <p class="font-medium text-white">{{ $ticket->solucionTexto() }}</p>
-                            </div>
-                            <div>
-                                <span class="block text-xs font-medium text-white/50 mb-2">Observación de Cierre</span>
-                                @if ($ticket->observacion)
-                                    <div
-                                        class="text-sm text-white/90 bg-white/5 border border-white/10 p-4 rounded-xl whitespace-pre-line">
-                                        {{ $ticket->observacion }}</div>
-                                @else
-                                    <p class="text-sm text-white/40 italic">Sin observaciones registradas al cierre.</p>
-                                @endif
-                            </div>
+                        <div>
+                            <span class="block text-xs font-medium text-white/50 mb-2">Observación de Cierre</span>
+                            @if ($ticket->observacion)
+                                <div
+                                    class="text-sm text-white/90 bg-white/5 border border-white/10 p-4 rounded-xl whitespace-pre-line">
+                                    {{ $ticket->observacion }}</div>
+                            @else
+                                <p class="text-sm text-white/40 italic">Sin observaciones registradas al cierre.</p>
+                            @endif
                         </div>
-                    @endif
-                </div>
-
-                <!-- Historial del Ticket -->
-                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-lg">
-                    <h2 class="text-lg font-bold text-white border-b border-white/10 pb-3 mb-4">Historial de Actividad</h2>
-                    <div class="space-y-3">
-                        @forelse ($ticket->historial as $evento)
-                            <div
-                                class="flex items-start justify-between gap-4 p-3 rounded-xl bg-white/5 border border-white/10">
-                                <div>
-                                    <p class="text-sm font-medium text-white">{{ $evento->accion }}</p>
-                                    <p class="text-xs text-white/50 mt-0.5">
-                                        Por {{ $evento->responsable->name ?? ($evento->funcionario->nombre ?? 'Usuario') }}
-                                    </p>
-                                </div>
-                                <span class="text-xs text-white/60 whitespace-nowrap">
-                                    {{ ($evento->created_at ?? $evento->fecha)?->format('d/m/Y H:i') }}
-                                </span>
-                            </div>
-                        @empty
-                            <p class="text-sm text-white/40 italic">Sin movimientos registrados aún.</p>
-                        @endforelse
                     </div>
-                </div>
+                @endif
             </div>
 
             <!-- Panel de Acciones -->
-            <div class="md:col-span-1">
+            <div class="md:col-start-3 md:row-start-1 md:row-span-2">
                 <div
-                    class="bg-white/5 backdrop-blur-xl border border-[#1CD6CE]/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(28,214,206,0.1)] sticky top-24 space-y-5">
+                    class="bg-slate-900/60 border border-[#1CD6CE]/30 rounded-2xl p-6 shadow-xl md:sticky md:top-24 space-y-5">
                     <h2 class="text-lg font-bold text-white border-b border-white/10 pb-3">Gestión del Ticket</h2>
 
                     @if ($ticket->estaCerrado())
@@ -172,7 +147,7 @@
                                         Asignar Técnico
                                     </label>
                                     <select name="asignado_a" id="asignado_a" required
-                                        class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 outline-none">
+                                        class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-base text-white focus:border-blue-400 outline-none">
                                         <option value="">Seleccione un técnico...</option>
                                         @foreach ($tecnicos as $tecnico)
                                             <option value="{{ $tecnico->id }}" @selected(old('asignado_a', auth()->id()) == $tecnico->id)>
@@ -182,7 +157,7 @@
                                     </select>
                                 </div>
                                 <button type="submit"
-                                    class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white font-bold shadow-lg shadow-blue-500/20 transition-all">
+                                    class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white font-bold shadow-lg shadow-blue-500/20 transition-all">
                                     Asignar Técnico
                                 </button>
                             </form>
@@ -206,7 +181,7 @@
                                     </label>
                                     <select name="solucion_id" id="solucion_id" data-sort="none"
                                         placeholder="Selecciona o busca una solución..."
-                                        class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:border-blue-400 outline-none">
+                                        class="searchable-select w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-base text-white focus:border-blue-400 outline-none">
                                         @if ($solucionesDisponibles->isNotEmpty())
                                             <option value="" @selected($solucionInicial === '')>Selecciona o busca una
                                                 solución...
@@ -231,10 +206,10 @@
                                     </label>
                                     <textarea name="observacion" id="observacion" rows="4"
                                         placeholder="Describe brevemente la solución aplicada..."
-                                        class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all">{{ old('observacion') }}</textarea>
+                                        class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-base text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all">{{ old('observacion') }}</textarea>
                                 </div>
                                 <button type="submit"
-                                    class="w-full py-2.5 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold shadow-lg shadow-green-500/20 transition-all">
+                                    class="w-full py-3 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold shadow-lg shadow-green-500/20 transition-all">
                                     Cerrar Ticket
                                 </button>
                             </form>
@@ -253,7 +228,7 @@
                                     class="mt-3 space-y-3">
                                     @csrf
                                     <select name="asignado_a" required
-                                        class="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-xl text-sm text-white focus:border-blue-400 outline-none">
+                                        class="w-full px-3 py-2.5 bg-white/5 border border-white/20 rounded-xl text-base sm:text-sm text-white focus:border-blue-400 outline-none">
                                         @foreach ($tecnicos as $tecnico)
                                             <option value="{{ $tecnico->id }}" @selected($ticket->asignado_a == $tecnico->id)>
                                                 {{ $tecnico->name }}
@@ -261,7 +236,7 @@
                                         @endforeach
                                     </select>
                                     <button type="submit"
-                                        class="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all">
+                                        class="w-full py-3 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all">
                                         Actualizar Técnico
                                     </button>
                                 </form>
@@ -281,6 +256,29 @@
                             </div>
                         @endif
                     @endcan
+                </div>
+            </div>
+
+            <!-- Historial del Ticket -->
+            <div class="md:col-span-2 bg-slate-900/60 border border-white/10 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-lg font-bold text-white border-b border-white/10 pb-3 mb-4">Historial de Actividad</h2>
+                <div class="space-y-3">
+                    @forelse ($ticket->historial as $evento)
+                        <div
+                            class="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4 p-3 rounded-xl bg-white/5 border border-white/10">
+                            <div>
+                                <p class="text-sm font-medium text-white">{{ $evento->accion }}</p>
+                                <p class="text-xs text-white/50 mt-0.5">
+                                    Por {{ $evento->responsable->name ?? ($evento->funcionario->nombre ?? 'Usuario') }}
+                                </p>
+                            </div>
+                            <span class="text-xs text-white/60 whitespace-nowrap">
+                                {{ ($evento->created_at ?? $evento->fecha)?->format('d/m/Y H:i') }}
+                            </span>
+                        </div>
+                    @empty
+                        <p class="text-sm text-white/40 italic">Sin movimientos registrados aún.</p>
+                    @endforelse
                 </div>
             </div>
         </div>

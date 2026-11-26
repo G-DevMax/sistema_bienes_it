@@ -131,7 +131,8 @@ class TicketTest extends TestCase
         $vista->assertSee('campos-reunion', false);
         $vista->assertSee('type="date"', false);
         $vista->assertSeeInOrder(['name="fecha_reunion"', 'name="horario_reunion"', 'name="detalles_reunion"'], false);
-        $vista->assertSee('backdrop-blur-xl', false);
+        $vista->assertSee('bg-slate-900/60', false);
+        $vista->assertDontSee('backdrop-blur', false);
         $vista->assertSee(route('tickets.store-manual'));
     }
 
@@ -1139,5 +1140,83 @@ class TicketTest extends TestCase
 
         $this->assertSame($detalleInsumo->id, $ticketInsumo->detalles_id);
         $this->assertSame('Tóner láser negro (Cantidad: 4)', $ticketInsumo->descripcion_problema);
+    }
+
+    public function test_listado_de_tickets_filtra_por_estado_valido_e_ignora_estado_invalido(): void
+    {
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
+            'rol_id' => rol::ADMIN,
+            'estado_user' => 1,
+        ]));
+
+        $dependencia = dependencias::first() ?? dependencias::withoutEvents(
+            fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Filtro Estado'])
+        );
+
+        $funcionarioPendiente = funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+            'nombre' => 'FiltroEstado Pendiente Unico',
+            'dependencia_id' => $dependencia->id,
+            'estado_funcionario' => 1,
+        ]));
+
+        $funcionarioAsignado = funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+            'nombre' => 'FiltroEstado Asignado Unico',
+            'dependencia_id' => $dependencia->id,
+            'estado_funcionario' => 1,
+        ]));
+
+        $funcionarioCerrado = funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+            'nombre' => 'FiltroEstado Cerrado Unico',
+            'dependencia_id' => $dependencia->id,
+            'estado_funcionario' => 1,
+        ]));
+
+        Ticket::create([
+            'funcionario_id' => $funcionarioPendiente->id,
+            'tipo_problema' => TipoProblema::values()[0],
+            'descripcion_problema' => 'Ticket pendiente filtro estado',
+            'estado' => Ticket::ESTADO_PENDIENTE,
+            'fecha_creacion' => now()->toDateString(),
+        ]);
+
+        Ticket::create([
+            'funcionario_id' => $funcionarioAsignado->id,
+            'tipo_problema' => TipoProblema::values()[0],
+            'descripcion_problema' => 'Ticket asignado filtro estado',
+            'estado' => Ticket::ESTADO_ASIGNADO,
+            'asignado_a' => $admin->id,
+            'fecha_creacion' => now()->toDateString(),
+        ]);
+
+        Ticket::create([
+            'funcionario_id' => $funcionarioCerrado->id,
+            'tipo_problema' => TipoProblema::values()[0],
+            'descripcion_problema' => 'Ticket cerrado filtro estado',
+            'estado' => Ticket::ESTADO_CERRADO,
+            'asignado_a' => $admin->id,
+            'fecha_creacion' => now()->toDateString(),
+            'fecha_cierre' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('tickets.index', ['estado' => Ticket::ESTADO_PENDIENTE, 'search' => 'FiltroEstado']))
+            ->assertOk()
+            ->assertSee('FiltroEstado Pendiente Unico')
+            ->assertDontSee('FiltroEstado Asignado Unico')
+            ->assertDontSee('FiltroEstado Cerrado Unico');
+
+        $this->actingAs($admin)
+            ->get(route('tickets.index', ['estado' => Ticket::ESTADO_ASIGNADO, 'search' => 'FiltroEstado']))
+            ->assertOk()
+            ->assertSee('FiltroEstado Asignado Unico')
+            ->assertDontSee('FiltroEstado Pendiente Unico')
+            ->assertDontSee('FiltroEstado Cerrado Unico');
+
+        $this->actingAs($admin)
+            ->get(route('tickets.index', ['estado' => 'EstadoInvalido', 'search' => 'FiltroEstado']))
+            ->assertOk()
+            ->assertSee('FiltroEstado Pendiente Unico')
+            ->assertSee('FiltroEstado Asignado Unico')
+            ->assertSee('FiltroEstado Cerrado Unico');
     }
 }

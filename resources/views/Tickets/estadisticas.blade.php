@@ -100,7 +100,7 @@
                 </span>
             </div>
 
-            <div id="contenedor-grafico" class="relative h-80 w-full {{ $totalMes === 0 ? 'hidden' : '' }}">
+            <div id="contenedor-grafico" class="relative h-64 sm:h-80 w-full {{ $totalMes === 0 ? 'hidden' : '' }}">
                 <canvas id="grafico-estadisticas"
                     data-chart-type="bar"
                     data-chart-data='@json($datosGrafico)'
@@ -131,7 +131,7 @@
                                 {{ $esVistaUsuarios ? 'Usuario' : 'Tipo de Problema' }}
                             </th>
                             <th class="px-6 py-4 font-semibold text-right">Cantidad</th>
-                            <th class="px-6 py-4 font-semibold text-right w-48">% del mes</th>
+                            <th class="hidden sm:table-cell px-6 py-4 font-semibold text-right w-48">% del mes</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-white/5 text-white/90">
@@ -154,7 +154,7 @@
                                 <td class="px-6 py-4 text-right font-semibold text-white">
                                     {{ $fila['total'] }}
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="hidden sm:table-cell px-6 py-4">
                                     <div class="flex items-center justify-end gap-3">
                                         <div class="w-24 h-2 rounded-full bg-white/10 overflow-hidden">
                                             <div class="h-full rounded-full"
