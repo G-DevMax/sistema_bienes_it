@@ -17,10 +17,9 @@
 
 <body
     class="bg-slate-950 text-white min-h-screen flex flex-col font-sans antialiased selection:bg-blue-600/30 selection:text-white">
-    <!-- Fondo decorativo con degradados -->
-    <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div class="absolute -top-[40%] -left-[10%] w-[70%] h-[70%] rounded-full bg-blue-600/20 blur-[120px]"></div>
-        <div class="absolute top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-indigo-600/20 blur-[120px]"></div>
+    <!-- Fondo decorativo con degradados estáticos -->
+    <div class="fixed inset-0 z-[-1] pointer-events-none transform-gpu"
+        style="background: radial-gradient(circle at 25% 0%, rgba(37, 99, 235, 0.2), transparent 55%), radial-gradient(circle at 80% 50%, rgba(79, 70, 229, 0.2), transparent 50%);">
     </div>
 
     <!-- Navbar -->
@@ -81,6 +80,10 @@
                     @endcan
                 @else
                     @can('bienes.ver')
+                        <a href="{{ route('menu_bientes') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('menu_bientes') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10' }}">
+                            Inicio
+                        </a>
                         <a href="{{ route('items.index') }}"
                             class="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all">
                             Items

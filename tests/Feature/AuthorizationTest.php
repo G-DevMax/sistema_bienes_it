@@ -470,7 +470,7 @@ class AuthorizationTest extends TestCase
 
         $director = $this->crearUsuarioConRol(rol::DIRECTOR);
         $this->post(route('login.post'), ['email' => $director->email, 'password' => 'secret123'])
-            ->assertRedirect('/items');
+            ->assertRedirect(route('menu_bientes'));
         $this->assertAuthenticatedAs($director);
     }
 
@@ -516,6 +516,7 @@ class AuthorizationTest extends TestCase
         app()->instance('request', $requestItems);
 
         $htmlAdmin = view('layouts.app')->render();
+        $this->assertStringContainsString(route('menu_bientes'), $htmlAdmin);
         $this->assertStringContainsString(route('items.index'), $htmlAdmin);
         $this->assertStringContainsString(route('movimientos.index'), $htmlAdmin);
         $this->assertStringContainsString(route('funcionarios.index'), $htmlAdmin);
@@ -524,6 +525,7 @@ class AuthorizationTest extends TestCase
         $supervisor = $this->crearUsuarioConRol(rol::SUPERVISOR);
         $this->be($supervisor);
         $htmlSupervisor = view('layouts.app')->render();
+        $this->assertStringContainsString(route('menu_bientes'), $htmlSupervisor);
         $this->assertStringContainsString(route('items.index'), $htmlSupervisor);
         $this->assertStringContainsString(route('movimientos.index'), $htmlSupervisor);
         $this->assertStringContainsString(route('funcionarios.index'), $htmlSupervisor);

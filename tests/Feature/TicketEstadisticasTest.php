@@ -93,8 +93,11 @@ class TicketEstadisticasTest extends TestCase
         $response->assertSee('Estadísticas de Tickets');
         $response->assertSee('cdn.jsdelivr.net/npm/chart.js', false);
         $response->assertSee('<canvas id="grafico-estadisticas"', false);
-        $response->assertSee("indexAxis: 'y'", false);
-        $response->assertSee(json_encode(route('tickets.estadisticas.datos', ['mes' => '2026-04', 'vista' => 'problemas'])), false);
+        $response->assertSee('data-chart-type="bar"', false);
+        $response->assertSee('data-chart-data=', false);
+        $response->assertDontSee('data-chart-url', false);
+        $response->assertSee('"total_mes":4', false);
+        $response->assertSee('estadisticas-charts', false);
         $response->assertSee('Total del mes: 4');
         $response->assertSeeInOrder([$tipoMayor, $tipoMedio]);
 
@@ -166,7 +169,7 @@ class TicketEstadisticasTest extends TestCase
         ]));
 
         $response->assertOk();
-        $response->assertSee('Top 8 Usuarios que más tickets abrieron');
+        $response->assertSee('Usuarios que más tickets abrieron');
         $response->assertSee('Total del mes: 54');
         $response->assertSeeInOrder([
             'Usuario Ranking 01',

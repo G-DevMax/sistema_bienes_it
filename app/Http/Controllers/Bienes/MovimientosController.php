@@ -11,7 +11,10 @@ use App\Services\Bienes\InformeMovimientoService;
 use App\Services\Bienes\MovimientoService;
 use App\Services\Bienes\PlanillaMovimientoService;
 use App\Services\LoggerService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -21,7 +24,64 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class MovimientosController extends Controller
 {
+    private const PALETA_USUARIOS = [
+        '#60a5fa',
+        '#1CD6CE',
+        '#a855f7',
+        '#FEDB39',
+        '#4ade80',
+        '#f472b6',
+        '#fb923c',
+        '#818cf8',
+    ];
+
+    private const COLORES_TIPO = [
+        movimientos::PRESTAMO => '#FEDB39',
+        movimientos::TRANSFERENCIA => '#a855f7',
+    ];
+
     public function __construct(private MovimientoService $movimientoService) {}
+
+    public function dashboard(Request $request): View
+    {
+        $datosMes = $this->resolverMes($request);
+        $vista = $request->query('vista') === 'usuarios' ? 'usuarios' : 'movimientos';
+        $estadisticas = $this->calcularEstadisticas($datosMes['inicioMes'], $datosMes['finMes'], $vista);
+        $resumenPrestamos = $this->contarPrestamosPorEstado($datosMes['inicioMes'], $datosMes['finMes']);
+
+        return view('Bienes.menu_bientes', [
+            'vista' => $vista,
+            'filasTabla' => $estadisticas['filas'],
+            'totalMes' => $estadisticas['totalMes'],
+            'colores' => $estadisticas['colores'],
+            'prestamosPendientes' => $resumenPrestamos['pendientes'],
+            'prestamosCerrados' => $resumenPrestamos['cerrados'],
+            'mes' => $datosMes['mes'],
+            'nombreMes' => $datosMes['nombreMes'],
+            'nombreMesSimple' => $datosMes['nombreMesSimple'],
+            'anio' => $datosMes['anio'],
+            'anioMinimo' => $datosMes['anioMinimo'],
+            'anioMaximo' => $datosMes['anioMaximo'],
+        ]);
+    }
+
+    public function estadisticasDatos(Request $request): JsonResponse
+    {
+        $datosMes = $this->resolverMes($request);
+        $vista = $request->query('vista') === 'usuarios' ? 'usuarios' : 'movimientos';
+        $estadisticas = $this->calcularEstadisticas($datosMes['inicioMes'], $datosMes['finMes'], $vista);
+
+        return response()->json([
+            'vista' => $vista,
+            'mes' => $datosMes['mes'],
+            'nombre_mes' => $datosMes['nombreMes'],
+            'total_mes' => $estadisticas['totalMes'],
+            'labels' => array_column($estadisticas['filas'], 'label'),
+            'valores' => array_column($estadisticas['filas'], 'total'),
+            'colores' => $estadisticas['colores'],
+            'filas' => $estadisticas['filas'],
+        ]);
+    }
 
     public function index(Request $request)
     {
@@ -344,5 +404,160 @@ class MovimientosController extends Controller
         }, $informe->nombreArchivo($datos['tipo_movimiento'], $datos['fecha_desde'], $datos['fecha_hasta']), [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
+    }
+
+    /**
+     * Resuelve el mes seleccionado y sus límites en formato Y-m-d junto a etiquetas para la vista.
+     *
+     * @return array{mes: string, inicioMes: string, finMes: string, nombreMes: string, nombreMesSimple: string, anio: string, anioMinimo: int, anioMaximo: int}
+     */
+    private function resolverMes(Request $request): array
+    {
+        $rango = movimientos::query()
+            ->whereNull('anulado_at')
+            ->whereIn('tipo_movimiento', [movimientos::PRESTAMO, movimientos::TRANSFERENCIA])
+            ->selectRaw('MIN(fecha_movimiento) as min_fecha, MAX(fecha_movimiento) as max_fecha')
+            ->first();
+
+        $anioBase = 2026;
+        $anioActual = max(now()->year, $anioBase);
+        $anioMinDb = (int) substr((string) ($rango->min_fecha ?? ''), 0, 4);
+        $anioMaxDb = (int) substr((string) ($rango->max_fecha ?? ''), 0, 4);
+
+        $anioMinimo = $anioMinDb >= $anioBase ? min($anioMinDb, $anioActual) : $anioBase;
+        $anioMaximo = max($anioActual, $anioMaxDb, $anioMinimo);
+
+        $mesParam = $request->query('mes');
+        $limiteSuperior = max($anioMaximo, now()->addDay()->year);
+        $mes = null;
+        if (is_string($mesParam) && preg_match('/^(\d{4})-(0[1-9]|1[0-2])$/', $mesParam, $coincidencias)) {
+            $anioParam = (int) $coincidencias[1];
+            if ($anioParam >= $anioMinimo && $anioParam <= $limiteSuperior) {
+                $mes = $mesParam;
+            }
+        }
+        $mes ??= sprintf('%04d-%02d', max(now()->year, $anioMinimo), now()->month);
+
+        [$year, $month] = explode('-', $mes);
+        $anioMaximo = max($anioMaximo, (int) $year);
+
+        $inicio = Carbon::createFromDate((int) $year, (int) $month, 1)->startOfMonth();
+        $inicioMes = $inicio->toDateString();
+        $finMes = $inicio->copy()->endOfMonth()->toDateString();
+
+        $meses = [
+            '01' => 'Enero',
+            '02' => 'Febrero',
+            '03' => 'Marzo',
+            '04' => 'Abril',
+            '05' => 'Mayo',
+            '06' => 'Junio',
+            '07' => 'Julio',
+            '08' => 'Agosto',
+            '09' => 'Septiembre',
+            '10' => 'Octubre',
+            '11' => 'Noviembre',
+            '12' => 'Diciembre',
+        ];
+
+        $nombreMesSimple = $meses[$month] ?? 'Mes';
+
+        return [
+            'mes' => $mes,
+            'inicioMes' => $inicioMes,
+            'finMes' => $finMes,
+            'nombreMes' => $nombreMesSimple.' '.$year,
+            'nombreMesSimple' => $nombreMesSimple,
+            'anio' => $year,
+            'anioMinimo' => $anioMinimo,
+            'anioMaximo' => $anioMaximo,
+        ];
+    }
+
+    /**
+     * Calcula los conteos mensuales de préstamos y transferencias o el top 8 de funcionarios.
+     *
+     * @return array{filas: list<array{tipo?: string, label: string, total: int}>, colores: list<string>, totalMes: int}
+     */
+    private function calcularEstadisticas(string $inicioMes, string $finMes, string $vista): array
+    {
+        $baseQuery = movimientos::query()
+            ->whereNull('movimientos.anulado_at')
+            ->whereIn('movimientos.tipo_movimiento', [movimientos::PRESTAMO, movimientos::TRANSFERENCIA])
+            ->whereBetween('movimientos.fecha_movimiento', [$inicioMes.' 00:00:00', $finMes.' 23:59:59']);
+
+        if ($vista === 'usuarios') {
+            $filas = (clone $baseQuery)
+                ->join('funcionarios', 'funcionarios.id', '=', 'movimientos.funcionario_id')
+                ->selectRaw('funcionarios.nombre as label, COUNT(movimientos.id) as total')
+                ->groupBy('movimientos.funcionario_id', 'funcionarios.nombre')
+                ->orderByDesc('total')
+                ->orderBy('funcionarios.nombre')
+                ->limit(8)
+                ->get()
+                ->map(fn ($fila): array => [
+                    'label' => (string) $fila->label,
+                    'total' => (int) $fila->total,
+                ])
+                ->all();
+
+            $colores = [];
+            foreach ($filas as $indice => $_) {
+                $colores[] = self::PALETA_USUARIOS[$indice % count(self::PALETA_USUARIOS)];
+            }
+
+            return [
+                'filas' => $filas,
+                'colores' => $colores,
+                'totalMes' => (clone $baseQuery)->count(),
+            ];
+        }
+
+        $conteos = (clone $baseQuery)
+            ->selectRaw('tipo_movimiento, COUNT(*) as total')
+            ->groupBy('tipo_movimiento')
+            ->pluck('total', 'tipo_movimiento');
+
+        $filas = array_map(fn (string $tipo): array => [
+            'tipo' => $tipo,
+            'label' => movimientos::ETIQUETAS[$tipo],
+            'total' => (int) ($conteos[$tipo] ?? 0),
+        ], [movimientos::PRESTAMO, movimientos::TRANSFERENCIA]);
+
+        usort($filas, static fn (array $a, array $b): int => $b['total'] <=> $a['total']);
+
+        $colores = array_map(
+            static fn (array $fila): string => self::COLORES_TIPO[$fila['tipo']] ?? '#60a5fa',
+            $filas
+        );
+
+        return [
+            'filas' => $filas,
+            'colores' => $colores,
+            'totalMes' => array_sum(array_column($filas, 'total')),
+        ];
+    }
+
+    /**
+     * Cuenta los préstamos del mes según tengan unidades pendientes o estén cerrados.
+     *
+     * @return array{pendientes: int, cerrados: int}
+     */
+    private function contarPrestamosPorEstado(string $inicioMes, string $finMes): array
+    {
+        $resueltoSql = '(SELECT COALESCE(SUM(h.cantidad), 0) FROM movimientos h WHERE h.movimiento_origen_id = movimientos.id AND h.anulado_at IS NULL)';
+
+        $resumen = movimientos::query()
+            ->whereNull('anulado_at')
+            ->where('tipo_movimiento', movimientos::PRESTAMO)
+            ->whereBetween('fecha_movimiento', [$inicioMes.' 00:00:00', $finMes.' 23:59:59'])
+            ->selectRaw("SUM(CASE WHEN cantidad > {$resueltoSql} THEN 1 ELSE 0 END) as pendientes")
+            ->selectRaw("SUM(CASE WHEN cantidad <= {$resueltoSql} THEN 1 ELSE 0 END) as cerrados")
+            ->first();
+
+        return [
+            'pendientes' => (int) ($resumen->pendientes ?? 0),
+            'cerrados' => (int) ($resumen->cerrados ?? 0),
+        ];
     }
 }

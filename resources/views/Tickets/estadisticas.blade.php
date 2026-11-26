@@ -11,9 +11,15 @@
         $anioMinimoPicker = $anioMinimo ?? \App\Models\Tickets\Ticket::ANIO_MINIMO;
         $anioMaximoPicker = $anioMaximo ?? max(now()->year, (int) $anioMostrar, $anioMinimoPicker);
         $esVistaUsuarios = $vista === 'usuarios';
+        $datosGrafico = [
+            'labels' => array_column($filasTabla, 'label'),
+            'valores' => array_column($filasTabla, 'total'),
+            'colores' => $colores,
+            'total_mes' => $totalMes,
+        ];
     @endphp
 
-    <div class="w-full max-w-7xl animate-fade-in-up">
+    <div class="w-full max-w-7xl">
         <!-- Encabezado -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
@@ -48,10 +54,12 @@
                     </button>
                     <input type="month" id="input-filtro-mes" name="mes" value="{{ $mesSeleccionado }}"
                         min="{{ $anioMinimoPicker }}-01" max="{{ $anioMaximoPicker }}-12"
+                        data-anio-minimo="{{ (int) $anioMinimoPicker }}"
+                        data-anio-maximo="{{ (int) $anioMaximoPicker }}"
+                        data-mes-servidor="{{ $mesSeleccionado }}"
+                        data-base-url="{{ route('tickets.estadisticas', ['vista' => $vista]) }}"
                         class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-                        title="Seleccionar mes para filtrar"
-                        onclick="if (this.showPicker) { try { this.showPicker(); } catch (e) {} }"
-                        onchange="if (this.value && (!this.min || this.value >= this.min) && (!this.max || this.value <= this.max)) { window.location.href = '{{ route('tickets.estadisticas', ['vista' => $vista]) }}&mes=' + this.value; }">
+                        title="Seleccionar mes para filtrar">
                 </div>
 
                 @if ($mesSeleccionado !== $mesActualServidor)
@@ -81,7 +89,7 @@
 
         <!-- Gráfico de barras horizontales (Chart.js) -->
         <div
-            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] p-6 mb-8">
+            class="bg-slate-900/60 border border-white/10 rounded-2xl shadow-xl p-6 mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                 <h2 class="text-lg font-bold text-white">
                     {{ $esVistaUsuarios ? 'Usuarios que más tickets abrieron' : 'Problemas más frecuentes del mes' }}
@@ -94,6 +102,9 @@
 
             <div id="contenedor-grafico" class="relative h-80 w-full {{ $totalMes === 0 ? 'hidden' : '' }}">
                 <canvas id="grafico-estadisticas"
+                    data-chart-type="bar"
+                    data-chart-data='@json($datosGrafico)'
+                    data-chart-label="Tickets"
                     aria-label="{{ $esVistaUsuarios ? 'Gráfico de barras horizontales de los 8 usuarios con más tickets del mes' : 'Gráfico de barras horizontales de tipos de problema del mes' }}"
                     role="img"></canvas>
             </div>
@@ -105,7 +116,7 @@
 
         <!-- Tabla de totales ordenada de mayor a menor -->
         <div
-            class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden">
+            class="bg-slate-900/60 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
             <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
                 <h2 class="text-lg font-bold text-white">
                     {{ $esVistaUsuarios ? 'Detalle de los 8 usuarios con más solicitudes' : 'Cantidad total por tipo de problema' }}
@@ -147,7 +158,7 @@
                                     <div class="flex items-center justify-end gap-3">
                                         <div class="w-24 h-2 rounded-full bg-white/10 overflow-hidden">
                                             <div class="h-full rounded-full"
-                                                style="width: {{ min(100, $porcentaje) }}%; background-color: {{ $esVistaUsuarios ? '#1CD6CE' : \App\Models\Tickets\Ticket::colorTipo($fila['label']) }};">
+                                                style="width: {{ min(100, $porcentaje) }}%; background-color: {{ $colores[$indice] ?? '#60a5fa' }};">
                                             </div>
                                         </div>
                                         <span class="text-white/75 w-12 text-right">{{ $porcentaje }}%</span>
@@ -167,131 +178,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const ahora = new Date();
-            const anioMinimo = {{ (int) $anioMinimoPicker }};
-            const anioMaximo = Math.max(ahora.getFullYear(), {{ (int) $anioMaximoPicker }});
-            const btnFiltroMes = document.getElementById('btn-filtro-mes');
-            const inputFiltroMes = document.getElementById('input-filtro-mes');
-
-            if (inputFiltroMes) {
-                inputFiltroMes.max = `${anioMaximo}-12`;
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            if (!urlParams.has('mes') && ahora.getFullYear() >= anioMinimo) {
-                const mesDispositivo =
-                    `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
-                const mesServidor = '{{ $mesSeleccionado }}';
-                if (mesDispositivo !== mesServidor) {
-                    urlParams.set('mes', mesDispositivo);
-                    window.location.replace(`${window.location.pathname}?${urlParams.toString()}`);
-                    return;
-                }
-            }
-
-            if (btnFiltroMes && inputFiltroMes) {
-                btnFiltroMes.addEventListener('click', () => {
-                    if (inputFiltroMes.showPicker) {
-                        try {
-                            inputFiltroMes.showPicker();
-                        } catch (_) {}
-                    }
-                });
-            }
-
-            /* 
-                Grafico de Barras creado a partir de Chart.js
-            */
-
-            const canvas = document.getElementById('grafico-estadisticas');
-            const contenedorGrafico = document.getElementById('contenedor-grafico');
-            const mensajeSinDatos = document.getElementById('mensaje-sin-datos');
-            const urlDatos = @json(route('tickets.estadisticas.datos', ['mes' => $mesSeleccionado, 'vista' => $vista]));
-
-            if (!canvas || typeof Chart === 'undefined') {
-                return;
-            }
-
-            try {
-                const respuesta = await fetch(urlDatos, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    cache: 'no-store',
-                });
-
-                if (!respuesta.ok) {
-                    return;
-                }
-
-                const datos = await respuesta.json();
-                const labels = Array.isArray(datos.labels) ? datos.labels : [];
-                const valores = Array.isArray(datos.valores) ? datos.valores : [];
-
-                if (!labels.length || Number(datos.total_mes ?? 0) === 0) {
-                    contenedorGrafico?.classList.add('hidden');
-                    mensajeSinDatos?.classList.remove('hidden');
-                    return;
-                }
-
-                contenedorGrafico?.classList.remove('hidden');
-                mensajeSinDatos?.classList.add('hidden');
-
-                const esUsuarios = datos.vista === 'usuarios';
-                const colores = Array.isArray(datos.colores) && datos.colores.length === labels.length ?
-                    datos.colores :
-                    labels.map(() => (esUsuarios ? '#1CD6CE' : '#60a5fa'));
-                const coloresFondo = colores.map((hex) => `${hex}73`);
-
-                new Chart(canvas, {
-                    type: 'bar',
-                    data: {
-                        labels,
-                        datasets: [{
-                            label: 'Tickets',
-                            data: valores,
-                            backgroundColor: coloresFondo,
-                            borderColor: colores,
-                            borderWidth: 1.5,
-                            borderRadius: 6,
-                        }],
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false,
-                            },
-                        },
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                ticks: {
-                                    precision: 0,
-                                    color: 'rgba(255, 255, 255, 0.75)',
-                                },
-                                grid: {
-                                    color: 'rgba(255, 255, 255, 0.08)',
-                                },
-                            },
-                            y: {
-                                ticks: {
-                                    color: 'rgba(255, 255, 255, 0.9)',
-                                },
-                                grid: {
-                                    display: false,
-                                },
-                            },
-                        },
-                    },
-                });
-            } catch (_) {}
-        });
-    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    @vite('resources/js/estadisticas-charts.js')
 @endsection

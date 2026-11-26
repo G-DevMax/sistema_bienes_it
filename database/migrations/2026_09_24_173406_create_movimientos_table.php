@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('motivo_anulacion', 255)->nullable();
             $table->timestamps();
 
-            $table->index(['item_id', 'tipo_movimiento']);
+            $table->index(['fecha_movimiento', 'tipo_movimiento', 'anulado_at']);
         });
     }
 

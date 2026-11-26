@@ -60,7 +60,7 @@ class User extends Authenticatable
     {
         return match ((int) $this->rol_id) {
             rol::TECNICO_TERCERIZADO => route('tickets.dashboard'),
-            default => '/items',
+            default => route('menu_bientes'),
         };
     }
 

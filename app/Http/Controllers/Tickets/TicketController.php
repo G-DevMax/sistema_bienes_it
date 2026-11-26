@@ -97,6 +97,7 @@ class TicketController extends Controller
         return view('Tickets.estadisticas', [
             'vista' => $vista,
             'filasTabla' => $estadisticas['filas'],
+            'colores' => $estadisticas['colores'],
             'totalMes' => $estadisticas['totalMes'],
             'mes' => $datosMes['mes'],
             'nombreMes' => $datosMes['nombreMes'],
@@ -113,19 +114,14 @@ class TicketController extends Controller
         $vista = $request->query('vista') === 'usuarios' ? 'usuarios' : 'problemas';
         $estadisticas = $this->calcularEstadisticas($datosMes['inicioMes'], $datosMes['finMes'], $vista);
 
-        $labels = array_column($estadisticas['filas'], 'label');
-        $colores = $vista === 'usuarios'
-            ? array_fill(0, count($labels), '#1CD6CE')
-            : array_map(static fn (string $tipo): string => Ticket::colorTipo($tipo), $labels);
-
         return response()->json([
             'vista' => $vista,
             'mes' => $datosMes['mes'],
             'nombre_mes' => $datosMes['nombreMes'],
             'total_mes' => $estadisticas['totalMes'],
-            'labels' => $labels,
+            'labels' => array_column($estadisticas['filas'], 'label'),
             'valores' => array_column($estadisticas['filas'], 'total'),
-            'colores' => $colores,
+            'colores' => $estadisticas['colores'],
             'filas' => $estadisticas['filas'],
         ]);
     }
@@ -665,7 +661,7 @@ class TicketController extends Controller
     /**
      * Calcula los conteos mensuales ordenados de mayor a menor para tipos de problema o top 8 usuarios.
      *
-     * @return array{filas: list<array{label: string, total: int}>, totalMes: int}
+     * @return array{filas: list<array{label: string, total: int}>, colores: list<string>, totalMes: int}
      */
     private function calcularEstadisticas(string $inicioMes, string $finMes, string $vista): array
     {
@@ -687,6 +683,7 @@ class TicketController extends Controller
 
             return [
                 'filas' => $filas,
+                'colores' => array_fill(0, count($filas), '#1CD6CE'),
                 'totalMes' => Ticket::whereBetween('fecha_creacion', [$inicioMes, $finMes])->count(),
             ];
         }
@@ -706,6 +703,7 @@ class TicketController extends Controller
 
         return [
             'filas' => $filas,
+            'colores' => array_map(static fn (array $fila): string => Ticket::colorTipo($fila['label']), $filas),
             'totalMes' => array_sum(array_column($filas, 'total')),
         ];
     }

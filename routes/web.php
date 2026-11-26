@@ -34,9 +34,10 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::middleware('can:acceso.sistema')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('Bienes.menu_bientes');
-        })->name('menu_bientes');
+        Route::middleware('can:bienes.ver')->group(function () {
+            Route::get('/dashboard', [MovimientosController::class, 'dashboard'])->name('menu_bientes');
+            Route::get('/dashboard/datos', [MovimientosController::class, 'estadisticasDatos'])->name('bienes.estadisticas.datos');
+        });
 
         // Registra CRUD en orden seguro (create antes de {id}) con permiso por acción
         $recursoPorAccion = static function (string $nombre, string $controlador, string $ver, string $crear, string $editar, string $eliminar): void {
