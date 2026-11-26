@@ -82,7 +82,7 @@ class InformeController extends Controller
 
     public function exportarPdf(string $id, InformePdfService $pdfService)
     {
-        $informe = informes::with(['funcionario.dependencia', 'detalle', 'solucion', 'tecnico'])->findOrFail($id);
+        $informe = informes::with(['funcionario.dependencia', 'detalle', 'solucion', 'tecnico', 'ticket'])->findOrFail($id);
         $pdf = $pdfService->generar($informe);
 
         return $pdf->stream($pdfService->nombreArchivo($informe));

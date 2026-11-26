@@ -71,9 +71,12 @@ class InformeWorkflowTest extends TestCase
         $this->assertSame($informe->id, $ticket->fresh()->informe?->id);
         $this->assertSame($ticket->id, $informe->ticket?->id);
 
-        // El PDF debe leer el técnico asignado al informe, sin fallback al usuario que descarga
-        $datosPdf = app(InformePdfService::class)->obtenerDatos($informe->fresh());
+        // El PDF debe leer el técnico asignado al informe y usar el numero_ticket en N°
+        $pdfService = app(InformePdfService::class);
+        $datosPdf = $pdfService->obtenerDatos($informe->fresh());
         $this->assertSame('Carlos Técnico', $datosPdf['tecnico']);
+        $this->assertSame($ticket->numero_ticket, $datosPdf['numero']);
+        $this->assertStringContainsString($ticket->numero_ticket, $pdfService->nombreArchivo($informe->fresh()));
 
         $this->actingAs($admin)
             ->get(route('tickets.show', $ticket))
@@ -84,7 +87,13 @@ class InformeWorkflowTest extends TestCase
             ->get(route('informes.show', $informe))
             ->assertOk()
             ->assertSee('Carlos Técnico')
+            ->assertSee('Ticket #'.$ticket->numero_ticket)
             ->assertSee(route('tickets.show', $ticket->id), false);
+
+        $this->actingAs($admin)
+            ->get(route('informes.edit', $informe))
+            ->assertOk()
+            ->assertSee('Ticket #'.$ticket->numero_ticket);
     }
 
     public function test_crear_informe_manual_guarda_user_id_del_tecnico_y_ticket_id_nulo(): void
@@ -107,6 +116,7 @@ class InformeWorkflowTest extends TestCase
         $this->assertNotNull($informe);
         $this->assertNull($informe->ticket_id);
         $this->assertSame($tecnico->id, $informe->user_id);
+        $this->assertSame($informe->id, app(InformePdfService::class)->obtenerDatos($informe)['numero']);
     }
 
     public function test_informe_de_ticket_limita_edicion_y_bloquea_eliminacion(): void

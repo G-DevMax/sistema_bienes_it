@@ -49,7 +49,7 @@
     @if ($bloqueadoPorTicket)
         <div
             class="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-400/30 text-sm text-blue-200 flex items-center justify-between gap-4">
-            <span>Este informe fue generado desde el <strong>Ticket #{{ $informe->ticket_id }}</strong>. El funcionario
+            <span>Este informe fue generado desde el <strong>Ticket #{{ $informe->ticket?->numero_ticket ?? $informe->ticket_id }}</strong>. El funcionario
                 y el tipo de problema están bloqueados para mantener la coherencia.</span>
             @can('tickets.ver')
                 <a href="{{ route('tickets.show', $informe->ticket_id) }}"

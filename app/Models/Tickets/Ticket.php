@@ -72,10 +72,12 @@ class Ticket extends Model
     protected $table = 'tickets';
 
     protected array $buscador = [
+        'numero_ticket',
         'funcionario.nombre',
     ];
 
     protected $fillable = [
+        'numero_ticket',
         'funcionario_id',
         'tipo_problema',
         'detalles_id',
@@ -100,6 +102,32 @@ class Ticket extends Model
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Ticket $ticket): void {
+            if (blank($ticket->numero_ticket)) {
+                $ticket->numero_ticket = self::generarNumeroTicket();
+            }
+        });
+    }
+
+    /**
+     * Genera un número de ticket aleatorio único con formato AAAA-0000 (A-Z y 4 dígitos).
+     */
+    public static function generarNumeroTicket(): string
+    {
+        // ponytail: check-then-insert con constraint UNIQUE en BD; envolver en reintento por SQLSTATE 23000 si hay alta concurrencia
+        do {
+            $letras = '';
+            for ($i = 0; $i < 4; $i++) {
+                $letras .= chr(random_int(65, 90));
+            }
+            $numero = sprintf('%s-%04d', $letras, random_int(0, 9999));
+        } while (self::where('numero_ticket', $numero)->exists());
+
+        return $numero;
     }
 
     public function funcionario(): BelongsTo

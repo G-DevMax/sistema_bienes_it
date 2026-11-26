@@ -14,6 +14,7 @@ use App\Models\Tickets\Ticket;
 use App\Models\Tickets\TicketHistory;
 use App\Models\User;
 use App\Services\Informes\InformePdfService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -62,12 +63,13 @@ class TicketTest extends TestCase
         $query = Ticket::query()->buscadorUniversal('Carlos');
         $sql = $query->toSql();
 
+        $this->assertStringContainsString('numero_ticket', $sql);
         $this->assertStringContainsString('funcionarios', $sql);
         $this->assertStringContainsString('nombre', $sql);
-        $this->assertSame(['%Carlos%'], $query->getBindings());
+        $this->assertSame(['%Carlos%', '%Carlos%'], $query->getBindings());
 
         $queryEscapada = Ticket::query()->buscadorUniversal('100%_\\test');
-        $this->assertSame(['%100\\%\\_\\\\test%'], $queryEscapada->getBindings());
+        $this->assertSame(['%100\\%\\_\\\\test%', '%100\\%\\_\\\\test%'], $queryEscapada->getBindings());
     }
 
     public function test_formulario_usuario_tickets_renderiza_tomselect_radios_contador_y_diseno_solido(): void
@@ -118,19 +120,30 @@ class TicketTest extends TestCase
         $vista = $this->view('Tickets.create_manual', [
             'funcionarios' => collect([$funcionario]),
             'tiposProblema' => TipoProblema::values(),
+            'detallesProblemas' => collect([new detalles_problemas(['tipo_problema' => 'Internet', 'detalle' => 'Sin acceso Wi-Fi'])]),
         ]);
 
         $vista->assertSee('Crear Ticket Manual');
+        $vista->assertSee('enctype="multipart/form-data"', false);
         $vista->assertSee('searchable-select', false);
         $vista->assertSee('Carlos Benítez');
         $vista->assertSee('type="radio"', false);
         foreach (TipoProblema::values() as $tipo) {
             $vista->assertSee($tipo);
         }
+        $vista->assertSee('bloque-select-detalle', false);
+        $vista->assertSee('name="detalle_id"', false);
+        $vista->assertSee('Otro (especificar)');
+        $vista->assertSee('Sin acceso Wi-Fi');
         $vista->assertSee('0 / 100 palabras');
+        $vista->assertSee('Especificar cantidad');
+        $vista->assertSee('name="cantidad_insumo"', false);
+        $vista->assertSee('min="1" max="12"', false);
+        $vista->assertSee('value="1"', false);
         $vista->assertSee('campos-reunion', false);
         $vista->assertSee('type="date"', false);
         $vista->assertSeeInOrder(['name="fecha_reunion"', 'name="horario_reunion"', 'name="detalles_reunion"'], false);
+        $vista->assertSee('name="imagen_problema"', false);
         $vista->assertSee('bg-slate-900/60', false);
         $vista->assertDontSee('backdrop-blur', false);
         $vista->assertSee(route('tickets.store-manual'));
@@ -190,6 +203,7 @@ class TicketTest extends TestCase
         $tecnico->id = 2;
 
         $ticketPendiente = new Ticket([
+            'numero_ticket' => 'ABCD-1234',
             'funcionario_id' => 4,
             'tipo_problema' => 'Hardware',
             'descripcion_problema' => 'Monitor sin señal HDMI',
@@ -212,6 +226,7 @@ class TicketTest extends TestCase
         $dashboard->assertSee('Tickets Asignados');
         $dashboard->assertSee('Tickets Cerrados');
         $dashboard->assertSee('Tickets recientes');
+        $dashboard->assertSee('ABCD-1234');
         $dashboard->assertSee('Carlos Benítez');
         $dashboard->assertSee('Monitor sin señal HDMI');
         $dashboard->assertSee('Pendiente');
@@ -222,7 +237,8 @@ class TicketTest extends TestCase
             'tiposProblema' => TipoProblema::values(),
         ]);
         $index->assertSee('Listado de Tickets');
-        $index->assertSee('#15');
+        $index->assertSee('N° Ticket');
+        $index->assertSee('ABCD-1234');
         $index->assertSee('Carlos Benítez');
         $index->assertSee('Hardware');
         $index->assertSee('Monitor sin señal HDMI');
@@ -234,7 +250,7 @@ class TicketTest extends TestCase
             'tecnicos' => collect([$tecnico]),
             'solucionesComunes' => collect(),
         ]);
-        $showPendiente->assertSee('Ticket #15');
+        $showPendiente->assertSee('Ticket #ABCD-1234');
         $showPendiente->assertSee($ticketPendiente->created_at->format('d/m/Y H:i'));
         $showPendiente->assertSee('Asignar Técnico');
         $showPendiente->assertSee('Ana Soporte');
@@ -244,6 +260,7 @@ class TicketTest extends TestCase
         $solucionComun->id = 7;
 
         $ticketAsignado = new Ticket([
+            'numero_ticket' => 'EFGH-5678',
             'funcionario_id' => 4,
             'tipo_problema' => 'Hardware',
             'descripcion_problema' => 'Monitor sin señal HDMI',
@@ -291,6 +308,7 @@ class TicketTest extends TestCase
         $eventoCierre->setRelation('funcionario', $funcionario);
 
         $ticketCerrado = new Ticket([
+            'numero_ticket' => 'WXYZ-9012',
             'funcionario_id' => 4,
             'tipo_problema' => 'Hardware',
             'solucion_id' => 7,
@@ -656,7 +674,7 @@ class TicketTest extends TestCase
             $response = $this->post(route('tickets.store'), $payload);
 
             $response->assertRedirect(route('tickets.visual'));
-            $response->assertSessionHas('ultimo_ticket_creado_id');
+            $response->assertSessionHas('ultimo_ticket_creado_numero');
             $response->assertSessionMissing('error');
             $this->assertDatabaseHas('tickets', [
                 'funcionario_id' => $funcionario->id,
@@ -890,7 +908,7 @@ class TicketTest extends TestCase
             'descripcion_problema' => 'Monitor con raya vertical',
             'imagen_problema' => $imagenReal,
         ])->assertRedirect(route('tickets.visual'))
-            ->assertSessionHas('ultimo_ticket_creado_id');
+            ->assertSessionHas('ultimo_ticket_creado_numero');
 
         $ticket = Ticket::where('funcionario_id', $funcionario->id)
             ->where('descripcion_problema', 'Monitor con raya vertical')
@@ -976,7 +994,8 @@ class TicketTest extends TestCase
 
         $respuesta->assertOk();
         $respuesta->assertSee('Ticket Registrado');
-        $respuesta->assertSee('#'.$ticket->id);
+        $respuesta->assertSee('#'.$ticket->numero_ticket);
+        $respuesta->assertSee('data-ticket-numero="'.$ticket->numero_ticket.'"', false);
         $respuesta->assertSee('fue creado exitosamente, en breve un técnico asistirá su problema.');
         $respuesta->assertSee('Crear otro ticket');
         $respuesta->assertSee(route('tickets.create'), false);
@@ -1218,5 +1237,145 @@ class TicketTest extends TestCase
             ->assertSee('FiltroEstado Pendiente Unico')
             ->assertSee('FiltroEstado Asignado Unico')
             ->assertSee('FiltroEstado Cerrado Unico');
+    }
+
+    public function test_formulario_manual_carga_detalles_y_valida_insumos_y_consulta_igual_que_publico(): void
+    {
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
+            'rol_id' => rol::ADMIN,
+            'estado_user' => 1,
+        ]));
+
+        $funcionario = funcionarios::where('estado_funcionario', 1)->first()
+            ?? funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+                'nombre' => 'Funcionario Manual Test',
+                'dependencia_id' => (dependencias::first() ?? dependencias::withoutEvents(
+                    fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Manual Test'])
+                ))->id,
+                'estado_funcionario' => 1,
+            ]));
+
+        $detalleComun = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
+            'tipo_problema' => 'Internet',
+            'detalle' => 'Sin acceso a red interna manual',
+        ]));
+
+        $detalleInsumo = detalles_problemas::withoutEvents(fn (): detalles_problemas => detalles_problemas::create([
+            'tipo_problema' => Ticket::TIPO_INSUMOS,
+            'detalle' => 'Mouse USB de oficina',
+        ]));
+
+        $this->actingAs($admin)
+            ->get(route('tickets.create-manual'))
+            ->assertOk()
+            ->assertSee('Sin acceso a red interna manual')
+            ->assertSee('Mouse USB de oficina');
+
+        $this->actingAs($admin)
+            ->post(route('tickets.store-manual'), [
+                'funcionario_id' => $funcionario->id,
+                'tipo_problema' => 'Internet',
+                'detalle_id' => $detalleComun->id,
+            ])
+            ->assertRedirect(route('tickets.index'));
+
+        $ticketComun = Ticket::where('funcionario_id', $funcionario->id)
+            ->where('detalles_id', $detalleComun->id)
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame('Sin acceso a red interna manual', $ticketComun->descripcion_problema);
+
+        $this->actingAs($admin)
+            ->post(route('tickets.store-manual'), [
+                'funcionario_id' => $funcionario->id,
+                'tipo_problema' => Ticket::TIPO_CONSULTA,
+                'detalle_id' => $detalleComun->id,
+                'descripcion_problema' => '',
+            ])
+            ->assertSessionHasErrors('descripcion_problema');
+
+        $this->actingAs($admin)
+            ->post(route('tickets.store-manual'), [
+                'funcionario_id' => $funcionario->id,
+                'tipo_problema' => Ticket::TIPO_INSUMOS,
+                'detalle_id' => $detalleInsumo->id,
+            ])
+            ->assertSessionHasErrors('cantidad_insumo');
+
+        $this->actingAs($admin)
+            ->post(route('tickets.store-manual'), [
+                'funcionario_id' => $funcionario->id,
+                'tipo_problema' => Ticket::TIPO_INSUMOS,
+                'detalle_id' => $detalleInsumo->id,
+                'cantidad_insumo' => 3,
+            ])
+            ->assertRedirect(route('tickets.index'));
+
+        $ticketInsumo = Ticket::where('funcionario_id', $funcionario->id)
+            ->where('detalles_id', $detalleInsumo->id)
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame('Mouse USB de oficina (Cantidad: 3)', $ticketInsumo->descripcion_problema);
+    }
+
+    public function test_ticket_genera_numero_unico_con_formato_y_se_busca_y_expone_en_modulo(): void
+    {
+        $admin = User::withoutEvents(fn (): User => User::factory()->create([
+            'rol_id' => rol::ADMIN,
+            'estado_user' => 1,
+        ]));
+
+        $dependencia = dependencias::first() ?? dependencias::withoutEvents(
+            fn (): dependencias => dependencias::create(['nombre' => 'Dependencia Numero Ticket'])
+        );
+
+        $funcionario = funcionarios::withoutEvents(fn (): funcionarios => funcionarios::create([
+            'nombre' => 'Funcionario Numero Ticket',
+            'dependencia_id' => $dependencia->id,
+            'estado_funcionario' => 1,
+        ]));
+
+        $this->actingAs($admin)
+            ->post(route('tickets.store-manual'), [
+                'funcionario_id' => $funcionario->id,
+                'tipo_problema' => 'Consulta',
+                'descripcion_problema' => 'Validar generación de número de ticket',
+            ])
+            ->assertRedirect(route('tickets.index'));
+
+        $ticket = Ticket::where('funcionario_id', $funcionario->id)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertMatchesRegularExpression('/^[A-Z]{4}-\d{4}$/', $ticket->numero_ticket);
+        $this->assertStringContainsString('Ticket #'.$ticket->numero_ticket, (string) session('success'));
+
+        // Búsqueda en el listado por número exacto y con '#'
+        $this->actingAs($admin)
+            ->get(route('tickets.index', ['search' => $ticket->numero_ticket]))
+            ->assertOk()
+            ->assertSee($ticket->numero_ticket);
+
+        $this->actingAs($admin)
+            ->get(route('tickets.index', ['search' => '#'.$ticket->numero_ticket]))
+            ->assertOk()
+            ->assertSee($ticket->numero_ticket);
+
+        // El endpoint de polling expone numero_ticket
+        $this->actingAs($admin)
+            ->getJson(route('tickets.pendientes-status'))
+            ->assertOk()
+            ->assertJsonPath('ultimo_ticket.numero_ticket', $ticket->numero_ticket);
+
+        // La restricción UNIQUE en base de datos impide duplicados
+        $this->expectException(QueryException::class);
+        Ticket::create([
+            'numero_ticket' => $ticket->numero_ticket,
+            'funcionario_id' => $funcionario->id,
+            'tipo_problema' => 'Consulta',
+            'descripcion_problema' => 'Intento duplicado',
+            'estado' => Ticket::ESTADO_PENDIENTE,
+            'fecha_creacion' => now()->toDateString(),
+        ]);
     }
 }

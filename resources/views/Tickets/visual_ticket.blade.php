@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket Creado #{{ $ticketId }} | InfraDesk</title>
+    <title>Ticket Creado #{{ $numeroTicket }} | InfraDesk</title>
     <meta name="description" content="Confirmación de ticket de soporte técnico">
     <link rel="icon" type="image/png" href="{{ asset('img/logo_app.png') }}">
 
@@ -23,13 +23,12 @@
         <section class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-7 shadow-xl text-center space-y-6">
             <div class="space-y-2">
                 <p class="text-base sm:text-lg text-zinc-200 leading-relaxed">
-                    Su ticket con número <strong class="text-white">#{{ $ticketId }}</strong> fue creado
-                    exitosamente, en breve un técnico asistirá su problema.
+                    Su ticket con número <strong class="text-white">#{{ $numeroTicket }}</strong> fue creado exitosamente, en breve un técnico asistirá su problema.
                 </p>
             </div>
 
             <div class="space-y-3 pt-2">
-                <button type="button" id="btn-copiar-ticket" data-ticket-numero="{{ $ticketId }}"
+                <button type="button" id="btn-copiar-ticket" data-ticket-numero="{{ $numeroTicket }}"
                     class="w-full py-3.5 px-6 rounded-xl bg-neutral-950 hover:bg-zinc-800 border border-zinc-700 hover:border-indigo-500 text-zinc-200 font-semibold text-base transition-colors flex items-center justify-center gap-2 cursor-pointer">
                     <svg class="w-5 h-5 text-indigo-400 shrink-0" fill="none" stroke="currentColor"
                         viewBox="0 0 24 24">

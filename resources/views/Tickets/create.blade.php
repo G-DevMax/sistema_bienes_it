@@ -238,7 +238,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
-                        <span>Adjuntar foto del problema</span>
+                        <span>Adjuntar foto del problema (Opcional)</span>
                     </button>
                     <p id="estado-foto-movil" class="hidden text-xs text-emerald-400 text-center font-medium"></p>
                 </div>

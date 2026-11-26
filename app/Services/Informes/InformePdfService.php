@@ -14,9 +14,12 @@ class InformePdfService
 {
     public function nombreArchivo(informes $informe): string
     {
+        $informe->loadMissing('ticket');
+        $numero = $informe->ticket?->numero_ticket ?? sprintf('%04d', $informe->id);
+
         return sprintf(
-            'Informe_Servicio_Tecnico_%04d_%s.pdf',
-            $informe->id,
+            'Informe_Servicio_Tecnico_%s_%s.pdf',
+            $numero,
             $informe->created_at?->format('dmY') ?? now()->format('dmY')
         );
     }
@@ -24,14 +27,14 @@ class InformePdfService
     /**
      * Captura la información del informe y genera el documento PDF en tamaño A4.
      *
-     * @return array{numero: int, fecha: string, usuario: string, tecnico: string, titulo: string, tipo_problema: string, detalle: string, solucion: string, observacion: string, logoBase64: string|null}
+     * @return array{numero: int|string, fecha: string, usuario: string, tecnico: string, titulo: string, tipo_problema: string, detalle: string, solucion: string, observacion: string, logoBase64: string|null}
      */
     public function obtenerDatos(informes $informe): array
     {
-        $informe->loadMissing(['funcionario.dependencia', 'detalle', 'solucion', 'tecnico']);
+        $informe->loadMissing(['funcionario.dependencia', 'detalle', 'solucion', 'tecnico', 'ticket']);
 
         return [
-            'numero' => $informe->id,
+            'numero' => $informe->ticket?->numero_ticket ?? $informe->id,
             'fecha' => $informe->created_at?->format('d/m/Y') ?? now()->format('d/m/Y'),
             'usuario' => $informe->funcionario?->nombre ?? '—',
             'tecnico' => $informe->tecnico?->name ?? '—',

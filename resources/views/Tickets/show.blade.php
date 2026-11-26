@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Detalle del Ticket #' . $ticket->id)
+@section('title', 'Detalle del Ticket #' . $ticket->numero_ticket)
 
 @section('content')
     <div class="w-full max-w-5xl">
@@ -17,7 +17,7 @@
                 </a>
                 <div>
                     <div class="flex flex-wrap items-center gap-3">
-                        <h1 class="text-2xl sm:text-3xl font-bold text-white">Ticket #{{ $ticket->id }}</h1>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-white">Ticket #{{ $ticket->numero_ticket }}</h1>
                         <span
                             class="px-3 py-1 rounded-full text-xs font-medium border {{ \App\Models\Tickets\Ticket::badgeEstado($ticket->estado) }}">
                             {{ $ticket->estado }}
@@ -83,7 +83,7 @@
                     <div class="pt-4 border-t border-white/10">
                         <span class="block text-xs font-medium text-white/50 mb-2">Foto del Problema</span>
                         <a href="{{ $rutaImagen }}" target="_blank" rel="noopener noreferrer" class="inline-block max-w-full">
-                            <img src="{{ $rutaImagen }}" alt="Foto del problema del ticket #{{ $ticket->id }}"
+                            <img src="{{ $rutaImagen }}" alt="Foto del problema del ticket #{{ $ticket->numero_ticket }}"
                                 loading="lazy" class="max-w-full max-h-64 rounded-lg cursor-pointer">
                         </a>
                     </div>

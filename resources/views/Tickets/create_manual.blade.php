@@ -43,7 +43,8 @@
         </div>
 
         <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-5 sm:p-8 shadow-xl">
-            <form action="{{ route('tickets.store-manual') }}" method="POST" id="form-ticket-manual" class="space-y-6">
+            <form action="{{ route('tickets.store-manual') }}" method="POST" enctype="multipart/form-data"
+                id="form-ticket-manual" class="space-y-6">
                 @csrf
 
                 <!-- Funcionario solicitante -->
@@ -85,20 +86,71 @@
                     </div>
                 </fieldset>
 
-                <!-- Título del problema -->
-                <div id="bloque-titulo-problema" @class(['hidden' => old('tipo_problema') === \App\Models\Tickets\Ticket::TIPO_ASISTENCIA_REUNION])>
-                    <div class="flex items-center justify-between mb-2">
-                        <label for="descripcion_problema" class="text-sm font-medium text-white/90">
-                            Título del problema
+                <!-- Problema común o descripción personalizada -->
+                @php
+                    $detallesJson = ($detallesProblemas ?? collect())
+                        ->map(
+                            fn($d) => [
+                                'id' => $d->id,
+                                'tipo_problema' => $d->tipo_problema,
+                                'detalle' => $d->detalle,
+                            ],
+                        )
+                        ->values();
+                    $tipoOld = old('tipo_problema');
+                    $esReunionOld = $tipoOld === \App\Models\Tickets\Ticket::TIPO_ASISTENCIA_REUNION;
+                    $esConsultaOld = $tipoOld === \App\Models\Tickets\Ticket::TIPO_CONSULTA;
+                    $esInsumosOld = $tipoOld === \App\Models\Tickets\Ticket::TIPO_INSUMOS;
+                    $detalleOld = $esConsultaOld
+                        ? 'otro'
+                        : old('detalle_id', old('descripcion_problema') ? 'otro' : '');
+                    $mostrarCantidadOld = $esInsumosOld && $detalleOld !== '';
+                @endphp
+                <div id="bloque-titulo-problema" @class(['space-y-4', 'hidden' => $esReunionOld])>
+                    <div id="bloque-select-detalle" @class(['hidden' => $esConsultaOld])>
+                        <label for="detalle_id" class="block mb-2 text-sm font-medium text-white/90">
+                            ¿Cuál es el problema?
                         </label>
-                        <span id="contador-palabras" class="text-xs text-white/50">0 / 100 palabras</span>
+                        <select id="detalle_id" name="detalle_id" data-detalles='@json($detallesJson)'
+                            data-old-detalle="{{ $detalleOld }}"
+                            class="{{ $input }} disabled:opacity-60 disabled:cursor-not-allowed"
+                            required>
+                            <option value="">Primero selecciona un tipo de problema...</option>
+                            <option value="otro" @selected($detalleOld === 'otro')>Otro (especificar)</option>
+                        </select>
+                        <p class="mt-1 text-xs text-white/50">
+                            Selecciona una opción común o elige <strong>Otro (especificar)</strong> para describir el
+                            problema.
+                        </p>
                     </div>
-                    <input type="text" id="descripcion_problema" name="descripcion_problema" maxlength="255"
-                        value="{{ old('descripcion_problema') }}"
-                        placeholder="Ej. PC no enciende en Dirección Administrativa" class="{{ $input }}" required>
-                    <p class="mt-1 text-xs text-white/50">
-                        Describe brevemente lo que ocurre (máximo 100 palabras).
-                    </p>
+
+                    <div id="bloque-descripcion-otro" @class(['hidden' => $detalleOld !== 'otro'])>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="descripcion_problema" class="text-sm font-medium text-white/90">
+                                Título del problema
+                            </label>
+                            <span id="contador-palabras" class="text-xs text-white/50">0 / 100 palabras</span>
+                        </div>
+                        <input type="text" id="descripcion_problema" name="descripcion_problema" maxlength="255"
+                            value="{{ old('descripcion_problema') }}"
+                            placeholder="Ej. PC no enciende en Dirección Administrativa" class="{{ $input }}"
+                            @disabled($detalleOld !== 'otro')>
+                        <p class="mt-1 text-xs text-white/50">
+                            Describe brevemente lo que ocurre (máximo 100 palabras).
+                        </p>
+                    </div>
+
+                    <div id="bloque-cantidad-insumo" @class(['hidden' => !$mostrarCantidadOld])>
+                        <label for="cantidad_insumo" class="block mb-2 text-sm font-medium text-white/90">
+                            Especificar cantidad
+                        </label>
+                        <input type="number" id="cantidad_insumo" name="cantidad_insumo" min="1" max="12"
+                            step="1" value="{{ old('cantidad_insumo', 1) }}" class="{{ $input }}"
+                            @disabled(!$mostrarCantidadOld)>
+                        <p class="mt-1 text-xs text-white/50">
+                            Cantidad solicitada (entre 1 y 12).
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Campos adicionales para Asistencia a Reunión -->
@@ -124,7 +176,7 @@
 
                     <div>
                         <label for="detalles_reunion" class="block mb-2 text-sm font-medium text-white/90">
-                            Detalles de la reunión
+                            Detalles de la reunión/evento
                         </label>
                         <input type="text" id="detalles_reunion" name="detalles_reunion" maxlength="500"
                             value="{{ old('detalles_reunion') }}"
@@ -134,6 +186,25 @@
                             Indica dónde será la reunión y observaciones necesarias.
                         </p>
                     </div>
+                </div>
+
+                <!-- Adjuntar foto del problema (visible en celular vía JS) -->
+                <div id="contenedor-foto-movil" class="hidden space-y-2">
+                    <input type="file" id="imagen_problema" name="imagen_problema" accept="image/*"
+                        capture="environment" class="hidden">
+                    <button type="button" id="btn-adjuntar-foto"
+                        class="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/20 hover:border-blue-400 text-white/90 font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <svg class="w-5 h-5 text-blue-400 shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span>Adjuntar foto del problema</span>
+                    </button>
+                    <p id="estado-foto-movil" class="hidden text-xs text-emerald-400 text-center font-medium"></p>
                 </div>
 
                 <!-- Botones -->

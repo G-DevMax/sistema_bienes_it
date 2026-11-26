@@ -35,12 +35,12 @@
                             @can('tickets.ver')
                                 <a href="{{ route('tickets.show', $informe->ticket_id) }}"
                                     class="px-3 py-1 rounded-full text-xs font-medium border border-[#1CD6CE]/40 bg-[#1CD6CE]/10 text-[#1CD6CE] hover:bg-[#1CD6CE]/20 transition-colors">
-                                    Ticket #{{ $informe->ticket_id }}
+                                    Ticket #{{ $informe->ticket?->numero_ticket ?? $informe->ticket_id }}
                                 </a>
                             @else
                                 <span
                                     class="px-3 py-1 rounded-full text-xs font-medium border border-[#1CD6CE]/40 bg-[#1CD6CE]/10 text-[#1CD6CE]">
-                                    Ticket #{{ $informe->ticket_id }}
+                                    Ticket #{{ $informe->ticket?->numero_ticket ?? $informe->ticket_id }}
                                 </span>
                             @endcan
                         @endif

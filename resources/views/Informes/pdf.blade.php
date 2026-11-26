@@ -109,7 +109,7 @@
 
         <div class="metadatos">
             <p><strong>FECHA:</strong> {{ $fecha }}</p>
-            <p><strong>N°:</strong> {{ $numero }}</p>
+            <p><strong>N° de Ticket:</strong> {{ $numero }}</p>
             <p><strong>USUARIO:</strong> {{ $usuario }}</p>
             <p><strong>TÉCNICO ENCARGADO:</strong> {{ $tecnico }}</p>
         </div>

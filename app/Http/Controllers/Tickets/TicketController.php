@@ -147,6 +147,7 @@ class TicketController extends Controller
             'ultimo_id' => (int) ($ultimo?->id ?? 0),
             'ultimo_ticket' => $ultimo ? [
                 'id' => $ultimo->id,
+                'numero_ticket' => $ultimo->numero_ticket,
                 'funcionario' => $ultimo->funcionario->nombre ?? 'Funcionario',
                 'tipo_problema' => $ultimo->tipo_problema,
                 'descripcion_problema' => $ultimo->descripcion_problema,
@@ -156,8 +157,10 @@ class TicketController extends Controller
 
     public function index(Request $request): View
     {
+        $busqueda = is_string($request->search) ? ltrim(trim($request->search), '#') : $request->search;
+
         $query = Ticket::with(['funcionario', 'tecnicoAsignado'])
-            ->buscadorUniversal($request->search)
+            ->buscadorUniversal($busqueda)
             ->orderByDesc('fecha_creacion')
             ->orderByDesc('id');
 
@@ -190,8 +193,9 @@ class TicketController extends Controller
     {
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
         $tiposProblema = TipoProblema::values();
+        $detallesProblemas = detalles_problemas::orderBy('detalle')->get(['id', 'tipo_problema', 'detalle']);
 
-        return view('Tickets.create_manual', compact('funcionarios', 'tiposProblema'));
+        return view('Tickets.create_manual', compact('funcionarios', 'tiposProblema', 'detallesProblemas'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -213,20 +217,20 @@ class TicketController extends Controller
                 ->with('error', $this->mensajeError($e, 'No se pudo registrar el ticket. Intente nuevamente.'));
         }
 
-        $request->session()->put('ultimo_ticket_creado_id', $ticket->id);
+        $request->session()->put('ultimo_ticket_creado_numero', $ticket->numero_ticket);
 
         return redirect()->route('tickets.visual');
     }
 
     public function visual(Request $request): View|RedirectResponse
     {
-        $ticketId = $request->session()->get('ultimo_ticket_creado_id');
+        $numeroTicket = $request->session()->get('ultimo_ticket_creado_numero');
 
-        if (! $ticketId) {
+        if (! is_string($numeroTicket) || $numeroTicket === '') {
             return redirect()->route('tickets.create');
         }
 
-        return view('Tickets.visual_ticket', ['ticketId' => (int) $ticketId]);
+        return view('Tickets.visual_ticket', ['numeroTicket' => $numeroTicket]);
     }
 
     public function storeManual(Request $request): RedirectResponse
@@ -249,7 +253,7 @@ class TicketController extends Controller
         }
 
         return redirect()->route('tickets.index')
-            ->with('success', 'Ticket #'.$ticket->id.' creado exitosamente.');
+            ->with('success', 'Ticket #'.$ticket->numero_ticket.' creado exitosamente.');
     }
 
     /**
@@ -293,7 +297,7 @@ class TicketController extends Controller
                 },
             ],
             'cantidad_insumo' => [
-                Rule::requiredIf($esInsumos && $request->routeIs('tickets.store')),
+                Rule::requiredIf($esInsumos),
                 'nullable',
                 'integer',
                 'min:1',
@@ -423,6 +427,7 @@ class TicketController extends Controller
 
         LoggerService::info('Ticket creado', [
             'ticket_id' => $ticket->id,
+            'numero_ticket' => $ticket->numero_ticket,
             'funcionario_id' => $ticket->funcionario_id,
             'tipo_problema' => $ticket->tipo_problema,
             'detalles_id' => $ticket->detalles_id,
@@ -498,6 +503,7 @@ class TicketController extends Controller
 
             LoggerService::info('Ticket asignado', [
                 'ticket_id' => $ticket->id,
+                'numero_ticket' => $ticket->numero_ticket,
                 'asignado_a' => $tecnico->id,
                 'user_id' => Auth::id(),
             ]);
@@ -599,6 +605,7 @@ class TicketController extends Controller
 
             LoggerService::info('Ticket cerrado', [
                 'ticket_id' => $ticket->id,
+                'numero_ticket' => $ticket->numero_ticket,
                 'solucion_id' => $solucionSeleccionadaId,
                 'informe_id' => $informe?->id,
                 'user_id' => Auth::id(),

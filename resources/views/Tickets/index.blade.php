@@ -27,9 +27,9 @@
             @include('layouts.alerts')
         </div>
 
-        <!-- Barra de búsqueda por funcionario -->
+        <!-- Barra de búsqueda por número de ticket o funcionario -->
         <div class="mb-4">
-            <x-barra_de_busqueda placeholder="Buscar por funcionario..."></x-barra_de_busqueda>
+            <x-barra_de_busqueda placeholder="Buscar por número de ticket o funcionario..."></x-barra_de_busqueda>
         </div>
 
         <!-- Filtros por estado -->
@@ -66,7 +66,7 @@
                 <table class="w-full text-left border-collapse text-sm">
                     <thead>
                         <tr class="bg-blue-600/10 border-b border-white/10 text-white">
-                            <th class="hidden md:table-cell px-3 md:px-6 py-4 font-semibold">ID</th>
+                            <th class="hidden md:table-cell px-3 md:px-6 py-4 font-semibold">N° Ticket</th>
                             <th class="px-3 md:px-6 py-4 font-semibold">Funcionario</th>
                             <th class="hidden md:table-cell px-3 md:px-6 py-4 font-semibold">Tipo de Problema</th>
                             <th class="hidden md:table-cell px-3 md:px-6 py-4 font-semibold">Descripción</th>
@@ -78,13 +78,13 @@
                     <tbody class="divide-y divide-white/5 text-white/90">
                         @forelse ($tickets as $ticket)
                             <tr class="hover:bg-white/5 transition-colors">
-                                <td class="hidden md:table-cell px-3 md:px-6 py-4 font-medium text-white/50">
-                                    #{{ $ticket->id }}
+                                <td class="hidden md:table-cell px-3 md:px-6 py-4 font-mono font-medium text-white/70 whitespace-nowrap">
+                                    {{ $ticket->numero_ticket }}
                                 </td>
                                 <td class="px-3 md:px-6 py-4 font-medium text-white">
                                     <div>{{ $ticket->funcionario->nombre ?? '—' }}</div>
                                     <div class="md:hidden mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-white/60">
-                                        <span>#{{ $ticket->id }} · {{ ($ticket->created_at ?? $ticket->fecha_creacion)?->format('d/m/Y H:i') }}</span>
+                                        <span>#{{ $ticket->numero_ticket }} · {{ ($ticket->created_at ?? $ticket->fecha_creacion)?->format('d/m/Y H:i') }}</span>
                                         <span
                                             class="px-2 py-0.5 rounded-full text-xs font-medium border {{ \App\Models\Tickets\Ticket::badgeTipo($ticket->tipo_problema) }}">
                                             {{ $ticket->tipo_problema }}

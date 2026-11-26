@@ -128,6 +128,7 @@
                 <table class="w-full text-left border-collapse text-sm">
                     <thead>
                         <tr class="bg-blue-600/10 border-b border-white/10 text-white">
+                            <th class="hidden md:table-cell px-3 md:px-6 py-4 font-semibold">N° Ticket</th>
                             <th class="px-3 md:px-6 py-4 font-semibold">Funcionario</th>
                             <th class="hidden md:table-cell px-3 md:px-6 py-4 font-semibold">Tipo de Problema</th>
                             <th class="hidden md:table-cell px-3 md:px-6 py-4 font-semibold">Descripción</th>
@@ -138,10 +139,13 @@
                     <tbody class="divide-y divide-white/5 text-white/90">
                         @forelse ($ticketsRecientes as $ticket)
                             <tr class="hover:bg-white/5 transition-colors">
+                                <td class="hidden md:table-cell px-3 md:px-6 py-4 font-mono font-medium text-white/70 whitespace-nowrap">
+                                    {{ $ticket->numero_ticket }}
+                                </td>
                                 <td class="px-3 md:px-6 py-4 font-medium text-white">
                                     <div>{{ $ticket->funcionario->nombre ?? '—' }}</div>
                                     <div class="md:hidden mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-white/60">
-                                        <span>#{{ $ticket->id }}</span>
+                                        <span>#{{ $ticket->numero_ticket }}</span>
                                         <span
                                             class="px-2 py-0.5 rounded-full text-xs font-medium border {{ \App\Models\Tickets\Ticket::badgeTipo($ticket->tipo_problema) }}">
                                             {{ $ticket->tipo_problema }}
@@ -179,7 +183,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-3 md:px-6 py-12 text-center text-white/50">
+                                <td colspan="6" class="px-3 md:px-6 py-12 text-center text-white/50">
                                     Aún no hay tickets registrados.
                                 </td>
                             </tr>
@@ -307,7 +311,7 @@
             function notificarNuevoTicket(ticket) {
                 reproducirSonido();
                 if ('Notification' in window && Notification.permission === 'granted' && ticket) {
-                    const notif = new Notification(`Nuevo Ticket Pendiente #${ticket.id}`, {
+                    const notif = new Notification(`Nuevo Ticket Pendiente #${ticket.numero_ticket ?? ticket.id}`, {
                         body: `${ticket.funcionario} (${ticket.tipo_problema}): ${ticket.descripcion_problema}`,
                         tag: `ticket-${ticket.id}`,
                     });
