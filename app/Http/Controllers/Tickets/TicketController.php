@@ -21,6 +21,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -28,7 +29,7 @@ class TicketController extends Controller
 {
     public function dashboard(Request $request): View
     {
-        $datosMes = $this->resolverMes($request);
+        $datosMes = $this->resolverMesTickets($request);
         $inicioMes = $datosMes['inicioMes'];
         $finMes = $datosMes['finMes'];
 
@@ -90,7 +91,7 @@ class TicketController extends Controller
 
     public function estadisticas(Request $request): View
     {
-        $datosMes = $this->resolverMes($request);
+        $datosMes = $this->resolverMesTickets($request);
         $vista = $request->query('vista') === 'usuarios' ? 'usuarios' : 'problemas';
         $estadisticas = $this->calcularEstadisticas($datosMes['inicioMes'], $datosMes['finMes'], $vista);
 
@@ -110,7 +111,7 @@ class TicketController extends Controller
 
     public function estadisticasDatos(Request $request): JsonResponse
     {
-        $datosMes = $this->resolverMes($request);
+        $datosMes = $this->resolverMesTickets($request);
         $vista = $request->query('vista') === 'usuarios' ? 'usuarios' : 'problemas';
         $estadisticas = $this->calcularEstadisticas($datosMes['inicioMes'], $datosMes['finMes'], $vista);
 
@@ -132,8 +133,8 @@ class TicketController extends Controller
         $queryPendientes = Ticket::where('estado', Ticket::ESTADO_PENDIENTE);
 
         if ($mes !== null) {
-            [$inicioMes, $finMes] = $this->rangoMes($mes);
-            $queryPendientes->whereBetween('fecha_creacion', [$inicioMes, $finMes]);
+            $inicio = Carbon::createFromFormat('Y-m', $mes)->startOfMonth();
+            $queryPendientes->whereBetween('fecha_creacion', [$inicio->toDateString(), $inicio->copy()->endOfMonth()->toDateString()]);
         }
 
         $pendientes = $queryPendientes->count();
@@ -182,44 +183,21 @@ class TicketController extends Controller
 
     public function create(): View
     {
-        $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
-        $tiposProblema = TipoProblema::values();
-        $detallesProblemas = detalles_problemas::orderBy('detalle')->get(['id', 'tipo_problema', 'detalle']);
-
-        return view('Tickets.create', compact('funcionarios', 'tiposProblema', 'detallesProblemas'));
+        return $this->mostrarFormularioCreacion('Tickets.create');
     }
 
     public function createManual(): View
     {
-        $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
-        $tiposProblema = TipoProblema::values();
-        $detallesProblemas = detalles_problemas::orderBy('detalle')->get(['id', 'tipo_problema', 'detalle']);
-
-        return view('Tickets.create_manual', compact('funcionarios', 'tiposProblema', 'detallesProblemas'));
+        return $this->mostrarFormularioCreacion('Tickets.create_manual');
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $datos = $this->validarTicket($request);
+        return $this->procesarCreacion($request, 'tickets.create', 'Error al crear ticket', function (Ticket $ticket) use ($request): RedirectResponse {
+            $request->session()->put('ultimo_ticket_creado_numero', $ticket->numero_ticket);
 
-        try {
-            $datos['imagen_problema'] = $this->guardarImagenProblema($request);
-            $ticket = $this->crearTicket($datos);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al crear ticket', [
-                'funcionario_id' => $request->input('funcionario_id'),
-                'tipo_problema' => $request->input('tipo_problema'),
-                'user_id' => Auth::id(),
-            ], $e);
-
-            return redirect()->route('tickets.create')
-                ->withInput()
-                ->with('error', $this->mensajeError($e, 'No se pudo registrar el ticket. Intente nuevamente.'));
-        }
-
-        $request->session()->put('ultimo_ticket_creado_numero', $ticket->numero_ticket);
-
-        return redirect()->route('tickets.visual');
+            return redirect()->route('tickets.visual');
+        });
     }
 
     public function visual(Request $request): View|RedirectResponse
@@ -235,25 +213,38 @@ class TicketController extends Controller
 
     public function storeManual(Request $request): RedirectResponse
     {
+        return $this->procesarCreacion($request, 'tickets.create-manual', 'Error al crear ticket manual', fn (Ticket $ticket): RedirectResponse => redirect()->route('tickets.index')
+            ->with('success', 'Ticket #'.$ticket->numero_ticket.' creado exitosamente.'));
+    }
+
+    private function mostrarFormularioCreacion(string $vista): View
+    {
+        $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
+        $tiposProblema = TipoProblema::values();
+        $detallesProblemas = detalles_problemas::orderBy('detalle')->get(['id', 'tipo_problema', 'detalle']);
+
+        return view($vista, compact('funcionarios', 'tiposProblema', 'detallesProblemas'));
+    }
+
+    private function procesarCreacion(Request $request, string $rutaError, string $logError, callable $enExito): RedirectResponse
+    {
         $datos = $this->validarTicket($request);
 
         try {
             $datos['imagen_problema'] = $this->guardarImagenProblema($request);
             $ticket = $this->crearTicket($datos);
         } catch (\Exception $e) {
-            LoggerService::error('Error al crear ticket manual', [
+            LoggerService::error($logError, [
                 'funcionario_id' => $request->input('funcionario_id'),
                 'tipo_problema' => $request->input('tipo_problema'),
-                'user_id' => Auth::id(),
             ], $e);
 
-            return redirect()->route('tickets.create-manual')
+            return redirect()->route($rutaError)
                 ->withInput()
                 ->with('error', $this->mensajeError($e, 'No se pudo registrar el ticket. Intente nuevamente.'));
         }
 
-        return redirect()->route('tickets.index')
-            ->with('success', 'Ticket #'.$ticket->numero_ticket.' creado exitosamente.');
+        return $enExito($ticket);
     }
 
     /**
@@ -287,12 +278,8 @@ class TicketController extends Controller
                 'string',
                 'max:255',
                 function (string $attribute, mixed $value, \Closure $fail) use ($esReunion, $detalleId): void {
-                    if ($esReunion || ! empty($detalleId)) {
-                        return;
-                    }
-                    $palabras = preg_split('/\s+/u', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
-                    if (count($palabras) > 100) {
-                        $fail('El título del problema no puede superar las 100 palabras.');
+                    if (! $esReunion && empty($detalleId)) {
+                        $this->reglaMaxPalabras(100, 'El título del problema no puede superar las 100 palabras.')($attribute, $value, $fail);
                     }
                 },
             ],
@@ -324,7 +311,7 @@ class TicketController extends Controller
             'funcionario_id.required' => 'Debe seleccionar un funcionario.',
             'funcionario_id.exists' => 'El funcionario seleccionado no es válido o está inactivo.',
             'tipo_problema.required' => 'Debe seleccionar el tipo de problema.',
-            'tipo_problema.in' => 'El tipo de problema seleccionado no es válido.',
+            'tipo_problema.enum' => 'El tipo de problema seleccionado no es válido.',
             'detalle_id.exists' => 'El problema común seleccionado no corresponde al tipo de problema indicado.',
             'descripcion_problema.required' => 'Debe escribir un título breve para el problema.',
             'descripcion_problema.max' => 'El título del problema no puede superar los 255 caracteres.',
@@ -347,39 +334,21 @@ class TicketController extends Controller
     }
 
     /**
-     * Verifica el MIME real del archivo adjunto y lo almacena en public/uploads/tickets/YYYY/MM/.
+     * Almacena la imagen adjunta en public/uploads/tickets/YYYY/MM/.
      */
     private function guardarImagenProblema(Request $request): ?string
     {
-        if (! $request->hasFile('imagen_problema')) {
-            return null;
-        }
-
         $archivo = $request->file('imagen_problema');
         if ($archivo === null || ! $archivo->isValid()) {
             return null;
         }
 
-        $rutaTemporal = $archivo->getRealPath();
-        $mimeReal = $rutaTemporal !== false ? (new \finfo(FILEINFO_MIME_TYPE))->file($rutaTemporal) : false;
-
-        if (! in_array($mimeReal, ['image/webp', 'image/jpeg', 'image/png', 'image/gif'], true)) {
-            throw new \RuntimeException('El archivo adjunto no es una imagen válida.');
-        }
-
         $subcarpeta = 'uploads/tickets/'.now()->format('Y/m');
         $directorio = public_path($subcarpeta);
-
-        if (! is_dir($directorio)) {
-            mkdir($directorio, 0755, true);
-        }
+        File::ensureDirectoryExists($directorio);
 
         $nombreArchivo = uniqid().'.webp';
-        if (is_uploaded_file($rutaTemporal)) {
-            $archivo->move($directorio, $nombreArchivo);
-        } else {
-            copy($rutaTemporal, $directorio.DIRECTORY_SEPARATOR.$nombreArchivo);
-        }
+        $archivo->move($directorio, $nombreArchivo);
 
         return '/'.$subcarpeta.'/'.$nombreArchivo;
     }
@@ -431,7 +400,6 @@ class TicketController extends Controller
             'funcionario_id' => $ticket->funcionario_id,
             'tipo_problema' => $ticket->tipo_problema,
             'detalles_id' => $ticket->detalles_id,
-            'user_id' => Auth::id(),
         ]);
 
         return $ticket;
@@ -440,10 +408,7 @@ class TicketController extends Controller
     public function show(Ticket $ticket): View
     {
         $ticket->load(['funcionario.dependencia', 'tecnicoAsignado', 'detalle', 'solucion', 'informe', 'historial.responsable', 'historial.funcionario']);
-        $tecnicos = User::where('estado_user', 1)
-            ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO])
-            ->orderBy('name')
-            ->get();
+        $tecnicos = User::tecnicosActivos()->orderBy('name')->get();
         $solucionesComunes = detalles_soluciones::where('tipo_problema', $ticket->tipo_problema)
             ->orderBy('solucion')
             ->get();
@@ -470,7 +435,7 @@ class TicketController extends Controller
             'asignado_a.exists' => 'El técnico seleccionado no es válido o está inactivo.',
         ]);
 
-        try {
+        return $this->ejecutarAccion(function () use ($ticket, $datos): ?RedirectResponse {
             $tecnico = User::findOrFail($datos['asignado_a']);
 
             $errorEstado = DB::transaction(function () use ($ticket, $tecnico): ?string {
@@ -497,28 +462,19 @@ class TicketController extends Controller
             });
 
             if ($errorEstado !== null) {
-                return redirect()->route('tickets.show', $ticket)
-                    ->with('error', $errorEstado);
+                return redirect()->route('tickets.show', $ticket)->with('error', $errorEstado);
             }
 
             LoggerService::info('Ticket asignado', [
                 'ticket_id' => $ticket->id,
                 'numero_ticket' => $ticket->numero_ticket,
                 'asignado_a' => $tecnico->id,
-                'user_id' => Auth::id(),
             ]);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al asignar ticket', [
-                'ticket_id' => $ticket->id,
-                'user_id' => Auth::id(),
-            ], $e);
 
-            return redirect()->route('tickets.show', $ticket)
-                ->with('error', $this->mensajeError($e, 'No se pudo asignar el ticket.'));
-        }
-
-        return redirect()->route('tickets.show', $ticket)
-            ->with('success', 'Ticket asignado correctamente.');
+            return null;
+        }, ['tickets.show', $ticket], 'Ticket asignado correctamente.', 'No se pudo asignar el ticket.', 'Error al asignar ticket', [
+            'ticket_id' => $ticket->id,
+        ]);
     }
 
     public function cerrar(Request $request, Ticket $ticket): RedirectResponse
@@ -552,13 +508,12 @@ class TicketController extends Controller
             'observacion.max' => 'La observación no puede superar los 2000 caracteres.',
         ]);
 
-        $observacion = isset($datos['observacion']) && trim($datos['observacion']) !== ''
-            ? trim($datos['observacion'])
-            : null;
+        $observacion = filled($datos['observacion'] ?? null) ? trim((string) $datos['observacion']) : null;
         $solucionSeleccionadaId = $datos['solucion_id'] ?? null;
-        $informe = null;
 
-        try {
+        return $this->ejecutarAccion(function () use ($ticket, $solucionSeleccionadaId, $observacion): RedirectResponse|string {
+            $informe = null;
+
             $errorEstado = DB::transaction(function () use ($ticket, $solucionSeleccionadaId, $observacion, &$informe): ?string {
                 $ticketBloqueado = Ticket::lockForUpdate()->findOrFail($ticket->id);
 
@@ -599,8 +554,7 @@ class TicketController extends Controller
             });
 
             if ($errorEstado !== null) {
-                return redirect()->route('tickets.show', $ticket)
-                    ->with('error', $errorEstado);
+                return redirect()->route('tickets.show', $ticket)->with('error', $errorEstado);
             }
 
             LoggerService::info('Ticket cerrado', [
@@ -608,67 +562,22 @@ class TicketController extends Controller
                 'numero_ticket' => $ticket->numero_ticket,
                 'solucion_id' => $solucionSeleccionadaId,
                 'informe_id' => $informe?->id,
-                'user_id' => Auth::id(),
             ]);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al cerrar ticket', [
-                'ticket_id' => $ticket->id,
-                'user_id' => Auth::id(),
-            ], $e);
 
-            return redirect()->route('tickets.show', $ticket)
-                ->with('error', $this->mensajeError($e, 'No se pudo cerrar el ticket.'));
-        }
-
-        return redirect()->route('tickets.show', $ticket)
-            ->with('success', 'Ticket cerrado exitosamente y registrado en Informes (#'.$informe->id.').');
+            return 'Ticket cerrado exitosamente y registrado en Informes (#'.$informe->id.').';
+        }, ['tickets.show', $ticket], 'Ticket cerrado exitosamente.', 'No se pudo cerrar el ticket.', 'Error al cerrar ticket', [
+            'ticket_id' => $ticket->id,
+        ]);
     }
 
     /**
-     * Resuelve el mes seleccionado y sus límites en formato Y-m-d junto a etiquetas para la vista.
-     *
      * @return array{mes: string, inicioMes: string, finMes: string, nombreMes: string, nombreMesSimple: string, anio: string, anioMinimo: int, anioMaximo: int}
      */
-    private function resolverMes(Request $request): array
+    private function resolverMesTickets(Request $request): array
     {
-        $rangoAnios = Ticket::rangoAniosDashboard();
-        $anioMinimo = $rangoAnios['min'];
-        $anioMaximo = $rangoAnios['max'];
+        $rango = Ticket::rangoAniosDashboard();
 
-        $mes = Ticket::mesValidoEnRango($request->query('mes'), $anioMinimo, max($anioMaximo, now()->addDay()->year))
-            ?? sprintf('%04d-%02d', max(now()->year, $anioMinimo), now()->month);
-
-        [$year, $month] = explode('-', $mes);
-        $anioMaximo = max($anioMaximo, (int) $year);
-        [$inicioMes, $finMes] = $this->rangoMes($mes);
-
-        $meses = [
-            '01' => 'Enero',
-            '02' => 'Febrero',
-            '03' => 'Marzo',
-            '04' => 'Abril',
-            '05' => 'Mayo',
-            '06' => 'Junio',
-            '07' => 'Julio',
-            '08' => 'Agosto',
-            '09' => 'Septiembre',
-            '10' => 'Octubre',
-            '11' => 'Noviembre',
-            '12' => 'Diciembre',
-        ];
-
-        $nombreMesSimple = $meses[$month] ?? 'Mes';
-
-        return [
-            'mes' => $mes,
-            'inicioMes' => $inicioMes,
-            'finMes' => $finMes,
-            'nombreMes' => $nombreMesSimple.' '.$year,
-            'nombreMesSimple' => $nombreMesSimple,
-            'anio' => $year,
-            'anioMinimo' => $anioMinimo,
-            'anioMaximo' => $anioMaximo,
-        ];
+        return $this->resolverMes($request, $rango['min'], $rango['max']);
     }
 
     /**
@@ -719,18 +628,5 @@ class TicketController extends Controller
             'colores' => array_map(static fn (array $fila): string => Ticket::colorTipo($fila['label']), $filas),
             'totalMes' => array_sum(array_column($filas, 'total')),
         ];
-    }
-
-    /**
-     * Devuelve [inicioMes, finMes] en formato Y-m-d para filtrar rangos sin funciones SQL sobre columnas.
-     *
-     * @return array{0: string, 1: string}
-     */
-    private function rangoMes(string $mes): array
-    {
-        [$year, $month] = explode('-', $mes);
-        $inicio = Carbon::createFromDate((int) $year, (int) $month, 1)->startOfMonth();
-
-        return [$inicio->toDateString(), $inicio->copy()->endOfMonth()->toDateString()];
     }
 }

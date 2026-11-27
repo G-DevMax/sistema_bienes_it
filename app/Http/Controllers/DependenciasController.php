@@ -3,10 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\dependencias;
-use App\Models\funcionarios;
 use App\Services\LoggerService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class DependenciasController extends Controller
@@ -22,110 +21,79 @@ class DependenciasController extends Controller
         return view('dependencias.index', compact('dependencias'));
     }
 
-    public function show(string $id)
-    {
-        return redirect()->route('dependencias.index');
-    }
-
     public function create()
     {
         return view('dependencias.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $this->validateWithIndexRedirect($request, [
-            'nombre' => 'required|string|max:120|unique:dependencias,nombre',
-        ], [
-            'nombre.required' => 'El nombre de la dependencia es obligatorio.',
-            'nombre.unique' => 'Ya existe una dependencia con este nombre.',
-            'nombre.max' => 'El nombre no puede superar los 120 caracteres.',
-        ], 'dependencias.index');
+        $datos = $this->validarNombre($request);
 
-        try {
+        return $this->ejecutarAccion(function () use ($datos): void {
             dependencias::create([
-                'nombre' => Str::title($request->nombre),
+                'nombre' => Str::title($datos['nombre']),
             ]);
 
             LoggerService::info('Dependencia creada', [
-                'nombre' => $request->nombre,
-                'user_id' => Auth::id(),
+                'nombre' => $datos['nombre'],
             ]);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al crear dependencia', [
-                'nombre' => $request->nombre,
-                'user_id' => Auth::id(),
-            ], $e);
-
-            return redirect()->route('dependencias.index')->with('error', $this->mensajeError($e, 'No se pudo crear la dependencia.'));
-        }
-
-        return redirect()->route('dependencias.index')->with('success', 'Dependencia creada exitosamente.');
+        }, 'dependencias.index', 'Dependencia creada exitosamente.', 'No se pudo crear la dependencia.', 'Error al crear dependencia', [
+            'nombre' => $request->nombre,
+        ]);
     }
 
-    public function edit(string $id)
+    public function edit(dependencias $dependencia)
     {
-        $dependencia = dependencias::findOrFail($id);
-
         return view('dependencias.edit', compact('dependencia'));
     }
 
-    public function update(Request $request, string $id)
+    public function update(Request $request, dependencias $dependencia): RedirectResponse
     {
-        $dependencia = dependencias::findOrFail($id);
+        $datos = $this->validarNombre($request, $dependencia->id);
 
-        $this->validateWithIndexRedirect($request, [
-            'nombre' => 'required|string|max:120|unique:dependencias,nombre,'.$dependencia->id,
-        ], [
-            'nombre.required' => 'El nombre de la dependencia es obligatorio.',
-            'nombre.unique' => 'Ya existe una dependencia con este nombre.',
-            'nombre.max' => 'El nombre no puede superar los 120 caracteres.',
-        ], 'dependencias.index');
-
-        try {
+        return $this->ejecutarAccion(function () use ($dependencia, $datos): void {
             $dependencia->update([
-                'nombre' => Str::title($request->nombre),
+                'nombre' => Str::title($datos['nombre']),
             ]);
 
             LoggerService::info('Dependencia actualizada', [
-                'nombre' => $request->nombre,
-                'user_id' => Auth::id(),
+                'nombre' => $datos['nombre'],
             ]);
-
-            return redirect()->route('dependencias.index')->with('success', 'Dependencia actualizada exitosamente.');
-        } catch (\Exception $e) {
-            LoggerService::error('Error al actualizar dependencia', [
-                'nombre' => $request->nombre,
-                'user_id' => Auth::id(),
-            ], $e);
-
-            return redirect()->route('dependencias.index')->with('error', $this->mensajeError($e, 'No se pudo actualizar la dependencia.'));
-        }
+        }, 'dependencias.index', 'Dependencia actualizada exitosamente.', 'No se pudo actualizar la dependencia.', 'Error al actualizar dependencia', [
+            'nombre' => $request->nombre,
+        ]);
     }
 
-    public function destroy(string $id)
+    public function destroy(dependencias $dependencia): RedirectResponse
     {
-        try {
-            if (funcionarios::where('dependencia_id', $id)->exists()) {
-                return redirect()->route('dependencias.index')->with('error', 'No se puede eliminar la dependencia porque tiene funcionarios asignados.');
-            }
+        if ($dependencia->funcionarios()->exists()) {
+            return redirect()->route('dependencias.index')
+                ->with('error', 'No se puede eliminar la dependencia porque tiene funcionarios asignados.');
+        }
 
-            $dependencia = dependencias::findOrFail($id);
+        return $this->ejecutarAccion(function () use ($dependencia): void {
             $dependencia->delete();
 
             LoggerService::info('Dependencia eliminada', [
                 'nombre' => $dependencia->nombre,
-                'user_id' => Auth::id(),
             ]);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al eliminar dependencia', [
-                'id' => $id,
-                'user_id' => Auth::id(),
-            ], $e);
+        }, 'dependencias.index', 'Dependencia eliminada exitosamente.', 'No se pudo eliminar la dependencia.', 'Error al eliminar dependencia', [
+            'id' => $dependencia->id,
+        ]);
+    }
 
-            return redirect()->route('dependencias.index')->with('error', $this->mensajeError($e, 'No se pudo eliminar la dependencia.'));
-        }
-
-        return redirect()->route('dependencias.index')->with('success', 'Dependencia eliminada exitosamente.');
+    /**
+     * @return array<string, mixed>
+     */
+    private function validarNombre(Request $request, ?int $ignoreId = null): array
+    {
+        return $this->validateWithIndexRedirect($request, [
+            'nombre' => 'required|string|max:120|unique:dependencias,nombre'.($ignoreId ? ','.$ignoreId : ''),
+        ], [
+            'nombre.required' => 'El nombre de la dependencia es obligatorio.',
+            'nombre.unique' => 'Ya existe una dependencia con este nombre.',
+            'nombre.max' => 'El nombre no puede superar los 120 caracteres.',
+        ], 'dependencias.index');
     }
 }

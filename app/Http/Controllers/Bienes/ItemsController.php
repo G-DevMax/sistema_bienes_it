@@ -7,6 +7,7 @@ use App\Models\Bienes\categorias;
 use App\Models\Bienes\items;
 use App\Services\Bienes\MovimientoService;
 use App\Services\LoggerService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -16,9 +17,6 @@ class ItemsController extends Controller
 {
     public function __construct(private MovimientoService $movimientoService) {}
 
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $items = items::with(['categoria', 'estado'])
@@ -32,9 +30,6 @@ class ItemsController extends Controller
         return view('Bienes.items.index', compact('items', 'resumen'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $categorias = categorias::all();
@@ -42,139 +37,70 @@ class ItemsController extends Controller
         return view('Bienes.items.create', compact('categorias'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $datos = $this->validateWithIndexRedirect($request, [
-            'descripcion' => ['required', 'string', 'max:300'],
-            'categoria_id' => ['required', 'exists:categorias,id'],
-            'tiene_codigo' => ['nullable', 'boolean'],
-            'codigo_patrimonial' => ['required_if:tiene_codigo,1', 'nullable', 'string', 'max:60', 'unique:items,codigo_patrimonial'],
-            'stock' => ['required_unless:tiene_codigo,1', 'nullable', 'integer', 'min:1'],
-        ], [
-            'descripcion.required' => 'La descripción del item es obligatoria.',
-            'descripcion.max' => 'La descripción no puede superar los 300 caracteres.',
-            'categoria_id.required' => 'Debe seleccionar una categoría.',
-            'categoria_id.exists' => 'La categoría seleccionada no es válida.',
-            'codigo_patrimonial.required_if' => 'Ingresá el código patrimonial o desmarcá la opción "Tiene código patrimonial".',
-            'codigo_patrimonial.unique' => 'Ya existe un item con ese código patrimonial.',
-            'codigo_patrimonial.max' => 'El código patrimonial no puede superar los 60 caracteres.',
-            'stock.required_unless' => 'El stock inicial es obligatorio para items genéricos.',
-            'stock.integer' => 'El stock debe ser un número entero.',
-            'stock.min' => 'El stock inicial debe ser al menos :min.',
-        ], 'items.index');
+        $datos = $this->validarItem($request);
 
         if (! $request->boolean('tiene_codigo')) {
             $datos['codigo_patrimonial'] = null;
         }
 
-        // se crea un candado por usuario para detener la accion durante unos segundos (evita cargar dos veces la misma petición)
         $lock = Cache::lock('crear_item_usuario_'.Auth::id(), 10);
 
         if (! $lock->get()) {
-            // si hay un candado, se redirige al usuario a la misma pagina pero con un mensaje de error
             return redirect()->route('items.index')->with('error', 'Ya se está procesando tu solicitud, porfavor espera....');
         }
 
         try {
-            LoggerService::info('Crear item', [
+            return $this->ejecutarAccion(function () use ($datos, $request): void {
+                $this->movimientoService->crearItem($datos, Auth::id());
+
+                LoggerService::info('Crear item', [
+                    'descripcion' => $datos['descripcion'],
+                    'categoria_id' => $datos['categoria_id'],
+                    'tiene_codigo' => $request->tiene_codigo,
+                    'codigo_patrimonial' => $datos['codigo_patrimonial'] ?? null,
+                    'stock' => $datos['stock'] ?? null,
+                ]);
+            }, 'items.index', 'Item creado correctamente.', 'Error al crear item.', 'Error al crear item', [
                 'descripcion' => $request->descripcion,
                 'categoria_id' => $request->categoria_id,
                 'tiene_codigo' => $request->tiene_codigo,
                 'codigo_patrimonial' => $request->codigo_patrimonial,
                 'stock' => $request->stock,
-                'user_id' => Auth::id(),
             ]);
-
-            $this->movimientoService->crearItem($datos, Auth::id());
-            $lock->release(); // se libera el candado
-        } catch (\Exception $e) {
+        } finally {
             $lock->release();
-            LoggerService::error('Error al crear item', [
-                'descripcion' => $request->descripcion,
-                'categoria_id' => $request->categoria_id,
-                'tiene_codigo' => $request->tiene_codigo,
-                'codigo_patrimonial' => $request->codigo_patrimonial,
-                'stock' => $request->stock,
-                'user_id' => Auth::id(),
-            ], $e);
-
-            return redirect()->route('items.index')->with('error', $this->mensajeError($e, 'Error al crear item.'));
         }
-
-        return redirect()->route('items.index')->with('success', 'Item creado correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        return redirect()->route('items.index');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function edit(items $item)
     {
         $categorias = categorias::orderBy('nombre', 'ASC')->get();
-        $item = items::findOrFail($id);
 
         return view('Bienes.items.edit', compact('categorias', 'item'));
     }
 
     /**
-     * Update the specified resource in storage.
      * El stock y el estado NO se editan aqui: solo cambian mediante movimientos.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, items $item): RedirectResponse
     {
-        $item = items::findOrFail($id);
+        $datos = $this->validarItem($request, $item);
 
-        $reglas = [
-            'descripcion' => ['required', 'string', 'max:300'],
-            'categoria_id' => ['required', 'exists:categorias,id'],
-        ];
-        if ($item->esSerializado()) {
-            $reglas['codigo_patrimonial'] = ['required', 'string', 'max:60', Rule::unique('items', 'codigo_patrimonial')->ignore($item->id)];
-        }
-
-        $mensajes = [
-            'descripcion.required' => 'La descripción del item es obligatoria.',
-            'descripcion.max' => 'La descripción no puede superar los 300 caracteres.',
-            'categoria_id.required' => 'Debe seleccionar una categoría.',
-            'categoria_id.exists' => 'La categoría seleccionada no es válida.',
-            'codigo_patrimonial.required' => 'El código patrimonial es obligatorio para items serializados.',
-            'codigo_patrimonial.unique' => 'Ya existe un item con ese código patrimonial.',
-            'codigo_patrimonial.max' => 'El código patrimonial no puede superar los 60 caracteres.',
-        ];
-
-        $datos = $this->validateWithIndexRedirect($request, $reglas, $mensajes, 'items.index');
-
-        try {
+        return $this->ejecutarAccion(function () use ($item, $datos): void {
             $item->update($datos);
 
             LoggerService::info('Item actualizado', [
-                'descripcion' => $request->descripcion,
-                'categoria_id' => $request->categoria_id,
-                'codigo_patrimonial' => $request->codigo_patrimonial,
-                'user_id' => Auth::id(),
+                'descripcion' => $datos['descripcion'],
+                'categoria_id' => $datos['categoria_id'],
+                'codigo_patrimonial' => $datos['codigo_patrimonial'] ?? null,
             ]);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al actualizar item', [
-                'descripcion' => $request->descripcion,
-                'categoria_id' => $request->categoria_id,
-                'codigo_patrimonial' => $request->codigo_patrimonial,
-                'user_id' => Auth::id(),
-            ], $e);
-
-            return redirect()->route('items.index')->with('error', $this->mensajeError($e, 'Error al actualizar item.'));
-        }
-
-        return redirect()->route('items.index')->with('success', 'Item actualizado correctamente.');
+        }, 'items.index', 'Item actualizado correctamente.', 'Error al actualizar item.', 'Error al actualizar item', [
+            'descripcion' => $request->descripcion,
+            'categoria_id' => $request->categoria_id,
+            'codigo_patrimonial' => $request->codigo_patrimonial,
+        ]);
     }
 
     /**
@@ -188,7 +114,7 @@ class ItemsController extends Controller
     /**
      * Ingreso de unidades adicionales para items genericos.
      */
-    public function ingresarStock(Request $request, string $id)
+    public function ingresarStock(Request $request, string $id): RedirectResponse
     {
         $datos = $this->validateWithIndexRedirect($request, [
             'cantidad' => ['required', 'integer', 'min:1'],
@@ -200,35 +126,59 @@ class ItemsController extends Controller
             'observaciones.max' => 'Las observaciones no pueden superar los 1000 caracteres.',
         ], 'items.index');
 
-        // se crea un candado por usuario para detener la accion durante unos segundos (evita cargar dos veces la misma petición)
         $lock = Cache::lock('ingresar_stock_usuario_'.Auth::id(), 10);
 
         if (! $lock->get()) {
-            // si hay un candado, se redirige al usuario a la misma pagina pero con un mensaje de error
             return redirect()->route('items.index')->with('error', 'Ya se está procesando tu solicitud, porfavor espera....');
         }
 
         try {
-            $this->movimientoService->ingresarStock((int) $id, (int) $datos['cantidad'], Auth::id(), $datos['observaciones'] ?? null);
+            return $this->ejecutarAccion(function () use ($id, $datos): void {
+                $this->movimientoService->ingresarStock((int) $id, (int) $datos['cantidad'], Auth::id(), $datos['observaciones'] ?? null);
 
-            LoggerService::info('Stock ingresado', [
+                LoggerService::info('Stock ingresado', [
+                    'cantidad' => $datos['cantidad'],
+                    'observaciones' => $datos['observaciones'] ?? null,
+                ]);
+            }, 'items.index', "Se ingresaron {$datos['cantidad']} unidad(es) al stock", 'Error al ingresar stock.', 'Error al ingresar stock', [
                 'cantidad' => $request->cantidad,
                 'observaciones' => $request->observaciones,
-                'user_id' => Auth::id(),
             ]);
-
+        } finally {
             $lock->release();
-        } catch (\Exception $e) {
-            $lock->release();
-            LoggerService::error('Error al ingresar stock', [
-                'cantidad' => $request->cantidad,
-                'observaciones' => $request->observaciones,
-                'user_id' => Auth::id(),
-            ], $e);
+        }
+    }
 
-            return redirect()->route('items.index')->with('error', $this->mensajeError($e, 'Error al ingresar stock.'));
+    /**
+     * @return array<string, mixed>
+     */
+    private function validarItem(Request $request, ?items $item = null): array
+    {
+        $reglas = [
+            'descripcion' => ['required', 'string', 'max:300'],
+            'categoria_id' => ['required', 'exists:categorias,id'],
+        ];
+
+        if ($item === null) {
+            $reglas['tiene_codigo'] = ['nullable', 'boolean'];
+            $reglas['codigo_patrimonial'] = ['required_if:tiene_codigo,1', 'nullable', 'string', 'max:60', 'unique:items,codigo_patrimonial'];
+            $reglas['stock'] = ['required_unless:tiene_codigo,1', 'nullable', 'integer', 'min:1'];
+        } elseif ($item->esSerializado()) {
+            $reglas['codigo_patrimonial'] = ['required', 'string', 'max:60', Rule::unique('items', 'codigo_patrimonial')->ignore($item->id)];
         }
 
-        return redirect()->route('items.index')->with('success', "Se ingresaron {$datos['cantidad']} unidad(es) al stock");
+        return $this->validateWithIndexRedirect($request, $reglas, [
+            'descripcion.required' => 'La descripción del item es obligatoria.',
+            'descripcion.max' => 'La descripción no puede superar los 300 caracteres.',
+            'categoria_id.required' => 'Debe seleccionar una categoría.',
+            'categoria_id.exists' => 'La categoría seleccionada no es válida.',
+            'codigo_patrimonial.required' => 'El código patrimonial es obligatorio para items serializados.',
+            'codigo_patrimonial.required_if' => 'Ingresá el código patrimonial o desmarcá la opción "Tiene código patrimonial".',
+            'codigo_patrimonial.unique' => 'Ya existe un item con ese código patrimonial.',
+            'codigo_patrimonial.max' => 'El código patrimonial no puede superar los 60 caracteres.',
+            'stock.required_unless' => 'El stock inicial es obligatorio para items genéricos.',
+            'stock.integer' => 'El stock debe ser un número entero.',
+            'stock.min' => 'El stock inicial debe ser al menos :min.',
+        ], 'items.index');
     }
 }

@@ -72,9 +72,8 @@
                 </div>
 
                 <div class="pt-4 border-t border-white/10">
-                    <span class="block text-xs font-medium text-white/50 mb-2">Descripción del Problema</span>
-                    <div
-                        class="text-sm text-white/90 bg-white/5 border border-white/10 p-4 rounded-xl whitespace-pre-line">
+                    <span class="block text-xs font-medium text-white/50 mb-2">Descripción del Ticket</span>
+                    <div class="text-sm text-white/90 bg-white/5 border border-white/10 p-4 rounded-xl whitespace-pre-line">
                         {{ $ticket->descripcion_problema }}</div>
                 </div>
 
@@ -82,9 +81,11 @@
                     @php $rutaImagen = '/' . ltrim($ticket->imagen_problema, '/'); @endphp
                     <div class="pt-4 border-t border-white/10">
                         <span class="block text-xs font-medium text-white/50 mb-2">Foto del Problema</span>
-                        <a href="{{ $rutaImagen }}" target="_blank" rel="noopener noreferrer" class="inline-block max-w-full">
-                            <img src="{{ $rutaImagen }}" alt="Foto del problema del ticket #{{ $ticket->numero_ticket }}"
-                                loading="lazy" class="max-w-full max-h-64 rounded-lg cursor-pointer">
+                        <a href="{{ $rutaImagen }}" target="_blank" rel="noopener noreferrer"
+                            class="inline-block max-w-full">
+                            <img src="{{ $rutaImagen }}"
+                                alt="Foto del problema del ticket #{{ $ticket->numero_ticket }}" loading="lazy"
+                                class="max-w-full max-h-64 rounded-lg cursor-pointer">
                         </a>
                     </div>
                 @endif
@@ -92,7 +93,7 @@
                 @if ($ticket->estaCerrado())
                     <div class="pt-4 border-t border-white/10 space-y-4">
                         <div>
-                            <span class="block text-xs font-medium text-white/50 mb-1">Solución Común</span>
+                            <span class="block text-xs font-medium text-white/50 mb-1">Solución</span>
                             <p class="font-medium text-white">{{ $ticket->solucionTexto() }}</p>
                         </div>
                         <div>
@@ -204,8 +205,7 @@
                                         <span id="badge-observacion"
                                             class="ml-1 text-xs font-normal text-white/50">(Opcional)</span>
                                     </label>
-                                    <textarea name="observacion" id="observacion" rows="4"
-                                        placeholder="Describe brevemente la solución aplicada..."
+                                    <textarea name="observacion" id="observacion" rows="4" placeholder="Describe brevemente la solución aplicada..."
                                         class="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-base text-white placeholder-white/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all">{{ old('observacion') }}</textarea>
                                 </div>
                                 <button type="submit"

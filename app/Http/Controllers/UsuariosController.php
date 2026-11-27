@@ -15,9 +15,6 @@ use Illuminate\Support\Str;
 
 class UsuariosController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         $usuarios = User::with('rol')
@@ -25,17 +22,13 @@ class UsuariosController extends Controller
             ->orderBy('name', 'ASC')
             ->paginate(10);
 
-        $tecnicosActivos = User::where('estado_user', 1)
-            ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO])
+        $tecnicosActivos = User::tecnicosActivos()
             ->orderBy('name', 'ASC')
             ->get(['id', 'name']);
 
         return view('usuarios.index', compact('usuarios', 'tecnicosActivos'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $roles = rol::orderBy('nombre', 'ASC')->get();
@@ -43,93 +36,50 @@ class UsuariosController extends Controller
         return view('usuarios.create', compact('roles'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $this->validateWithIndexRedirect($request, [
-            'name' => 'required|string|max:120',
-            'email' => 'required|email|max:150|unique:users,email',
-            'password' => 'required|string|min:4',
-            'rol_id' => 'required|exists:roles,id',
-        ], [
-            'name.required' => 'El nombre del usuario es obligatorio.',
-            'name.max' => 'El nombre no puede superar los 120 caracteres.',
-            'email.required' => 'El correo electrónico es obligatorio.',
-            'email.email' => 'Debe ingresar un formato de correo electrónico válido.',
-            'email.unique' => 'Este correo electrónico ya se encuentra registrado.',
-            'password.required' => 'La contraseña es obligatoria.',
-            'password.min' => 'La contraseña debe tener al menos :min caracteres.',
-            'rol_id.required' => 'Debe seleccionar un rol para el usuario.',
-            'rol_id.exists' => 'El rol seleccionado no es válido.',
-        ], 'usuarios.index');
+        $datos = $this->validarUsuario($request, true);
 
-        try {
+        return $this->ejecutarAccion(function () use ($datos): void {
             User::create([
-                'name' => Str::title($request->name),
-                'email' => strtolower($request->email),
-                'password' => $request->password,
-                'rol_id' => $request->rol_id,
+                'name' => Str::title($datos['name']),
+                'email' => strtolower($datos['email']),
+                'password' => $datos['password'],
+                'rol_id' => $datos['rol_id'],
                 'estado_user' => 1,
             ]);
 
             LoggerService::info('Usuario creado', [
-                'name' => $request->name,
-                'email' => $request->email,
-                'rol' => $request->rol_id,
-                'user_id' => Auth::id(), // id del administrador que creó el usuario
+                'name' => $datos['name'],
+                'email' => $datos['email'],
+                'rol' => $datos['rol_id'],
             ]);
-        } catch (\Exception $exception) {
-            LoggerService::error('Error al crear usuario', [
-                'name' => $request->name,
-                'email' => $request->email,
-                'rol' => $request->rol_id,
-                'user_id' => Auth::id(),
-            ], $exception);
-
-            return redirect()->route('usuarios.index')->with('error', $this->mensajeError($exception, 'Error al crear usuario.'));
-        }
-
-        return redirect()->route('usuarios.index')->with('success', 'Usuario creado exitosamente.');
+        }, 'usuarios.index', 'Usuario creado exitosamente.', 'Error al crear usuario.', 'Error al crear usuario', [
+            'name' => $request->name,
+            'email' => $request->email,
+            'rol' => $request->rol_id,
+        ]);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function edit(User $usuario)
     {
-        return redirect()->route('usuarios.index');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        $usuario = User::findOrFail($id);
         $roles = rol::orderBy('nombre', 'ASC')->get();
 
         return view('usuarios.edit', compact('usuario', 'roles'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, User $usuario): RedirectResponse
     {
-        $usuario_editado = User::findOrFail($id);
-        $esPropioUsuario = (int) Auth::id() === (int) $usuario_editado->id;
+        $esPropioUsuario = (int) Auth::id() === (int) $usuario->id;
 
         if ($esPropioUsuario && (
-            ($request->has('rol_id') && (int) $request->input('rol_id') !== (int) $usuario_editado->rol_id)
-            || ($request->has('estado_user') && (int) $request->input('estado_user') !== (int) $usuario_editado->estado_user)
+            ($request->has('rol_id') && (int) $request->input('rol_id') !== (int) $usuario->rol_id)
+            || ($request->has('estado_user') && (int) $request->input('estado_user') !== (int) $usuario->estado_user)
         )) {
             LoggerService::warning('Usuario intentó modificar su propio rol o estado', [
-                'user_id' => Auth::id(),
-                'rol_actual' => $usuario_editado->rol_id,
+                'rol_actual' => $usuario->rol_id,
                 'rol_solicitado' => $request->input('rol_id'),
-                'estado_actual' => $usuario_editado->estado_user,
+                'estado_actual' => $usuario->estado_user,
                 'estado_solicitado' => $request->input('estado_user'),
             ]);
 
@@ -137,60 +87,37 @@ class UsuariosController extends Controller
                 ->with('error', 'No puedes cambiar tu propio rol ni modificar el estado de tu cuenta en sesión.');
         }
 
-        $reglas = [
-            'name' => 'required|string|max:120',
-            'email' => 'required|email|max:150|unique:users,email,'.$usuario_editado->id,
-            'password' => 'nullable|string|min:4',
-        ];
+        $datos = $this->validarUsuario($request, false, $usuario->id, ! $esPropioUsuario);
 
-        if (! $esPropioUsuario) {
-            $reglas['rol_id'] = 'required|exists:roles,id';
-            $reglas['estado_user'] = 'required|in:0,1';
-        }
-
-        $this->validateWithIndexRedirect($request, $reglas, [
-            'name.required' => 'El nombre del usuario es obligatorio.',
-            'name.max' => 'El nombre no puede superar los 120 caracteres.',
-            'email.required' => 'El correo electrónico es obligatorio.',
-            'email.email' => 'Debe ingresar un formato de correo electrónico válido.',
-            'email.unique' => 'Este correo electrónico ya se encuentra registrado.',
-            'password.min' => 'La nueva contraseña debe tener al menos :min caracteres.',
-            'rol_id.required' => 'Debe seleccionar un rol para el usuario.',
-            'rol_id.exists' => 'El rol seleccionado no es válido.',
-            'estado_user.required' => 'Debe definir el estado del usuario.',
-            'estado_user.in' => 'El estado seleccionado no es válido.',
-        ], 'usuarios.index');
-
-        try {
+        return $this->ejecutarAccion(function () use ($request, $usuario, $datos, $esPropioUsuario): ?RedirectResponse {
             $cambioPassword = $request->filled('password');
 
-            $redireccion = DB::transaction(function () use ($request, $usuario_editado, $esPropioUsuario, $cambioPassword): ?RedirectResponse {
-                if (! $esPropioUsuario && (int) $request->estado_user === 0) {
-                    $redir = $this->gestionarTicketsAlDesactivar($request, $usuario_editado);
+            $redireccion = DB::transaction(function () use ($request, $usuario, $datos, $esPropioUsuario, $cambioPassword): ?RedirectResponse {
+                if (! $esPropioUsuario && (int) $datos['estado_user'] === 0) {
+                    $redir = $this->gestionarTicketsAlDesactivar($request, $usuario);
                     if ($redir !== null) {
                         return $redir;
                     }
                 }
 
-                $usuario_editado->name = Str::title($request->name);
-                $usuario_editado->email = strtolower($request->email);
+                $usuario->name = Str::title($datos['name']);
+                $usuario->email = strtolower($datos['email']);
 
-                // Si se envió una nueva contraseña, se actualiza
                 if ($cambioPassword) {
-                    $usuario_editado->password = $request->password;
+                    $usuario->password = $datos['password'];
                 }
 
                 if (! $esPropioUsuario) {
-                    $usuario_editado->estado_user = $request->estado_user;
-                    $usuario_editado->rol_id = $request->rol_id;
+                    $usuario->estado_user = $datos['estado_user'];
+                    $usuario->rol_id = $datos['rol_id'];
                 }
 
                 // Rotar token al cambiar contraseña o desactivar para invalidar cookies "recordarme"
-                if ($cambioPassword || (int) $usuario_editado->estado_user !== 1) {
-                    $usuario_editado->setRememberToken(Str::random(60));
+                if ($cambioPassword || (int) $usuario->estado_user !== 1) {
+                    $usuario->setRememberToken(Str::random(60));
                 }
 
-                $usuario_editado->save();
+                $usuario->save();
 
                 return null;
             });
@@ -201,57 +128,46 @@ class UsuariosController extends Controller
 
             // Mantener la sesión actual del propio usuario al cambiar su propia contraseña
             if ($esPropioUsuario && $cambioPassword) {
-                Auth::setUser($usuario_editado);
+                Auth::setUser($usuario);
             }
 
             LoggerService::info('Usuario actualizado', [
-                'name' => $request->name,
-                'email' => $request->email,
-                'rol' => $usuario_editado->rol_id,
-                'user_id' => Auth::id(),
+                'name' => $datos['name'],
+                'email' => $datos['email'],
+                'rol' => $usuario->rol_id,
             ]);
-        } catch (\Exception $exception) {
-            LoggerService::error('Error al actualizar usuario', [
-                'name' => $request->name,
-                'email' => $request->email,
-                'rol' => $usuario_editado->rol_id,
-                'user_id' => Auth::id(),
-            ], $exception);
 
-            return redirect()->route('usuarios.index')->with('error', $this->mensajeError($exception, 'Error al actualizar usuario.'));
-        }
-
-        return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado exitosamente.');
+            return null;
+        }, 'usuarios.index', 'Usuario actualizado exitosamente.', 'Error al actualizar usuario.', 'Error al actualizar usuario', [
+            'name' => $request->name,
+            'email' => $request->email,
+            'rol' => $usuario->rol_id,
+        ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Request $request, string $id)
+    public function destroy(Request $request, User $usuario): RedirectResponse
     {
-        $usuario_eliminar = User::findOrFail($id);
-
-        if (Auth::id() == $usuario_eliminar->id) {
+        if ((int) Auth::id() === (int) $usuario->id) {
             LoggerService::warning('Usuario intentó desactivar su propia cuenta', [
-                'name' => $usuario_eliminar->name,
-                'email' => $usuario_eliminar->email,
-                'rol' => $usuario_eliminar->rol_id,
-                'user_id' => Auth::id(),
+                'name' => $usuario->name,
+                'email' => $usuario->email,
+                'rol' => $usuario->rol_id,
             ]);
 
             return redirect()->route('usuarios.index')->with('error', 'No puedes desactivar tu propia cuenta de usuario en sesión.');
         }
 
-        try {
-            $redireccion = DB::transaction(function () use ($request, $usuario_eliminar): ?RedirectResponse {
-                $redir = $this->gestionarTicketsAlDesactivar($request, $usuario_eliminar);
+        return $this->ejecutarAccion(function () use ($request, $usuario): ?RedirectResponse {
+            $redireccion = DB::transaction(function () use ($request, $usuario): ?RedirectResponse {
+                $redir = $this->gestionarTicketsAlDesactivar($request, $usuario);
                 if ($redir !== null) {
                     return $redir;
                 }
 
-                $usuario_eliminar->estado_user = 0;
-                $usuario_eliminar->setRememberToken(Str::random(60));
-                $usuario_eliminar->save();
+                $usuario->forceFill([
+                    'estado_user' => 0,
+                    'remember_token' => Str::random(60),
+                ])->save();
 
                 return null;
             });
@@ -261,23 +177,50 @@ class UsuariosController extends Controller
             }
 
             LoggerService::info('Usuario desactivado', [
-                'name' => $usuario_eliminar->name,
-                'email' => $usuario_eliminar->email,
-                'rol' => $usuario_eliminar->rol_id,
-                'user_id' => Auth::id(),
+                'name' => $usuario->name,
+                'email' => $usuario->email,
+                'rol' => $usuario->rol_id,
             ]);
-        } catch (\Exception $exception) {
-            LoggerService::error('Error al desactivar usuario', [
-                'name' => $usuario_eliminar->name,
-                'email' => $usuario_eliminar->email,
-                'rol' => $usuario_eliminar->rol_id,
-                'user_id' => Auth::id(),
-            ], $exception);
 
-            return redirect()->route('usuarios.index')->with('error', $this->mensajeError($exception, 'Error al desactivar usuario.'));
+            return null;
+        }, 'usuarios.index', 'Usuario desactivado exitosamente.', 'Error al desactivar usuario.', 'Error al desactivar usuario', [
+            'name' => $usuario->name,
+            'email' => $usuario->email,
+            'rol' => $usuario->rol_id,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validarUsuario(Request $request, bool $esCreacion, ?int $ignoreId = null, bool $validarRolYEstado = true): array
+    {
+        $reglas = [
+            'name' => 'required|string|max:120',
+            'email' => 'required|email|max:150|unique:users,email'.($ignoreId ? ','.$ignoreId : ''),
+            'password' => ($esCreacion ? 'required' : 'nullable').'|string|min:4',
+        ];
+
+        if ($validarRolYEstado) {
+            $reglas['rol_id'] = 'required|exists:roles,id';
+            if (! $esCreacion) {
+                $reglas['estado_user'] = 'required|in:0,1';
+            }
         }
 
-        return redirect()->route('usuarios.index')->with('success', 'Usuario desactivado exitosamente.');
+        return $this->validateWithIndexRedirect($request, $reglas, [
+            'name.required' => 'El nombre del usuario es obligatorio.',
+            'name.max' => 'El nombre no puede superar los 120 caracteres.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Debe ingresar un formato de correo electrónico válido.',
+            'email.unique' => 'Este correo electrónico ya se encuentra registrado.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.min' => 'La contraseña debe tener al menos :min caracteres.',
+            'rol_id.required' => 'Debe seleccionar un rol para el usuario.',
+            'rol_id.exists' => 'El rol seleccionado no es válido.',
+            'estado_user.required' => 'Debe definir el estado del usuario.',
+            'estado_user.in' => 'El estado seleccionado no es válido.',
+        ], 'usuarios.index');
     }
 
     /**
@@ -296,10 +239,7 @@ class UsuariosController extends Controller
 
         $nuevoTecnicoId = $request->input('reasignar_a');
         $nuevoTecnico = filled($nuevoTecnicoId)
-            ? User::where('id', '!=', $usuario->id)
-                ->where('estado_user', 1)
-                ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO])
-                ->find($nuevoTecnicoId)
+            ? User::tecnicosActivos()->where('id', '!=', $usuario->id)->find($nuevoTecnicoId)
             : null;
 
         if (! $nuevoTecnico) {

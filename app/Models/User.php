@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Models\Tickets\Ticket;
 use App\Traits\LogsHistory;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -39,6 +40,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Ticket::class, 'asignado_a')
             ->where('estado', Ticket::ESTADO_ASIGNADO);
+    }
+
+    public function scopeTecnicosActivos(Builder $query): Builder
+    {
+        return $query->where('estado_user', 1)
+            ->whereIn('rol_id', [rol::ADMIN, rol::TECNICO_TERCERIZADO]);
     }
 
     public function esAdmin(): bool

@@ -23,12 +23,10 @@ class HistorialController extends Controller
                 'date',
                 'after_or_equal:fecha_inicio',
                 function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
-                    $inicio = $request->input('fecha_inicio');
-                    if (is_string($inicio) && strtotime($inicio) !== false && strtotime((string) $value) !== false) {
-                        $limite = Carbon::parse($inicio)->addMonthsNoOverflow(self::MAX_MESES_RANGO);
-                        if (Carbon::parse((string) $value)->gt($limite)) {
-                            $fail('El rango máximo permitido para descargar el historial es de '.self::MAX_MESES_RANGO.' meses.');
-                        }
+                    $inicio = Carbon::make($request->input('fecha_inicio'));
+                    $fin = Carbon::make($value);
+                    if ($inicio && $fin && $fin->gt($inicio->copy()->addMonthsNoOverflow(self::MAX_MESES_RANGO))) {
+                        $fail('El rango máximo permitido para descargar el historial es de '.self::MAX_MESES_RANGO.' meses.');
                     }
                 },
             ],

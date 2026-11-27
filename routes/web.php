@@ -40,15 +40,15 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
         });
 
         // Registra CRUD en orden seguro (create antes de {id}) con permiso por acción
-        $recursoPorAccion = static function (string $nombre, string $controlador, string $ver, string $crear, string $editar, string $eliminar): void {
+        $recursoPorAccion = static function (string $nombre, string $controlador, string $ver, string $crear, string $editar, string $eliminar, bool $conShow = true): void {
             Route::resource($nombre, $controlador)->only(['create', 'store'])->middleware("can:{$crear}");
             Route::resource($nombre, $controlador)->only(['edit', 'update'])->middleware("can:{$editar}");
             Route::resource($nombre, $controlador)->only(['destroy'])->middleware("can:{$eliminar}");
-            Route::resource($nombre, $controlador)->only(['index', 'show'])->middleware("can:{$ver}");
+            Route::resource($nombre, $controlador)->only($conShow ? ['index', 'show'] : ['index'])->middleware("can:{$ver}");
         };
 
         // Usuarios e Historial (solo Administrador IT)
-        Route::resource('usuarios', UsuariosController::class)->middleware('can:usuarios.gestionar');
+        Route::resource('usuarios', UsuariosController::class)->except(['show'])->middleware('can:usuarios.gestionar');
         Route::get('historial/descargar', [HistorialController::class, 'descargar'])
             ->name('historial.descargar')
             ->middleware('can:historial.descargar');
@@ -57,10 +57,10 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
         Route::post('items/{item}/ingresar-stock', [ItemsController::class, 'ingresarStock'])
             ->name('items.ingresar-stock')
             ->middleware('can:bienes.crear');
-        $recursoPorAccion('items', ItemsController::class, 'bienes.ver', 'bienes.crear', 'bienes.editar', 'bienes.eliminar');
-        $recursoPorAccion('categorias', CategoriasController::class, 'bienes.ver', 'bienes.crear', 'bienes.editar', 'bienes.eliminar');
-        $recursoPorAccion('dependencias', DependenciasController::class, 'bienes.ver', 'bienes.crear', 'bienes.editar', 'bienes.eliminar');
-        $recursoPorAccion('funcionarios', FuncionariosController::class, 'funcionarios.ver', 'funcionarios.gestionar', 'funcionarios.gestionar', 'funcionarios.gestionar');
+        $recursoPorAccion('items', ItemsController::class, 'bienes.ver', 'bienes.crear', 'bienes.editar', 'bienes.eliminar', false);
+        $recursoPorAccion('categorias', CategoriasController::class, 'bienes.ver', 'bienes.crear', 'bienes.editar', 'bienes.eliminar', false);
+        $recursoPorAccion('dependencias', DependenciasController::class, 'bienes.ver', 'bienes.crear', 'bienes.editar', 'bienes.eliminar', false);
+        $recursoPorAccion('funcionarios', FuncionariosController::class, 'funcionarios.ver', 'funcionarios.gestionar', 'funcionarios.gestionar', 'funcionarios.gestionar', false);
 
         // Los movimientos no se editan ni eliminan: se corrigen con devoluciones, bajas o anulaciones
         // Las rutas estáticas van antes de movimientos/{movimiento}

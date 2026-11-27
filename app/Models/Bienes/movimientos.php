@@ -4,19 +4,26 @@ namespace App\Models\Bienes;
 
 use App\Models\funcionarios;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
+use App\Traits\BuscadorUniversal;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class movimientos extends Model
 {
-    use HasFactory, \App\Traits\LogsHistory, \App\Traits\BuscadorUniversal;
+    use \App\Traits\LogsHistory, BuscadorUniversal, HasFactory;
 
     // tipos de movimiento
     public const INGRESO = 'ingreso';
+
     public const PRESTAMO = 'prestamo';
+
     public const TRANSFERENCIA = 'transferencia';
+
     public const DEVOLUCION = 'devolucion';
+
     public const BAJA = 'baja';
+
+    public const SQL_HIJOS_ACTIVOS = '(SELECT COALESCE(SUM(h.cantidad), 0) FROM movimientos h WHERE h.movimiento_origen_id = movimientos.id AND h.anulado_at IS NULL)';
 
     public const ETIQUETAS = [
         self::INGRESO => 'Ingreso',
@@ -33,7 +40,7 @@ class movimientos extends Model
         'funcionario.nombre',
     ];
 
-    protected $table = "movimientos";
+    protected $table = 'movimientos';
 
     protected $fillable = [
         'lote_id',
@@ -105,6 +112,13 @@ class movimientos extends Model
         return $query->whereNull('anulado_at');
     }
 
+    public function scopePrestamosPendientes($query)
+    {
+        return $query->activos()
+            ->where('tipo_movimiento', self::PRESTAMO)
+            ->whereRaw('cantidad > '.self::SQL_HIJOS_ACTIVOS);
+    }
+
     public function estaAnulado(): bool
     {
         return $this->anulado_at !== null;
@@ -119,7 +133,7 @@ class movimientos extends Model
     // cantidad que todavia no volvio (ni fue dada de baja) de un prestamo/transferencia
     public function cantidadPendiente(): int
     {
-        if (!$this->esEntrega() || $this->estaAnulado()) {
+        if (! $this->esEntrega() || $this->estaAnulado()) {
             return 0;
         }
 
@@ -136,7 +150,7 @@ class movimientos extends Model
         return $this->tipo_movimiento === self::PRESTAMO
             && $this->fecha_devolucion_prevista !== null
             && $this->fecha_devolucion_prevista->isPast()
-            && !$this->fecha_devolucion_prevista->isToday()
+            && ! $this->fecha_devolucion_prevista->isToday()
             && $this->cantidadPendiente() > 0;
     }
 

@@ -10,6 +10,7 @@ use App\Models\Informes\detalles_soluciones;
 use App\Models\Informes\informes;
 use App\Services\Informes\InformePdfService;
 use App\Services\LoggerService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -36,20 +37,20 @@ class InformeController extends Controller
     public function create()
     {
         $funcionarios = funcionarios::where('estado_funcionario', 1)->orderBy('nombre')->get();
-        $tiposProblema = TipoProblema::values();
-        $detalles = detalles_problemas::orderBy('detalle')->get();
-        $soluciones = detalles_soluciones::orderBy('solucion')->get();
         $fechaHora = now();
 
-        return view('Informes.create', compact('funcionarios', 'tiposProblema', 'detalles', 'soluciones', 'fechaHora'));
+        return view('Informes.create', array_merge(
+            compact('funcionarios', 'fechaHora'),
+            $this->catalogosFormulario()
+        ));
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $datos = $this->validarInforme($request);
         $datos['user_id'] = Auth::id();
 
-        try {
+        return $this->ejecutarAccion(function () use ($datos): void {
             $informe = informes::create($datos);
 
             LoggerService::info('Informe registrado', [
@@ -58,19 +59,11 @@ class InformeController extends Controller
                 'tipo_problema' => $informe->tipo_problema,
                 'detalle_id' => $informe->detalle_id,
                 'solucion_id' => $informe->solucion_id,
-                'user_id' => Auth::id(),
             ]);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al registrar informe', [
-                'funcionario_id' => $request->funcionario_id,
-                'tipo_problema' => $request->tipo_problema,
-                'user_id' => Auth::id(),
-            ], $e);
-
-            return redirect()->route('informes.index')->with('error', $this->mensajeError($e, 'No se pudo registrar el informe.'));
-        }
-
-        return redirect()->route('informes.index')->with('success', 'Informe registrado exitosamente.');
+        }, 'informes.index', 'Informe registrado exitosamente.', 'No se pudo registrar el informe.', 'Error al registrar informe', [
+            'funcionario_id' => $request->funcionario_id,
+            'tipo_problema' => $request->tipo_problema,
+        ]);
     }
 
     public function show(string $id)
@@ -95,15 +88,15 @@ class InformeController extends Controller
             ->orWhere('id', $informe->funcionario_id)
             ->orderBy('nombre')
             ->get();
-        $tiposProblema = TipoProblema::values();
-        $detalles = detalles_problemas::orderBy('detalle')->get();
-        $soluciones = detalles_soluciones::orderBy('solucion')->get();
         $fechaHora = $informe->created_at;
 
-        return view('Informes.edit', compact('informe', 'funcionarios', 'tiposProblema', 'detalles', 'soluciones', 'fechaHora'));
+        return view('Informes.edit', array_merge(
+            compact('informe', 'funcionarios', 'fechaHora'),
+            $this->catalogosFormulario()
+        ));
     }
 
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id): RedirectResponse
     {
         $informe = informes::findOrFail($id);
 
@@ -117,7 +110,7 @@ class InformeController extends Controller
 
         $datos = $this->validarInforme($request, $informe);
 
-        try {
+        return $this->ejecutarAccion(function () use ($informe, $datos): void {
             $informe->update($datos);
 
             LoggerService::info('Informe actualizado', [
@@ -126,21 +119,13 @@ class InformeController extends Controller
                 'tipo_problema' => $informe->tipo_problema,
                 'detalle_id' => $informe->detalle_id,
                 'solucion_id' => $informe->solucion_id,
-                'user_id' => Auth::id(),
             ]);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al actualizar informe', [
-                'informe_id' => $informe->id,
-                'user_id' => Auth::id(),
-            ], $e);
-
-            return redirect()->route('informes.index')->with('error', $this->mensajeError($e, 'No se pudo actualizar el informe.'));
-        }
-
-        return redirect()->route('informes.index')->with('success', 'Informe actualizado exitosamente.');
+        }, 'informes.index', 'Informe actualizado exitosamente.', 'No se pudo actualizar el informe.', 'Error al actualizar informe', [
+            'informe_id' => $informe->id,
+        ]);
     }
 
-    public function destroy(string $id)
+    public function destroy(string $id): RedirectResponse
     {
         $informe = informes::findOrFail($id);
 
@@ -149,38 +134,37 @@ class InformeController extends Controller
                 ->with('error', 'No se puede eliminar un informe vinculado a un ticket.');
         }
 
-        try {
+        return $this->ejecutarAccion(function () use ($informe, $id): void {
             $informe->delete();
 
             LoggerService::info('Informe eliminado', [
                 'informe_id' => $id,
-                'user_id' => Auth::id(),
             ]);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al eliminar informe', [
-                'informe_id' => $id,
-                'user_id' => Auth::id(),
-            ], $e);
+        }, 'informes.index', 'Informe eliminado exitosamente.', 'No se pudo eliminar el informe.', 'Error al eliminar informe', [
+            'informe_id' => $id,
+        ]);
+    }
 
-            return redirect()->route('informes.index')->with('error', $this->mensajeError($e, 'No se pudo eliminar el informe.'));
-        }
-
-        return redirect()->route('informes.index')->with('success', 'Informe eliminado exitosamente.');
+    /**
+     * @return array<string, mixed>
+     */
+    private function catalogosFormulario(): array
+    {
+        return [
+            'tiposProblema' => TipoProblema::values(),
+            'detalles' => detalles_problemas::orderBy('detalle')->get(),
+            'soluciones' => detalles_soluciones::orderBy('solucion')->get(),
+        ];
     }
 
     private function validarInforme(Request $request, ?informes $informe = null): array
     {
         // "Otro (especificar)" puede llegar como "" o "otro" desde los selects del frontend
-        $detalleId = $request->input('detalle_id');
-        if ($detalleId === '' || $detalleId === 'otro') {
-            $request->merge(['detalle_id' => null]);
-            $detalleId = null;
-        }
-
-        $solucionId = $request->input('solucion_id');
-        if ($solucionId === '' || $solucionId === 'otro') {
-            $request->merge(['solucion_id' => null]);
-            $solucionId = null;
+        foreach (['detalle_id', 'solucion_id'] as $campo) {
+            $valor = $request->input($campo);
+            if ($valor === '' || $valor === 'otro') {
+                $request->merge([$campo => null]);
+            }
         }
 
         $vieneDeTicket = $informe?->vieneDeTicket() ?? false;
@@ -191,12 +175,7 @@ class InformeController extends Controller
                 'required',
                 'string',
                 'max:500',
-                function (string $attribute, mixed $value, \Closure $fail) {
-                    $palabras = preg_split('/\s+/u', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
-                    if (count($palabras) > 100) {
-                        $fail('El título no puede superar las 100 palabras.');
-                    }
-                },
+                $this->reglaMaxPalabras(100, 'El título no puede superar las 100 palabras.'),
             ],
             'detalle_id' => [
                 'nullable',
@@ -206,7 +185,11 @@ class InformeController extends Controller
                 'nullable',
                 Rule::exists('detalles_soluciones', 'id')->where('tipo_problema', $tipoProblema),
             ],
-            'observacion' => [Rule::requiredIf(empty($detalleId) && empty($solucionId)), 'nullable', 'string'],
+            'observacion' => [
+                Rule::requiredIf(empty($request->input('detalle_id')) && empty($request->input('solucion_id'))),
+                'nullable',
+                'string',
+            ],
         ];
 
         if (! $vieneDeTicket) {
@@ -220,7 +203,7 @@ class InformeController extends Controller
             'funcionario_id.required' => 'Debe seleccionar el funcionario atendido.',
             'funcionario_id.exists' => 'El funcionario seleccionado no es válido.',
             'tipo_problema.required' => 'Debe seleccionar el tipo de problema.',
-            'tipo_problema.in' => 'El tipo de problema seleccionado no es válido.',
+            'tipo_problema.enum' => 'El tipo de problema seleccionado no es válido.',
             'detalle_id.exists' => 'El detalle seleccionado no corresponde al tipo de problema indicado.',
             'solucion_id.exists' => 'La solución común seleccionada no corresponde al tipo de problema indicado.',
             'observacion.required' => 'Debe especificar el problema y la solución en observaciones al seleccionar "Otro (especificar)".',

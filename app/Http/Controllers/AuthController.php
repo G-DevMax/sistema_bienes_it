@@ -26,46 +26,37 @@ class AuthController extends Controller
             'password.required' => 'La contraseña es obligatoria.',
         ]);
 
-        try {
-            $remember = $request->boolean('remember', true);
+        $remember = $request->boolean('remember', true);
 
-            if (Auth::attempt(array_merge($credenciales, ['estado_user' => 1]), $remember)) {
-                $usuario = Auth::user();
+        if (Auth::attempt(array_merge($credenciales, ['estado_user' => 1]), $remember)) {
+            $usuario = Auth::user();
 
-                if (! $usuario->puedeIniciarSesion()) {
-                    Auth::logout();
-                    $request->session()->invalidate();
-                    $request->session()->regenerateToken();
+            if (! $usuario->puedeIniciarSesion()) {
+                $rolId = $usuario->rol_id;
+                $this->logout($request);
 
-                    LoggerService::warning('Intento de inicio de sesión de rol sin acceso', [
-                        'email' => $credenciales['email'],
-                        'rol_id' => $usuario->rol_id,
-                    ]);
-
-                    return back()->withInput($request->only('email'))->withErrors([
-                        'error' => 'Su rol no tiene permiso para acceder al sistema.',
-                    ]);
-                }
-
-                $request->session()->regenerate();
-
-                LoggerService::info('Inicio de Sesión', [
+                LoggerService::warning('Intento de inicio de sesión de rol sin acceso', [
                     'email' => $credenciales['email'],
+                    'rol_id' => $rolId,
                 ]);
 
-                return redirect()->intended($usuario->rutaInicio());
+                return back()->withInput($request->only('email'))->withErrors([
+                    'error' => 'Su rol no tiene permiso para acceder al sistema.',
+                ]);
             }
 
-            LoggerService::warning('Intento fallido de inicio de sesión', [
+            $request->session()->regenerate();
+
+            LoggerService::info('Inicio de Sesión', [
                 'email' => $credenciales['email'],
             ]);
-        } catch (\Exception $e) {
-            LoggerService::error('Error al iniciar sesión', [
-                'email' => $credenciales['email'],
-            ], $e);
 
-            return redirect()->route('login')->with('error', $this->mensajeError($e, 'No se pudo iniciar sesión. Intente nuevamente.'));
+            return redirect()->intended($usuario->rutaInicio());
         }
+
+        LoggerService::warning('Intento fallido de inicio de sesión', [
+            'email' => $credenciales['email'],
+        ]);
 
         return back()->withInput($request->only('email'))->withErrors([
             'error' => 'Las credenciales no coinciden o su cuenta está desactivada.',
